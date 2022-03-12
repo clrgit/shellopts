@@ -5,9 +5,13 @@ module ShellOpts
     class Node
       def puts_help() end
       def puts_usage() end
-    end
 
-    class Option
+      def format_usage(formatter) end
+      def format_brief(formatter) end
+      def format_help(formatter) end
+
+      # Prints the header of the node (option or sub-command) and its children nodes
+      def format_descr(formatter) end
     end
 
     class OptionGroup
@@ -21,6 +25,21 @@ module ShellOpts
             }
           elsif brief
             brief.puts_descr
+          end
+        }
+      end
+
+      def format_descr(formatter)
+        dev = formatter.device
+        dev.puts Ansi.bold(render(:multi))
+        dev.indent {
+          if description.any?
+            description.each { |descr|
+              descr.format_descr(formatter)
+              dev.puts if descr != description.last
+            }
+          elsif brief
+            brief.format_descr(formatter)
           end
         }
       end
@@ -169,15 +188,17 @@ module ShellOpts
     end
 
     class DocNode
-      def puts_descr() puts lines end
+      def puts_descr(formatter) formatter.puts lines end
     end
 
     module WrappedNode
       def puts_descr(width = Formatter.rest) puts lines(width) end
+      def format_descr(formatter, width = Formatter.rest) formatter.device.puts lines(width) end
     end
 
     class Code
-      def puts_descr() indent { super } end
+      def puts_descr(formatter) indent { super } end
+      def format_descr(formatter) indent { super } end
     end
   end
 
@@ -213,6 +234,17 @@ module ShellOpts
 
     # Indent to use in help output
     HELP_INDENT = 4
+
+    attr_reader :device
+    attr_reader :width
+    def rest() width - device.tab end
+
+    def initialize(device: $stdout, width: TermInfo.screen_width)
+      @device = device
+      @width = width - MARGIN_RIGHT
+    end
+
+    def self.rest() width - $stdout.tab end
 
     # Command prefix when subject is a sub-command
     def self.command_prefix() @command_prefix end

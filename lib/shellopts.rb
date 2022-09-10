@@ -1,17 +1,15 @@
 
 require 'indented_io'
-
 require 'constrain'
 include Constrain
 
-require 'ext/array.rb'
-require 'ext/follow.rb'
-require 'ext/forward_to.rb'
-require 'ext/lcs.rb'
+require_relative 'shellopts/ext/array.rb'
+require_relative 'shellopts/ext/follow.rb'
+require_relative 'shellopts/ext/forward_to.rb'
+require_relative 'shellopts/ext/lcs.rb'
 include ForwardTo
 
 require_relative 'shellopts/version.rb'
-
 require_relative 'shellopts/stack.rb'
 require_relative 'shellopts/token.rb'
 require_relative 'shellopts/grammar.rb'

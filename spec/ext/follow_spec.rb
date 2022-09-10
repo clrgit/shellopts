@@ -1,5 +1,5 @@
 
-require 'ext/follow.rb'
+require 'shellopts/ext/follow.rb'
 
 describe "Algorithm" do
   describe "::follow" do

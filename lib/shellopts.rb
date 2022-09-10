@@ -10,22 +10,23 @@ require 'ext/forward_to.rb'
 require 'ext/lcs.rb'
 include ForwardTo
 
-require 'shellopts/version.rb'
+require_relative 'shellopts/version.rb'
 
-require 'shellopts/stack.rb'
-require 'shellopts/token.rb'
-require 'shellopts/grammar.rb'
-require 'shellopts/program.rb'
-require 'shellopts/args.rb'
-require 'shellopts/lexer.rb'
-require 'shellopts/argument_type.rb'
-require 'shellopts/parser.rb'
-require 'shellopts/analyzer.rb'
-require 'shellopts/interpreter.rb'
-require 'shellopts/ansi.rb'
-require 'shellopts/renderer.rb'
-require 'shellopts/formatter.rb'
-require 'shellopts/dump.rb'
+require_relative 'shellopts/stack.rb'
+require_relative 'shellopts/token.rb'
+require_relative 'shellopts/grammar.rb'
+require_relative 'shellopts/program.rb'
+require_relative 'shellopts/args.rb'
+require_relative 'shellopts/lexer.rb'
+require_relative 'shellopts/line.rb'
+require_relative 'shellopts/argument_type.rb'
+require_relative 'shellopts/parser.rb'
+require_relative 'shellopts/analyzer.rb'
+require_relative 'shellopts/interpreter.rb'
+require_relative 'shellopts/ansi.rb'
+require_relative 'shellopts/renderer.rb'
+require_relative 'shellopts/formatter.rb'
+require_relative 'shellopts/dump.rb'
 
 # TODO: Describe exception handling
 #
@@ -166,7 +167,8 @@ module ShellOpts
     end
 
     # Compile source and return grammar object. Also sets #spec and #grammar.
-    # Returns the grammar
+    # Returns self
+    #
     def compile(spec)
       handle_exceptions {
         @oneline = spec.index("\n").nil?

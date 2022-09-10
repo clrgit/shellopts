@@ -31,6 +31,7 @@ describe "Command" do
         end
       end
     end
+
     context "when the key is a command" do
       let(:spec) { "cmd1! cmd1.cmd2! cmd1.cmd2.cmd3! cmd4!" }
       let(:args) { %w(cmd1 cmd2) }

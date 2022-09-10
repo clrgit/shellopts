@@ -12,11 +12,35 @@ include ShellOpts::Verbose
 #p ShellOpts::Messages.is_included?
 
 SPEC = %(
-  Test
+  Some text
 
-  -a
+  -a @brief description
     An option
+
+  command! -- CMDARG1 CMDARG2 @brief description of command
+    A command
+
+    -c
+      @brief description of the command option
+      An option for the command
+
+  -- ARG
+
+  another_command!
+    -d
+      @ option -d brief
+      Option -d description
+    -- ARGS HERE
+    @ brief here
+    Description here
 )
+
+lexer = ShellOpts::Lexer.new("main", SPEC, false)
+
+pp lexer.lex
+
+exit
+
 
 opts, args = ShellOpts.process(SPEC, ARGV, version: "--ver", version_number: "1.2.3", help: "-?,help")
 

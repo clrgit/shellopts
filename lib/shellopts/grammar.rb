@@ -47,13 +47,13 @@ module ShellOpts
     class IdrNode < Node
       # Command of this object (nil for the top-level Program object). This is
       # different from #parent when a subcommand is nested textually on a
-      # higher level than its supercommand.  Initialized by the analyzer
+      # higher level than its supercommand. Initialized by the analyzer
       attr_reader :command
 
-      # Unique identifier of node (String) within the context of a program. nil
-      # for the Program object. It is the dot-joined elements of path with
+      # Unique identifier of node (String) within the context of a program. Is
+      # nil for the Program object. It is the dot-joined elements of path with
       # internal exclamation marks removed (eg. "cmd.opt" or "cmd.cmd!").
-      # Initialize by the analyzer
+      # Initialized by the analyzer
       def uid() 
         @uid ||= command && [command.uid, ident].compact.join(".").sub(/!\./, ".") 
       end
@@ -64,7 +64,7 @@ module ShellOpts
 
       # Canonical identifier (Symbol) of the object
       #
-      # For options, this is the canonical name of the objekt without the
+      # For options, this is the canonical name of the object without the
       # initial '-' or '--'. For commands it is the command name including the
       # suffixed exclamation mark. Both options and commands have internal dashes
       # replaced with underscores. Initialized by the parser
@@ -291,6 +291,8 @@ module ShellOpts
       attr_reader :info
     end
 
+    # A specification of command line arguments (not very implemented). The
+    # specification is parsed and used to check the arguments
     class ArgSpec < Node
       # List of Arg objects (initialized by the analyzer)
       alias_method :command, :parent
@@ -308,6 +310,7 @@ module ShellOpts
       end
     end
 
+    # FIXME: Why not an IdrNode?
     class Arg < Node
       alias_method :spec, :parent
     end
@@ -332,6 +335,8 @@ module ShellOpts
       end
     end
 
+    # A description of command line arguments. This is just text and not parsed
+    # by ShellOpts
     class ArgDescr < DocNode
       alias_method :command, :parent
     end

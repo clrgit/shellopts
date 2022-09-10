@@ -1,39 +1,5 @@
 
 module ShellOpts
-  class Line
-    attr_reader :source
-    attr_reader :lineno 
-    attr_reader :charno
-    attr_reader :text
-
-    def initialize(lineno, charno, source)
-      @lineno, @source = lineno, source
-      @charno = charno + ((@source =~ /(\S.*?)\s*$/) || 0)
-      @text = $1 || ""
-    end
-
-    def blank?() @text == "" end
-
-    forward_to :@text, :=~, :!~
-
-    # Split on whitespace while keeping track of character position. Returns
-    # array of char, word tuples
-    def words
-      return @words if @words
-      @words = []
-      charno = self.charno
-      text.scan(/(\s*)(\S*)/)[0..-2].each { |spaces, word|
-        charno += spaces.size
-        @words << [charno, word] if word != ""
-        charno += word.size
-      }
-      @words
-    end
-
-    def to_s() text end
-    def dump() puts "#{lineno}:#{charno} #{text.inspect}" end
-  end
-
   class Lexer
     COMMAND_RE = /[a-z][a-z._-]*!/
 
@@ -146,10 +112,15 @@ module ShellOpts
           (token = @tokens.last).kind != :brief || !oneline? or 
               lexer_error token, "Briefs are only allowed in multi-line specifications"
 
+        # Single-line briefs
+        elsif source[0] == "@"
+          @tokens << Token.new(:brief, line.lineno, line.charno, source)
+
         # Paragraph lines
         else
           @tokens << Token.new(:text, line.lineno, line.charno, source)
         end
+
         # FIXME Not sure about this
 #       last_nonblank = @tokens.last 
         last_nonblank = @tokens.last if ![:blank, :usage_string, :argument].include? @tokens.last.kind 

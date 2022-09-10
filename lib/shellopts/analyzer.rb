@@ -74,8 +74,6 @@ module ShellOpts
 
     def create_implicit_commands(cmd)
       path = cmd.path[0..-2]
-
-      
     end
 
     # Link up commands with supercommands. This is only done for commands that

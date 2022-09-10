@@ -74,11 +74,11 @@ to check presence and return an optional argument. Given the options "--alpha
 
 ```ruby
   # Returns true if the option is present and false otherwise
-  opts.alpha?()     
-  opts.beta?()
+  opts.alpha?
+  opts.beta?
 
   # Returns the argument of the beta option or nil if missing
-  opts.beta()       
+  opts.beta
 ```
 
 Given the commands "cmd1! cmd2!" the following methods are available:

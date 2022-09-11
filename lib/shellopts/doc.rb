@@ -39,12 +39,16 @@ module ShellOpts
     end
 
     class Definition < Element
-      def header = abstract_method
+      def header(formatter) = abstract_method
       attr_accessor :description
     end
 
     class Section < Definition
-      attr_reader :header
+      def header(formatter = nil)
+        constrain formatter, Formatter::Formatter, nil
+        [@header]
+      end
+
       def initialize(header)
         constrain header, String
         @header = header
@@ -73,12 +77,28 @@ module ShellOpts
     end
 
     class OptionsSection < ProgramSection
-      def initialize(program) = super("OPTIONS", program) 
+      def initialize(program) = super("OPTIONS", program)
     end
 
     class CommandsSection < ProgramSection
       def initialize(program) = super("COMMANDS", program) 
     end
+
+    class Group < Definition
+      def header(formatter) = formatter.header(self)
+      def elements = abstract_method
+      def initialize()
+        @elements = []
+      end
+    end
+
+    class OptionGroup < Definition
+      attr_reader :options
+      def initialize
+        @options = []
+      end
+    end
+
   end
 end
 

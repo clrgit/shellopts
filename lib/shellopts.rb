@@ -23,6 +23,7 @@ require_relative 'shellopts/analyzer.rb'
 require_relative 'shellopts/interpreter.rb'
 require_relative 'shellopts/ansi.rb'
 require_relative 'shellopts/renderer.rb'
+require_relative 'shellopts/doc.rb'
 require_relative 'shellopts/formatter.rb'
 require_relative 'shellopts/dump.rb'
 

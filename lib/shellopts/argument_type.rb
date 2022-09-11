@@ -88,8 +88,10 @@ module ShellOpts
           end
 
         # All other files or directories
+        # TODO: node, enode, npath - special files: character, block, socket, etc.
+        # TODO: zdir - an empty directory
         else
-          case kind # TODO: node, enode, npath - special files: character, block, socket, etc.
+          case kind 
             when :file; match_path(name, literal, kind, :file?, :default)
             when :dir; match_path(name, literal, kind, :directory?, :default)
             when :path; match_path(name, literal, kind, :exist?, :default)

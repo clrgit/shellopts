@@ -1,4 +1,6 @@
 
+o Use pandoc: https://unix.stackexchange.com/a/375035
+o User man page location: https://unix.stackexchange.com/a/90762
 o Assigner methods for options
 o Make opts[] point at the main object
     opts[].subcommand is the direct subcommand of main

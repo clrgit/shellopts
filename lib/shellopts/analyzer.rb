@@ -1,4 +1,11 @@
 
+# IDEA: Create an option-soup from the Idr, and let the interpreter remove
+# options from it as they are processed. Duplicate options are removed when
+# commands are processed as they disamguates options. We need to mark duplicate
+# options as such
+#
+
+
 module ShellOpts
   module Grammar
     class Node

@@ -1,9 +1,13 @@
 
 module ShellOpts
+  # The parser extends Grammar objects with a parse method that is called with
+  # the parent object and the current token as argument
+
   module Grammar
     class Node
       def parse() end
 
+      # Create an instance of class and forward to #parse
       def self.parse(parent, token)
         this = self.new(parent, token)
         this.parse
@@ -180,8 +184,14 @@ module ShellOpts
             Grammar::Section.parse(nodes.top, token)
 
           when :option
-            # Collect options into option groups if on the same line and not in
+            # Collect options into option groups if on the same line when not in
             # oneline mode
+            #
+            # TODO: Change rule to match
+            #   --opt1
+            #   --opt2
+            #   --opt3
+            #     description of option group
             options = [token] + @tokens.shift_while { |follow| 
               !oneline && follow.kind == :option && follow.lineno == token.lineno
             }

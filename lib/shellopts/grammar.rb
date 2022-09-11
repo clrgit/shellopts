@@ -44,6 +44,7 @@ module ShellOpts
       end
     end
 
+    # An IdrNode models the program specification
     class IdrNode < Node
       # Command of this object (nil for the top-level Program object). This is
       # different from #parent when a subcommand is nested textually on a
@@ -315,6 +316,8 @@ module ShellOpts
       alias_method :spec, :parent
     end
 
+    # A DocNode models documentation
+    #
     # DocNode object has no children but lines. 
     #
     class DocNode < Node

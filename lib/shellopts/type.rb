@@ -1,6 +1,6 @@
 module ShellOpts
-  module Grammar
-    class ArgumentType
+  module Type
+    class Type
       # Name of type
       def name() self.class.to_s.sub(/.*::/, "").sub(/Argument/, "") end
 
@@ -33,10 +33,10 @@ module ShellOpts
       end
     end
 
-    class StringType < ArgumentType
+    class StringType < Type
     end
 
-    class IntegerArgument < ArgumentType
+    class IntegerArgument < Type
       def match?(name, literal) 
         literal =~ /^-?\d+$/ or 
             set_message "Illegal integer value in #{name}: #{literal}" 
@@ -46,7 +46,7 @@ module ShellOpts
       def convert(value) value.to_i end
     end
 
-    class FloatArgument < ArgumentType
+    class FloatArgument < Type
       def match?(name, literal) 
         # https://stackoverflow.com/a/21891705/2130986
         literal =~ /^[+-]?(?:0|[1-9]\d*)(?:\.(?:\d*[1-9]|0))?$/ or 
@@ -57,7 +57,7 @@ module ShellOpts
       def convert(value) value.to_f end
     end
 
-    class FileArgument < ArgumentType
+    class FileArgument < Type
       attr_reader :kind
 
       def initialize(kind)
@@ -182,7 +182,7 @@ module ShellOpts
       end
     end
 
-    class EnumArgument < ArgumentType
+    class EnumArgument < Type
       attr_reader :values
       def initialize(values) @values = values.dup end
       def match?(name, literal) value?(literal) or set_message "Illegal value in #{name}: '#{literal}'" end

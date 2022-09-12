@@ -298,7 +298,7 @@ describe "Option#parse" do
 
   context "without an argument" do
     it "sets argument_type to the default" do
-      expect(opt "-s=SOME", :argument_type).to be_a Grammar::ArgumentType
+      expect(opt "-s=SOME", :argument_type).to be_a Grammar::Type
     end
   end
 
@@ -312,7 +312,7 @@ describe "Option#parse" do
       option = opt src
       expect(option.argument?).to eq true
       expect(option.argument_name).to eq "<some-value>"
-      expect(option.argument_type).to be_a Grammar::ArgumentType
+      expect(option.argument_type).to be_a Grammar::Type
     end
     it "sets optional?" do
       expect(opt "-s=SOME", :optional?).to eq false

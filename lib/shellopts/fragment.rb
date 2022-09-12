@@ -2,9 +2,10 @@ module ShellOpts
   module Fragment
     class Node
       attr_reader :parent
+      def initialize(parent) = @parent = parent
     end
 
-    class VBrief < Node
+    class Brief < Node
     end
 
     class Description < Node
@@ -16,8 +17,16 @@ module ShellOpts
 
     class Lines < Element
       attr_reader :lines
-      def initialize()
-        @lines = []
+      def initialize(parent, lines = [])
+        super(parent)
+        @lines = lines
+      end
+    end
+
+    class Line < Lines
+      def line = lines.first
+      def initialize(parent, line)
+        super(parent, [lines])
       end
     end
 
@@ -25,9 +34,23 @@ module ShellOpts
     end
 
     class Paragraph < Element
+      attr_reader :text
+      def initialize(parent, text)
+        super(parent)
+        @text = Array(text).flatten.compact.join(" ")
+      end
     end
 
-    class List < Element
+    # An enumeration is a single-line text followed by an indented paragraph
+    class Enumeration < Element
+      attr_reader :enumerations # Array of (Line, Description) tuples
+      def initialize(parent)
+        super(parent)
+      end
+    end
+
+    # A List is an enumeration with the single-line text replaced by a bullet
+    class List < Enumeration
       attr_reader :bullet # ".", "%", "o", "*", "-"
       attr_reader :descriptions
 
@@ -53,35 +76,6 @@ module ShellOpts
         constrain header, String
         @header = header
       end
-    end
-
-    class ProgramSection < Section
-      attr_reader :program
-      def initialize(name, program)
-        super(name)
-        constrain program, Idr::Program
-        @program = program
-      end
-    end
-
-    class NameSection < ProgramSection
-      def initialize(program) = super("NAME", program) 
-    end
-
-    class SynopsisSection < ProgramSection
-      def initialize(program) = super("SYNOPSIS", program) 
-    end
-
-    class DescriptionSection < ProgramSection
-      def initialize(program) = super("DESCRIPTION", program) 
-    end
-
-    class OptionsSection < ProgramSection
-      def initialize(program) = super("OPTIONS", program)
-    end
-
-    class CommandsSection < ProgramSection
-      def initialize(program) = super("COMMANDS", program) 
     end
 
     class Group < Definition

@@ -86,19 +86,19 @@ module ShellOpts
 
     class Group < Definition
       def header(formatter) = formatter.header(self)
-      def elements = abstract_method
+      attr_reader :nodes
       def initialize()
-        @elements = []
+        @nodes = []
       end
     end
 
-    class OptionGroup < Definition
-      attr_reader :options
-      def initialize
-        @options = []
-      end
+    class OptionGroup < Group
+      alias_method :options, :nodes
     end
 
+    class CommandGroup < Group
+      alias_method :commands, :nodes
+    end
   end
 end
 

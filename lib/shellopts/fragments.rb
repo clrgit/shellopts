@@ -1,17 +1,17 @@
 module ShellOpts
-  module Doc
-    class DocNode
+  module Fragment
+    class Node
       attr_reader :parent
     end
 
-    class Brief < DocNode
+    class VBrief < Node
     end
 
-    class Description < DocNode
+    class Description < Node
       attr_reader :elements
     end
 
-    class Element < DocNode
+    class Element < Node
     end
 
     class Lines < Element

@@ -2,10 +2,21 @@
 
 $LOAD_PATH.unshift "#{Dir.getwd}/lib"
 
-require 'shellopts'
+#require 'shellopts'
+
+require 'forward_to'
+include ForwardTo
+
+require 'constrain'
+include Constrain
+
+require './lib/shellopts/ext/array.rb'
+require './lib/shellopts/token.rb'
+require './lib/shellopts/lexer.rb'
+require './lib/shellopts/line.rb'
 
 #include ShellOpts::Message
-include ShellOpts::Verbose
+#include ShellOpts::Verbose
 #include ShellOpts::Debug
 
 #include ShellOpts::Messages
@@ -13,6 +24,10 @@ include ShellOpts::Verbose
 
 SPEC = %(
   Some text
+
+  Some
+  multiline
+  text
 
   -a @brief description
     An option

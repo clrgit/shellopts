@@ -61,7 +61,7 @@ module ShellOpts
                 else
                   puts "#{attr}: #{value.inspect}"
                 end
-              when ArgumentType
+              when Type
                 puts "#{attr}: #{value}"
             else
 #             value = value.inspect if value.nil? || !value.respond_to?(:to_s)

@@ -324,10 +324,10 @@ describe "Option#parse" do
       end
     end
     context "with a '#' type specifier" do
-      it "sets argument_type to IntegerArgument" do
-        expect(opt "-s=VAL:#", :argument_type).to be_a Grammar::IntegerArgument
-        expect(opt "-s=:#", :argument_type).to be_a Grammar::IntegerArgument
-        expect(opt "-s=#", :argument_type).to be_a Grammar::IntegerArgument
+      it "sets argument_type to IntegerType" do
+        expect(opt "-s=VAL:#", :argument_type).to be_a Grammar::IntegerType
+        expect(opt "-s=:#", :argument_type).to be_a Grammar::IntegerType
+        expect(opt "-s=#", :argument_type).to be_a Grammar::IntegerType
       end
 
       it "defaults argument_name to 'INT'" do
@@ -337,10 +337,10 @@ describe "Option#parse" do
       end
     end
     context "with a '$' argument_type specifier" do
-      it "sets argument_type to FloatArgument" do
-        expect(opt "-s=VAL:$", :argument_type).to be_a Grammar::FloatArgument
-        expect(opt "-s=:$", :argument_type).to be_a Grammar::FloatArgument
-        expect(opt "-s=$", :argument_type).to be_a Grammar::FloatArgument
+      it "sets argument_type to FloatType" do
+        expect(opt "-s=VAL:$", :argument_type).to be_a Grammar::FloatType
+        expect(opt "-s=:$", :argument_type).to be_a Grammar::FloatType
+        expect(opt "-s=$", :argument_type).to be_a Grammar::FloatType
       end
 
       it "defaults argument_name to 'NUM'" do
@@ -350,12 +350,12 @@ describe "Option#parse" do
       end
     end
     context "with a keyword specifier" do
-      it "sets argument_type to FileArgument" do
-        expect(opt "-s=VAL:FILE", :argument_type).to be_a Grammar::FileArgument
-        expect(opt "-s=:FILE", :argument_type).to be_a Grammar::FileArgument
-        expect(opt "-s=FILE", :argument_type).to be_a Grammar::FileArgument
+      it "sets argument_type to FileType" do
+        expect(opt "-s=VAL:FILE", :argument_type).to be_a Grammar::FileType
+        expect(opt "-s=:FILE", :argument_type).to be_a Grammar::FileType
+        expect(opt "-s=FILE", :argument_type).to be_a Grammar::FileType
       end
-      it "initialize FileArgument with a kind" do
+      it "initialize FileType with a kind" do
         expect(opt("-s=OFILE").argument_type.kind).to eq :ofile
       end
       it "defaults file or file path argument_name to 'FILE'" do
@@ -391,8 +391,8 @@ describe "Option#parse" do
       end
     end
     context "with a list of values" do
-      it "sets argument_type to EnumArgument" do
-        expect(opt "-s=a,b,c", :argument_type).to be_a Grammar::EnumArgument
+      it "sets argument_type to EnumType" do
+        expect(opt "-s=a,b,c", :argument_type).to be_a Grammar::EnumType
       end
       it "defaults argument_name to the list of values" do
         expect(opt "-s=VAL:a,b,c", :argument_name).to eq "VAL"

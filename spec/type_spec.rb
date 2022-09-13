@@ -5,14 +5,14 @@ include ShellOpts::Grammar
 
 describe "ShellOpts" do
   describe "Grammar" do
-    describe "FileArgument" do
+    describe "FileType" do
       def match(kind, node)
-        matcher = FileArgument.new(kind)
+        matcher = FileType.new(kind)
         matcher.match?("opt", node) || false
       end
 
       def convert(kind, value)
-        matcher = FileArgument.new(kind)
+        matcher = FileType.new(kind)
         matcher.convert(value)
       end
 
@@ -59,7 +59,7 @@ describe "ShellOpts" do
           expect(match(:file, nfile)).to eq true
         end
         it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
-          arg = FileArgument.new(:file)
+          arg = FileType.new(:file)
           expect(arg.match?("opt", "/dev/stdout")).to eq true
           expect(arg.match?("opt", "/dev/stderr")).to eq true
           expect(arg.match?("opt", "/dev/null")).to eq true
@@ -98,7 +98,7 @@ describe "ShellOpts" do
           expect(match(:path, ndir)).to eq true
         end
         it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
-          arg = FileArgument.new(:path)
+          arg = FileType.new(:path)
           expect(arg.match?("opt", "/dev/stdout")).to eq true
           expect(arg.match?("opt", "/dev/stderr")).to eq true
           expect(arg.match?("opt", "/dev/null")).to eq true
@@ -116,7 +116,7 @@ describe "ShellOpts" do
           expect(match(:efile, file)).to eq true
         end
         it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
-          arg = FileArgument.new(:efile)
+          arg = FileType.new(:efile)
           expect(arg.match?("opt", "/dev/stdout")).to eq true
           expect(arg.match?("opt", "/dev/stderr")).to eq true
           expect(arg.match?("opt", "/dev/null")).to eq true
@@ -149,7 +149,7 @@ describe "ShellOpts" do
           expect(match(:epath, dir)).to eq true
         end
         it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
-          arg = FileArgument.new(:epath)
+          arg = FileType.new(:epath)
           expect(arg.match?("opt", "/dev/stdout")).to eq true
           expect(arg.match?("opt", "/dev/stderr")).to eq true
           expect(arg.match?("opt", "/dev/null")).to eq true
@@ -170,7 +170,7 @@ describe "ShellOpts" do
           expect(match(:nfile, nfile)).to eq true
         end
         it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
-          arg = FileArgument.new(:nfile)
+          arg = FileType.new(:nfile)
           expect(arg.match?("opt", "/dev/stdout")).to eq true
           expect(arg.match?("opt", "/dev/stderr")).to eq true
           expect(arg.match?("opt", "/dev/null")).to eq true
@@ -204,7 +204,7 @@ describe "ShellOpts" do
           expect(match(:npath, null)).to eq false
         end
         it "accepts /dev/stdout, /dev/stderr, and /dev/null" do
-          arg = FileArgument.new(:npath)
+          arg = FileType.new(:npath)
           expect(arg.match?("opt", "/dev/stdout")).to eq true
           expect(arg.match?("opt", "/dev/stderr")).to eq true
           expect(arg.match?("opt", "/dev/null")).to eq true
@@ -273,8 +273,8 @@ describe "ShellOpts" do
       end
     end
   
-    describe "EnumArgument" do
-      let(:e) { EnumArgument.new %w(alpha beta) }
+    describe "EnumType" do
+      let(:e) { EnumType.new %w(alpha beta) }
       describe "#values" do
         it "returns a list of allowed values" do
           expect(e.values).to eq %w(alpha beta) 
@@ -288,7 +288,7 @@ describe "ShellOpts" do
           it "returns false" do
             expect(e.match?("name", "futhark")).to eq false
           end
-          it "sets the message of the ArgumentType" do
+          it "sets the message of the Type" do
             e.match?("name", "futhark")
             expect(e.message).to eq "Illegal value in name: 'futhark'"
           end

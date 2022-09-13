@@ -53,7 +53,7 @@ module ShellOpts
 
       # Unique identifier of node (String) within the context of a program. Is
       # nil for the Program object. It is the dot-joined elements of path with
-      # internal exclamation marks removed (eg. "cmd.opt" or "cmd.cmd!").
+      # internal exclamation marks removed (eg. "cmd.opt" or "cmd.subcmd!").
       # Initialized by the analyzer
       def uid() 
         @uid ||= command && [command.uid, ident].compact.join(".").sub(/!\./, ".") 
@@ -144,10 +144,10 @@ module ShellOpts
       def argument?() @argument end
       def optional?() @optional end
 
-      def integer?() @argument_type.is_a? IntegerArgument end
-      def float?() @argument_type.is_a? FloatArgument end
-      def file?() @argument_type.is_a? FileArgument end
-      def enum?() @argument_type.is_a? EnumArgument end
+      def integer?() @argument_type.is_a? IntegerType end
+      def float?() @argument_type.is_a? FloatType end
+      def file?() @argument_type.is_a? FileType end
+      def enum?() @argument_type.is_a? EnumType end
       def string?() argument? && !integer? && !float? && !file? && !enum? end
 
       def match?(literal) argument_type.match?(literal) end
@@ -288,7 +288,7 @@ module ShellOpts
     end
 
     class Program < Command
-      # Lifted from .gemspec. TODO
+      # Lifted from .gemspec. TODO FIXME Huh?
       attr_reader :info
     end
 

@@ -7,6 +7,10 @@ module ShellOpts
         :usage_string, :brief, :text, :blank 
     ]
 
+    ONE_LINE_KINDS = [
+        :program, :option, :command, :argument, :brief
+    ]
+
     # Kind of token
     attr_reader :kind
 

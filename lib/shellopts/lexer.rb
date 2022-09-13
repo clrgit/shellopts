@@ -41,10 +41,10 @@ module ShellOpts
       lines.shift_while { |line| line.text == "" || line.text.start_with?("#") && line.charno == 1 }
       initial_indent = lines.first&.charno
 
-      # Create program token. The source is the program name
+      # Create artificial program token. Source is equal to the program name
       @tokens = [Token.new(:program, 0, 0, name)]
 
-      # Used to detect code blocks
+      # Reference to last non-blank token. Used to detect code blocks
       last_nonblank = @tokens.first
 
       # Process lines
@@ -55,7 +55,7 @@ module ShellOpts
           next
         end
           
-        # Ignore meta comments
+        # Ignore comments. A comment is an outdented line starting with '#' 
         if line.charno < initial_indent
           next if line =~ /^#/
           error_token = Token.new(:text, line.lineno, 0, "")

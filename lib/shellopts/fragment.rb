@@ -2,7 +2,10 @@ module ShellOpts
   module Fragment
     class Node
       attr_reader :parent
-      def initialize(parent) = @parent = parent
+      attr_reader :token
+      def initialize(token)
+        @token = token
+      end
     end
 
     class Brief < Node
@@ -17,16 +20,16 @@ module ShellOpts
 
     class Lines < Element
       attr_reader :lines
-      def initialize(parent, lines = [])
-        super(parent)
+      def initialize(parent, token, lines = [])
+        super(parent, token)
         @lines = lines
       end
     end
 
     class Line < Lines
       def line = lines.first
-      def initialize(parent, line)
-        super(parent, [lines])
+      def initialize(parent, token, line)
+        super(parent, token, [lines])
       end
     end
 
@@ -35,8 +38,9 @@ module ShellOpts
 
     class Paragraph < Element
       attr_reader :text
-      def initialize(parent, text)
-        super(parent)
+      def initialize(parent, token, text)
+        super(parent, token)
+        constrain text, String, [String], nil
         @text = Array(text).flatten.compact.join(" ")
       end
     end
@@ -44,21 +48,21 @@ module ShellOpts
     # An enumeration is a single-line text followed by an indented paragraph
     class Enumeration < Element
       attr_reader :enumerations # Array of (Line, Description) tuples
-      def initialize(parent)
-        super(parent)
-      end
+      def <<(line_and_description) @enumerations << line_and_description
     end
 
     # A List is an enumeration with the single-line text replaced by a bullet
     class List < Enumeration
-      attr_reader :bullet # ".", "%", "o", "*", "-"
-      attr_reader :descriptions
+      attr_reader :bullet # ".", "#", "o", "*", "-"
+      def descriptions = enumerations.values
 
-      def initialize(bullet)
-        constrain bullet, ".", "%", "o", "*", "-"
+      def initialize(parent, token, bullet)
+        super(parent, token)
+        constrain bullet, ".", "#", "o", "*", "-"
         @bullet = bullet
-        @descriptions = []
       end
+
+      def <<(description) = enumerations << [bullet, description]
     end
 
     class Definition < Element
@@ -88,10 +92,17 @@ module ShellOpts
 
     class OptionGroup < Group
       alias_method :options, :nodes
+      def <<(option)
+        @nodes << option
+        self
+      end
     end
 
     class CommandGroup < Group
       alias_method :commands, :nodes
+      def <<(command)
+        @nodes << option
+      end
     end
   end
 end

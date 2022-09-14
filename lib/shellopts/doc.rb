@@ -13,7 +13,7 @@ module ShellOpts
         constrain grammar, Idr::Node
         constrain fragment, Fragment::Node, nil
         @grammar = grammar
-        @fragments = fragment
+        @fragment = fragment
       end
     end
 

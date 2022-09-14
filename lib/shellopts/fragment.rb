@@ -48,7 +48,7 @@ module ShellOpts
     # An enumeration is a single-line text followed by an indented paragraph
     class Enumeration < Element
       attr_reader :enumerations # Array of (Line, Description) tuples
-      def <<(line_and_description) @enumerations << line_and_description
+      def <<(line_and_description) = @enumerations << line_and_description
     end
 
     # A List is an enumeration with the single-line text replaced by a bullet

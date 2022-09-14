@@ -11,9 +11,13 @@ require 'constrain'
 include Constrain
 
 require './lib/shellopts/ext/array.rb'
-require './lib/shellopts/token.rb'
-require './lib/shellopts/lexer.rb'
 require './lib/shellopts/line.rb'
+require './lib/shellopts/token.rb'
+require './lib/shellopts/fragment.rb'
+require './lib/shellopts/idr.rb'
+require './lib/shellopts/doc.rb'
+require './lib/shellopts/lexer.rb'
+require './lib/shellopts/parser.rb'
 
 #include ShellOpts::Message
 #include ShellOpts::Verbose
@@ -51,8 +55,11 @@ SPEC = %(
 )
 
 lexer = ShellOpts::Lexer.new("main", SPEC, false)
+tokens = lexer.lex
+parser = ShellOpts::Parser.new(tokens)
+parser.parse
 
-pp lexer.lex
+
 
 exit
 

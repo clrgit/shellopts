@@ -10,7 +10,6 @@ require_relative 'shellopts/ext/lcs.rb'
 include ForwardTo
 
 require_relative 'shellopts/version.rb'
-require_relative 'shellopts/stack.rb'
 require_relative 'shellopts/token.rb'
 require_relative 'shellopts/grammar.rb'
 require_relative 'shellopts/program.rb'

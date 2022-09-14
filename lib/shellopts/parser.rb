@@ -4,7 +4,6 @@ module ShellOpts
   # the parent object and the current token as argument
 
   class Parser
-    using Stack
     using Ext::Array::ShiftWhile
 
     # AST root node
@@ -13,41 +12,213 @@ module ShellOpts
     # Commands by UID
 #   attr_reader :commands
 
-    # Stack of Idr Nodes. Follows the indentation of the source and not the
-    # abstract hierarchy of commands and options as it may jump over implicit
-    # sub-commands. 
-    #
-    # Implicit sub-commands are created when
-    # intermediate subcommands doesn't exist in dotted command names like
-    # 'cmd.subcmd.subsubcmd'. In this example, 'cmd' and 'subcmd' may be
-    # implicit if they're not defined elsewhere
-    #
-    # The top node is the node currently being documented
-    attr_reader :nodes
+#   # Stack of Idr Nodes. Follows the indentation of the source and not the
+#   # abstract hierarchy of commands and options as it may jump over implicit
+#   # sub-commands. 
+#   #
+#   # Implicit sub-commands are created when
+#   # intermediate subcommands doesn't exist in dotted command names like
+#   # 'cmd.subcmd.subsubcmd'. In this example, 'cmd' and 'subcmd' may be
+#   # implicit if they're not defined elsewhere
+#   #
+#   # The top node is the node currently being documented
+#   attr_reader :nodes
     
     # Stack of Idr::Command objects. This can include implicit sub-commands
     # that are not present in nodes. 
     attr_reader :cmds
 
-    # Stack of Doc::Node objects
-    attr_reader :docs
+#   # Stack of Doc::Node objects
+#   attr_reader :docs
 
-    # Stack of Fragment::Description objects
-    attr_reader :descrs
+    # Stack of Fragment::Node objects
+    attr_reader :fragments
 
     # Current node, command, doc, and description
-    def node = nodes.last
+#   def node = nodes.last
     def cmd = cmds.last
-    def doc = docs.last
-    def descr = descrs.last
+#   def doc = docs.last
+    def fragments = fragments.last
 
     def initialize(tokens)
-      @nodes = []
+#     @nodes = []
       @cmds = []
-      @docs = []
-      @descrs = []
+#     @docs = []
+      @fragments = []
       @tokens = tokens.dup
     end
+
+    def parse
+      @cmds = [Idr::Program.new(tokens.shift)]
+      @fragments = [cmd.doc.fragment]
+      pp @cmds
+      pp @fragments
+    end
+
+  protected
+    # Not public because it is always empty after parsing
+    attr_reader :tokens
+  end
+end
+
+__END__
+
+      while token = @tokens.shift
+        unwind_nodes
+
+        case token.kind
+
+          when :option
+            parse_option
+
+          when :command
+            if token.source =~ /^(?:(.*)\.)([^.]+)$/
+              parent_idents = $1.split(".")
+              ident = $2.to_sym
+
+              # Create intermediate commands
+              cmd = cmds.top
+              for intermediate_ident in parent_idents
+                if !cmd.key?(intermediate_ident)
+                  cmd = Idr::Command.new( # FIXME: Require a token
+
+                else
+                  cmd = cmd[intermediate_ident]
+                end
+
+              end
+
+
+
+              command = Idr::Command.new(cmds.top, 
+              parent_uid = $1
+              ident = $2.to_sym
+
+
+
+
+            
+
+            # Collect following commands with the same indent
+
+
+            parent = nil # Required by #indent
+            token.source =~ /^(?:(.*)\.)?([^.]+)$/
+            parent_id = $1
+            ident = $2.to_sym
+            parent_uid = parent_id && parent_id.sub(".", "!.") + "!"
+
+            # Handle dotted command
+            if parent_uid
+              # Clear stack except for the top-level Program object and then
+              # push command objects in the path
+              #
+              # FIXME: Move to analyzer
+#             cmds = cmds[0..0]
+#             for ident in parent_uid.split(".").map(&:to_sym)
+#               cmds.push cmds.top.commands.find { |c| c.ident == ident } or
+#                   parse_error token, "Unknown command: #{ident.sub(/!/, "")}"
+#             end
+#             parent = cmds.top
+              parent = cmds.top
+              if !cmds.top.is_a?(Grammar::Program) && token.lineno == cmds.top.token.lineno
+                parent = cmds.pop.parent
+              end
+
+            # Regular command
+            else
+              # Don't nest cmds if they are declared on the same line (as it
+              # often happens with one-line declarations). Program is special
+              # cased as its virtual token is on line 0
+              parent = cmds.top
+              if !cmds.top.is_a?(Grammar::Program) && token.lineno == cmds.top.token.lineno
+                parent = cmds.pop.parent
+              end
+            end
+
+            command = Grammar::Command.parse(parent, token)
+            nodes.push command
+            cmds.push command
+
+          when :spec
+            spec = Grammar::ArgSpec.parse(cmds.top, token)
+            @tokens.shift_while { |token| token.kind == :argument }.each { |token|
+              Grammar::Arg.parse(spec, token)
+            }
+
+          when :argument
+            ; raise # Should never happen
+
+          when :usage
+            ; # Do nothing
+
+          when :usage_string
+            Grammar::ArgDescr.parse(cmds.top, token)
+
+          when :section
+            section = Fragment::Section.new(docs.top, token)
+            docs.push section
+            nodes.push section
+
+          when :text
+            # Text is only allowed on new lines
+            token.lineno > nodes.top.token.lineno
+
+            # Detect indented comment groups (code)
+            if nodes.top.is_a?(Grammar::Paragraph)
+              code = Grammar::Code.parse(nodes.top.parent, token) # Using parent of paragraph
+              @tokens.shift_while { |t|
+                if t.kind == :text && t.charno >= token.charno
+                  code.tokens << t
+                elsif t.kind == :blank && @tokens.first&.kind != :blank # Emit last blank line
+                  if @tokens.first&.charno >= token.charno # But only if it is not the last blank line
+                    code.tokens << t
+                  end
+                else
+                  break
+                end
+              }
+
+            # Detect comment groups (paragraphs)
+            else
+              if nodes.top.is_a?(Grammar::Command) || nodes.top.is_a?(Grammar::OptionGroup)
+                Grammar::Brief.new(nodes.top, token, token.source.sub(/\..*/, "")) if !nodes.top.brief
+                parent = nodes.top 
+              else
+                parent = nodes.top.parent
+              end
+
+              paragraph = Grammar::Paragraph.parse(parent, token)
+              while @tokens.first&.kind == :text && @tokens.first.charno == token.charno
+                paragraph.tokens << @tokens.shift
+              end
+              nodes.push paragraph # Leave paragraph on stack so we can detect code blocks
+            end
+
+          when :brief
+            parent = nodes.top.is_a?(Grammar::Paragraph) ? nodes.top.parent : nodes.top
+            parent.brief.nil? or parse_error token, "Duplicate brief"
+            Grammar::Brief.parse(parent, token)
+
+          when :blank
+            ; # do nothing
+
+        else
+          raise InternalError, "Unexpected token kind: #{token.kind.inspect}"
+        end
+
+        # Skip blank lines
+        @tokens.shift_while { |token| token.kind == :blank }
+      end
+
+      @program
+    end
+  end
+end
+
+__END__
+
+
 
     def parse()
       # Check one-line mode
@@ -102,6 +273,23 @@ module ShellOpts
       end
 
       def parse_option
+              # TODO TODO TODO Move to #parse_option
+              option = parse_option
+              option_doc = option.doc
+              push_node option
+
+              # Collect following options with the same indent
+              next_token = @tokens.first
+              while next_token.charno == token.charno && next_token.kind == :option
+                token = @tokens.shift
+                next_token = @token.first
+                option = Option.parse(cmds.top, token)
+                group << option
+              end
+
+              nodes.push option
+
+
         token = @tokens.first
 
         token.source =~ /^(-|--|\+|\+\+)(#{NAME_RE})(?:=(.+?)(\?)?)?$/ or 
@@ -183,21 +371,7 @@ module ShellOpts
           case token.kind
 
             when :option
-              # TODO TODO TODO Move to #parse_option
-              option = parse_option
-              option_doc = option.doc
-              push_node option
-
-              # Collect following options with the same indent
-              next_token = @tokens.first
-              while next_token.charno == token.charno && next_token.kind == :option
-                token = @tokens.shift
-                next_token = @token.first
-                option = Option.parse(cmds.top, token)
-                group << option
-              end
-
-              nodes.push option
+              parse_option
 
             when :command
               if token.source =~ /^(?:(.*)\.)([^.]+)$/

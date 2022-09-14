@@ -61,14 +61,14 @@ module ShellOpts
       def key?(ident) children.find { |c| c.ident == ident } && true end
 
       # Access child nodes by identifier
-      def [](ident) = children.find { |c| c.ident == ident } end
+      def [](ident) children.find { |c| c.ident == ident } end
 
       # Access node by relative UID
-      def dot(relative_uid) = Node[[self.uid, relative_uid].compact.join(".").sub("!.", ".")] end
+      def dot(relative_uid) = Node[[self.uid, relative_uid].compact.join(".").sub("!.", ".")]
 
       # Access node by absolute UID
-      def self.[](uid) @@nodes[uid]
-      def self.[]=(uid, node) = @@nodes[uid] = node
+      def self.[](uid) = @@nodes[uid]
+      def self.[]=(uid, node) @@nodes[uid] = node end
 
     private
       # Map from UID to Node object
@@ -90,7 +90,7 @@ module ShellOpts
       attr_reader :long_literals
       def literals = short_literals + long_literals
 
-      def initialize(parent, ident, token, doc = Doc::OptionDoc.new(self)))
+      def initialize(parent, ident, token, doc = Doc::OptionDoc.new(self))
         super(parent, ident, token, doc)
         command.options << self
       end
@@ -116,7 +116,7 @@ module ShellOpts
       def uid = ident.to_s
 
       def initialize(token)
-        super(nil, self.ident, token, Doc::ProgramDoc.new(self))
+        super(nil, self.ident, token, Doc::ProgramDoc.new(self, token))
       end
     end
 

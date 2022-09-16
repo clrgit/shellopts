@@ -1,6 +1,6 @@
 module ShellOpts
   module Grammar
-    class IdrNode
+    class GrammarNode
       def dump_doc
         puts "#{self.class} #{ident}"
         indent {
@@ -37,7 +37,7 @@ module ShellOpts
         indent { children.each(&:dump_ast) }
       end
 
-      def dump_idr(short = false)
+      def dump_grammar(short = false)
         puts "#{classname}" if !short
       end
 
@@ -50,14 +50,14 @@ module ShellOpts
                 puts "#{attr}: #{value.text}"
               when Node
                 puts "#{attr}:"
-                indent { value.dump_idr }
+                indent { value.dump_grammar }
               when Array
                 case value.first
                   when nil
                     puts "#{attr}: []"
                   when Node
                     puts "#{attr}:"
-                    indent { value.each(&:dump_idr) }
+                    indent { value.each(&:dump_grammar) }
                 else
                   puts "#{attr}: #{value.inspect}"
                 end
@@ -76,7 +76,7 @@ module ShellOpts
     end
 
     class Option
-      def dump_idr(short = false)
+      def dump_grammar(short = false)
         if short
           s = [
               name, 
@@ -99,13 +99,13 @@ module ShellOpts
     end
 
     class Command
-      def dump_idr(short = false)
+      def dump_grammar(short = false)
         if short
           puts name
           indent { 
-            options.each { |option| option.dump_idr(short) }
-            commands.each { |command| command.dump_idr(short) }
-            descrs.each { |descr| descr.dump_idr(short) }
+            options.each { |option| option.dump_grammar(short) }
+            commands.each { |command| command.dump_grammar(short) }
+            descrs.each { |descr| descr.dump_grammar(short) }
           } 
         else
           puts "#{name}: #{classname}"
@@ -115,21 +115,21 @@ module ShellOpts
     end
 
     class ArgDescr
-      def dump_idr(short = false)
+      def dump_grammar(short = false)
         super
         indent { puts token.to_s }
       end
     end
 
     class ArgSpec < Node
-      def dump_idr(short = false)
+      def dump_grammar(short = false)
         super
         dump_attrs :arguments
       end
     end
 
     class Arg < Node
-      def dump_idr(short = false)
+      def dump_grammar(short = false)
         puts "<type>"
       end
     end

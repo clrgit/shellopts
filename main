@@ -10,11 +10,12 @@ include ForwardTo
 require 'constrain'
 include Constrain
 
+require './lib/shellopts.rb'
 require './lib/shellopts/ext/array.rb'
 require './lib/shellopts/line.rb'
 require './lib/shellopts/token.rb'
-require './lib/shellopts/fragment.rb'
-require './lib/shellopts/idr.rb'
+require './lib/shellopts/spec.rb'
+require './lib/shellopts/grammar.rb'
 require './lib/shellopts/doc.rb'
 require './lib/shellopts/lexer.rb'
 require './lib/shellopts/parser.rb'
@@ -27,14 +28,16 @@ require './lib/shellopts/parser.rb'
 #p ShellOpts::Messages.is_included?
 
 SPEC = %(
-  Some text
+  @ An initial brief
 
-  Some
+  -- AN ARG DESCR
+
+  A 
   multiline
-  text
+  description
 
-  -a @brief description
-    An option
+  -a @brief option description
+    An option description
 
   command! -- CMDARG1 CMDARG2 @brief description of command
     A command
@@ -42,8 +45,6 @@ SPEC = %(
     -c
       @brief description of the command option
       An option for the command
-
-  -- ARG
 
   another_command!
     -d

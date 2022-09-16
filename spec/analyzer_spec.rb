@@ -18,7 +18,7 @@ describe "ShellOpts" do
     grammar.children.map { |child|
       case child
         when Grammar::OptionGroup; child.options.first.name
-        when Grammar::IdrNode; child.name
+        when Grammar::GrammarNode; child.name
         else child.token.source
       end
     }

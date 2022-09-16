@@ -89,12 +89,12 @@ module ShellOpts
                 end
                 source = words.shift_while { true }.map(&:last).join(" ")
                 @tokens << Token.new(:brief, line.lineno, charno, source)
-              when "--" # FIXME Rename argdescr
-                @tokens << Token.new(:usage, line.lineno, charno, "--")
+              when "--"
+                @tokens << Token.new(:arg_descr, line.lineno, charno, "--")
                 source = words.shift_while { |_,w| w =~ DESCR_RE }.map(&:last).join(" ")
-                @tokens << Token.new(:usage_string, line.lineno, charno, source)
-              when "++" # FIXME Rename argspec
-                @tokens << Token.new(:spec, line.lineno, charno, "++")
+                @tokens << Token.new(:arg_descr_string, line.lineno, charno, source)
+              when "++"
+                @tokens << Token.new(:arg_spec, line.lineno, charno, "++")
                 words.shift_while { |c,w| 
                   w =~ SPEC_RE and @tokens << Token.new(:argument, line.lineno, c, w) 
                 }
@@ -123,7 +123,7 @@ module ShellOpts
 
         # FIXME Not sure about this
 #       last_nonblank = @tokens.last 
-        last_nonblank = @tokens.last if ![:blank, :usage_string, :argument].include? @tokens.last.kind 
+        last_nonblank = @tokens.last if ![:blank, :arg_descr_string, :argument].include? @tokens.last.kind 
       end
 
       # Move arguments and briefs before first command if one-line source

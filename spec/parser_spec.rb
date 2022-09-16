@@ -16,8 +16,8 @@ describe "Parser" do
 
     grammar = Analyzer.analyze(ast)
 
-#   puts "Idr"
-#   indent { grammar.dump_idr }
+#   puts "Grammar"
+#   indent { grammar.dump_grammar }
 #   puts
 #   puts "Doc"
 #   indent { grammar.dump_doc }

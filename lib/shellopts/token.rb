@@ -3,8 +3,8 @@ module ShellOpts
   class Token
     # Each kind should have a corresponding Grammar class with the same name
     KINDS = [
-        :program, :section, :option, :command, :spec, :argument, :usage,
-        :usage_string, :brief, :text, :blank 
+        :program, :section, :option, :command, :arg_spec, :argument, :arg_descr,
+        :arg_descr_string, :brief, :text, :blank 
     ]
 
     ONE_LINE_KINDS = [

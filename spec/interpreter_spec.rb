@@ -38,8 +38,8 @@ describe "Interpreter" do
     oneline = spec.index("\n").nil?
     tokens = Lexer.lex("main", spec, oneline)
     ast = Parser.parse(tokens)
-    idr = Analyzer.analyze(ast) # @idr and @ast refer to the same object
-    expr, args = Interpreter.interpret(idr, argv)
+    grammar = Analyzer.analyze(ast) # @grammar and @ast refer to the same object
+    expr, args = Interpreter.interpret(grammar, argv)
 
     render_command(expr)
   end

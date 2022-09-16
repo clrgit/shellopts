@@ -1,4 +1,48 @@
 
+module ShellOpts
+  # Base error class
+  #
+  # Note that errors in the usage of the ShellOpts library are reported using
+  # standard exceptions
+  #
+  class ShellOptsError < StandardError
+    attr_reader :token
+    def initialize(token)
+      super
+      @token = token
+    end
+  end
+
+  # Raised on syntax errors on the command line (eg. unknown option). When
+  # ShellOpts handles the exception a message with the following format is
+  # printed on standard error:
+  #
+  #   <program>: <message>
+  #   Usage: <program> ...
+  #
+  class Error < ShellOptsError; end 
+
+  # Default class for program failures. Failures are raised on missing files or
+  # illegal paths. When ShellOpts handles the exception a message with the
+  # following format is printed on standard error:
+  #
+  #   <program>: <message>
+  #
+  class Failure < Error; end
+
+  # ShellOptsErrors during compilation. These errors are caused by syntax errors in the
+  # source. Messages are formatted as '<file> <lineno>:<charno> <message>' when
+  # handled by ShellOpts
+  class CompilerError < ShellOptsError; end
+  class LexerError < CompilerError; end 
+  class ParserError < CompilerError; end
+  class AnalyzerError < CompilerError; end
+
+  # Internal errors. These are caused by bugs in the ShellOpts library
+  class InternalError < ShellOptsError; end
+end
+
+__END__
 require 'indented_io'
 require 'constrain'
 include Constrain
@@ -23,8 +67,8 @@ require_relative 'shellopts/interpreter.rb'
 require_relative 'shellopts/ansi.rb'
 require_relative 'shellopts/renderer.rb'
 require_relative 'shellopts/doc.rb'
-require_relative 'shellopts/idr.rb'
-require_relative 'shellopts/fragment.rb'
+require_relative 'shellopts/grammar.rb'
+require_relative 'shellopts/spec.rb'
 require_relative 'shellopts/formatter.rb'
 require_relative 'shellopts/dump.rb'
 

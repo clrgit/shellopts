@@ -1,10 +1,18 @@
 
 module ShellOpts
+  def program_name
+    @program_name ||= File.basename($PROGRAM_NAME)
+  end
+end
+
+
+module ShellOpts
   # The parser extends Grammar objects with a parse method that is called with
   # the parent object and the current token as argument
 
   class Parser
     using Ext::Array::ShiftWhile
+    using Ext::Array::PopWhile
 
     # AST root node
 #   attr_reader :program
@@ -12,7 +20,7 @@ module ShellOpts
     # Commands by UID
 #   attr_reader :commands
 
-#   # Stack of Idr Nodes. Follows the indentation of the source and not the
+#   # Stack of Grammar Nodes. Follows the indentation of the source and not the
 #   # abstract hierarchy of commands and options as it may jump over implicit
 #   # sub-commands. 
 #   #
@@ -24,40 +32,90 @@ module ShellOpts
 #   # The top node is the node currently being documented
 #   attr_reader :nodes
     
-    # Stack of Idr::Command objects. This can include implicit sub-commands
+    # Stack of Grammar::Command objects. This can include implicit sub-commands
     # that are not present in nodes. 
     attr_reader :cmds
 
 #   # Stack of Doc::Node objects
 #   attr_reader :docs
 
-    # Stack of Fragment::Node objects
-    attr_reader :fragments
+    # Stack of Spec::Node objects
+    attr_reader :specs
 
     # Current node, command, doc, and description
 #   def node = nodes.last
-    def cmd = cmds.last
+    def cmd = @cmds.last
 #   def doc = docs.last
-    def fragments = fragments.last
+    def spec = @specs.last
 
     def initialize(tokens)
 #     @nodes = []
       @cmds = []
 #     @docs = []
-      @fragments = []
+      @specs = []
       @tokens = tokens.dup
     end
 
+    def make_program(token)
+      spec = Spec::Description.new(nil, token)
+      grammar = Grammar::Program.new
+      doc = Doc::Program.new(grammar, spec)
+      [grammar, spec]
+    end
+
     def parse
-      @cmds = [Idr::Program.new(tokens.shift)]
-      @fragments = [cmd.doc.fragment]
+      program, description = make_program(tokens.shift)
+      @cmds = [program]
+      @specs = [description]
+
       pp @cmds
-      pp @fragments
+      pp @specs
+
+      while token = @tokens.shift
+        unwind(token)
+
+        puts token.kind.inspect
+        case token.kind
+          when :brief
+            cmd.doc.brief.nil? or raise ParserError, "Duplicate brief in definition of #{cmd.name}"
+            cmd.doc.brief = Spec::Brief.new(token)
+          when :arg_descr
+            cmd.doc.arg_descr = Spec::Line.new(spec, consume(:arg_descr_string))
+
+            # A way to signal that there may be no Command arg spec because
+            # we've already assigned a arg description
+            #
+            # Maybe rename
+            #   arg_spec -> spec
+            #   arg_descr -> usage
+            break
+
+          when :arg_descr_string
+            raise InternalError, ":arg_descr_string should be processed by :arg_descr handler"
+            
+        end
+      end
+      pp cmd
+
     end
 
   protected
     # Not public because it is always empty after parsing
     attr_reader :tokens
+
+    def consume(kind)
+      token = @tokens.shift
+      token.kind == kind or raise ParserError, "Expected #{kind}"
+      token
+    end
+      
+
+      # Unwind stacks according to indentation
+    def unwind(token)
+      cmds.pop_while { |c| token.charno <= c.token.charno }
+      specs.pop_while { |d| token.charno <= d.token.charno }
+    end
+
   end
 end
 
@@ -80,7 +138,7 @@ __END__
               cmd = cmds.top
               for intermediate_ident in parent_idents
                 if !cmd.key?(intermediate_ident)
-                  cmd = Idr::Command.new( # FIXME: Require a token
+                  cmd = Grammar::Command.new( # FIXME: Require a token
 
                 else
                   cmd = cmd[intermediate_ident]
@@ -90,7 +148,7 @@ __END__
 
 
 
-              command = Idr::Command.new(cmds.top, 
+              command = Grammar::Command.new(cmds.top, 
               parent_uid = $1
               ident = $2.to_sym
 
@@ -156,7 +214,7 @@ __END__
             Grammar::ArgDescr.parse(cmds.top, token)
 
           when :section
-            section = Fragment::Section.new(docs.top, token)
+            section = Spec::Section.new(docs.top, token)
             docs.push section
             nodes.push section
 
@@ -247,10 +305,10 @@ __END__
       end
 
       def push_node(node)
-        @nodes << node if node.is_a?(Idr::Node)
-        @cmds << node if node.is_a?(Idr::Command)
-        @docs << node if node.is_a?(Idr::Node) && node.doc
-        @descrs << node if node.is_a?(Fragment::Node)
+        @nodes << node if node.is_a?(Grammar::Node)
+        @cmds << node if node.is_a?(Grammar::Command)
+        @docs << node if node.is_a?(Grammar::Node) && node.doc
+        @descrs << node if node.is_a?(Spec::Node)
         @descrs << node.description if node.is_a?(Doc::Node)
       end
 
@@ -263,7 +321,7 @@ __END__
       end
 
       def parse_program
-        @program = Idr::Program.parse(@tokens.shift) # Eat the first artificial token
+        @program = Grammar::Program.parse(@tokens.shift) # Eat the first artificial token
         @nodes = [@program]
         @cmds = [@program]
         @docs = [@program.doc]
@@ -382,7 +440,7 @@ __END__
                 cmd = cmds.top
                 for intermediate_ident in parent_idents
                   if !cmd.key?(intermediate_ident)
-                    cmd = Idr::Command.new( # FIXME: Require a token
+                    cmd = Grammar::Command.new( # FIXME: Require a token
 
                   else
                     cmd = cmd[intermediate_ident]
@@ -392,7 +450,7 @@ __END__
 
 
 
-                command = Idr::Command.new(cmds.top, 
+                command = Grammar::Command.new(cmds.top, 
                 parent_uid = $1
                 ident = $2.to_sym
 
@@ -458,7 +516,7 @@ __END__
               Grammar::ArgDescr.parse(cmds.top, token)
 
             when :section
-              section = Fragment::Section.new(docs.top, token)
+              section = Spec::Section.new(docs.top, token)
               docs.push section
               nodes.push section
 
@@ -528,7 +586,7 @@ end
 __END__
 
 
-  module Idr
+  module Grammar
     class Node
       def parse() end
 
@@ -542,7 +600,7 @@ __END__
       def parser_error(token, message) raise ParserError, "#{token.pos} #{message}" end
     end
 
-#   class IdrNode
+#   class GrammarNode
       # Assumes that @name and @path has been defined
 #     def parse
 #       @ident = @path.last || :!
@@ -675,7 +733,7 @@ __END__
     end
   end
 
-  module Fragment
+  module Spec
   end
 
 

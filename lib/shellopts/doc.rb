@@ -1,61 +1,63 @@
 module ShellOpts
+  # These classes links grammar object and spec objects. An alternative
+  # implementation would move the link into the grammar objects but the current
+  # model allows for more complex specifications without polluting grammar
+  # objects with method for handling of the documentation. It this is not a
+  # problem, then the module could be removed
+  #
+  # Currently it adds #brief to the link
+  #
   module Doc
     class Node
+      forward_to :descr, :token
       attr_reader :grammar
-      forward_to :grammar, :token
+      attr_reader :descr
       attr_accessor :brief
-      attr_reader :fragment
 
       def usage = abstract_method
-      def description = abstract_method # Fragment::Description
 
-      def initialize(grammar, fragment = nil)
-        constrain grammar, Idr::Node
-        constrain fragment, Fragment::Node, nil
+      # Initialize a Doc object. It also sets the #doc attribute on the grammar
+      def initialize(grammar, descr)
+        constrain grammar, Grammar::Node
+        constrain descr, Spec::Description, nil
         @grammar = grammar
-        @fragment = fragment
+        @descr = descr
+        @grammar.doc = self
       end
     end
 
-    class GroupDoc < Node
-      forward_to :group, :description
-
-      def initialize(grammar, group)
-        super(grammar, group)
-        constrain group, Fragment::Group
-      end
-    end
-
-    class OptionDoc < GroupDoc
+    class Option < Node
       alias_method :option, :grammar
 
-      def initialize(grammar)
-        constrain grammar, Idr::Option
-        super(grammar, Fragment::OptionGroup.new(grammar.token))
+      def initialize(grammar, descr)
+        constrain grammar, Grammar::Option
+        constrain descr, Spec::OptionGroup
+        super
       end
     end
 
-    class CommandDoc < GroupDoc
+    class Command < Node
       alias_method :command, :grammar
+      attr_accessor :arg_descr
 
-      def intialize(grammar)
-        constrain grammar, Idr::Command
-        super(grammar, Fragment::CommandGroup.new(grammar.token))
+      def intialize(grammar, descr)
+        constrain grammar, Grammar::Command
+        constrain descr, Spec::CommandGroup
+        super
       end
     end
 
-    class ProgramDoc < Node
+    class Program < Command
       alias_method :program, :grammar
-      attr_reader :description
 
-      def initialize(grammar)
-        constrain grammar, Idr::Command
-        super(grammar, Fragment::Description.new(grammar.token))
+      def initialize(grammar, ...)
+        constrain grammar, Grammar::Program
+        super
       end
     end
 
-    class ArgSpecDoc < Node
-      def initialize(grammar)
+    class ArgSpec < Node # Doubtful
+      def initialize
         super(grammar, nil)
       end
     end

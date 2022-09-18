@@ -42,6 +42,13 @@ module ShellOpts
   class InternalError < ShellOptsError; end
 end
 
+require 'indented_io'
+require 'constrain'
+include Constrain
+require_relative 'shellopts/ext/forward_to.rb'
+include ForwardTo
+require_relative 'shellopts/line.rb' # To be able to test it while running main
+
 __END__
 require 'indented_io'
 require 'constrain'

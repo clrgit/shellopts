@@ -11,6 +11,18 @@ describe "ShellOpts" do
         expect(line(s).charno).to eq 1
         expect(line(is).charno).to eq 3
       end
+
+      it "is one if empty" do
+        l = line("")
+        expect(l.charno).to eq 1
+        expect(l.source[l.charno-1]).to eq nil
+      end
+
+      it "is one beyond length of line if blank" do
+        l = line("  ")
+        expect(l.charno).to eq 3
+        expect(l.source[l.charno-1]).to eq nil
+      end
     end
 
     describe "#source" do
@@ -25,16 +37,16 @@ describe "ShellOpts" do
       end
     end
 
-    describe "#words" do
-      it "return an array of Word objects for the line" do
-        expect(line(s).words.map(&:text)).to eq %w(what a wonderful world)
-        expect(line(s).words.map(&:charno)).to eq [1, 6, 8, 18]
-      end
-      it "the charno of the words are relative to source" do
-        expect(line(is).words.map(&:charno)).to eq [3, 8, 10, 20]
-        expect(ShellOpts::Line.new(1, 7, is).words.map(&:charno)).to eq [9, 14, 16, 26]
-      end
-    end
+#   describe "#words" do
+#     it "return an array of Word objects for the line" do
+#       expect(line(s).words.map(&:text)).to eq %w(what a wonderful world)
+#       expect(line(s).words.map(&:charno)).to eq [1, 6, 8, 18]
+#     end
+#     it "the charno of the words are relative to source" do
+#       expect(line(is).words.map(&:charno)).to eq [3, 8, 10, 20]
+#       expect(ShellOpts::Line.new(1, 7, is).words.map(&:charno)).to eq [9, 14, 16, 26]
+#     end
+#   end
 
     describe "#initialize" do
       it "adds the given charno to the position of the first non-whitespace character" do

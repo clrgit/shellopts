@@ -20,23 +20,33 @@ module ShellOpts
       # Parent command object or nil if this is the Program node
       alias_method :command, :parent
 
-      # Usually a Symbol but anonymous ArgSpec objects have Integer idents.
-      # Initialized by the parser. Equal to :! for the top level Program object
-      attr_reader :ident
-
       # Display-name of object (String). Defaults to #ident with special
       # characters removed
       def name = ident.to_s
 
-      # Literal of node as the user enters it. Eg. '--option' or 'command'
-      attr_accessor :literal
+      # Usually a Symbol but anonymous ArgSpec objects have Integer idents.
+      # Initialized by the parser. Equal to :! for the top level Program object
+      attr_reader :ident
 
-      # Aliases. List of literals (TODO: may be changed to list of idents -
-      # depends on the parser)
-      attr_accessor :aliases
+      # Alias idents. Must include #ident
+      attr_reader :idents
 
-      # Program#uid overrides this
-      def uid = @uid ||= [parent.uid, ident].join(".").sub(/!\./, ".")
+      # Literal of the node's #ident as the user sees it (String). Eg.
+      # '--option' or 'command'. Defaults to #name
+      def literal = name
+
+      # Alias literals. Must include #literal
+      def literals = abstract_method
+
+      # UID of object. This can be used in Node::[] to get the object
+      def uid
+        case ident
+          when Symbol; [parent.uid, ident].join(".").sub(/!\./, ".")
+          when Integer; "#{parent.uid}[#{ident}]"
+        else
+          raise InternalError
+        end
+      end
 
       # Associated Doc::Node object. Initialized by the parser
       attr_accessor :doc 
@@ -45,8 +55,8 @@ module ShellOpts
       forward_to :doc, :token
 
       def initialize(parent, ident)
-        constrain parent, *(self.class <= Program ? [nil] : [Command])
-        constrain ident, *(self.class <= ArgSpec ? [Symbol, Integer] : [Symbol])
+        constrain parent, *(self.class <= Program ? [nil] : [Option, Command, ArgSpec])
+        constrain ident, *(self.class <= ArgSpec || self.class <= Arg ? [Symbol, Integer] : [Symbol])
         @ident = ident
         @children = {}
         parent&.send(:attach, self)
@@ -59,7 +69,7 @@ module ShellOpts
       # Access child nodes by identifier
       def [](ident) children.find { |c| c.ident == ident } end
 
-      # Access node by relative UID
+      # Access node by relative UID. Eg. main.dot(option_name) or main.dot("[3].FILE")
       def dot(relative_uid) = Node[[self.uid, relative_uid].compact.join(".").sub("!.", ".")]
 
       # Access node by absolute UID
@@ -80,60 +90,81 @@ module ShellOpts
     end
 
     class Option < Node
-      attr_reader :arg
+      # Override Node#literal to include '-' or '--'
+      def literal = @literal ||= short_idents.include?(ident) ? "-#{ident}" : "--#{ident}"
 
-      attr_reader :short_literals
-      attr_reader :long_literals
-      def literals = short_literals + long_literals
+      attr_reader :short_idents
+      attr_reader :long_idents
+      def idents = @idents ||= @short_idents + @long_idents
 
-      def initialize(parent, ident)
-        super
-        command.options << self
+      def short_literals = @short_literals ||= @short_idents.map { |i| "-#{i}" }
+      def long_literals = @long_literals ||= @long_idents.map { |i| "--#{i}" }
+      def literals = @literals ||= short_literals + long_literals
+
+      def arg
+        @children.size <= 1 or raise InternalError, "More than one child"
+        @chidren.first
+      end
+
+      def initialize(parent, ident, short_idents, long_idents)
+        p parent
+        constrain parent, Command
+        super(parent, ident)
+        constrain short_idents, [Symbol]
+        constrain long_idents, [Symbol]
+        constrain short_idents.include?(ident) || long_idents.include?(ident)
+        @short_idents, @long_idents = short_idents, long_idents
       end
     end
 
     class Command < Node
-      attr_reader :options # List of Option objects
-      attr_reader :commands # List of Command objects
-      attr_accessor :arg_specs # List of ArgSpec objects. nil if unspecified
-
       def name = ident.to_s[0..-2]
 
-      def initialize(parent, ident)
-        super
-        @options = []
-        @commands = []
-        @arg_specs = nil
+      attr_reader :idents
+      def literals = @literals ||= idents.map { |i| i.to_s[0..-2] }
+
+      def options = children.select { |c| c.is_a? Option }
+      def commands = children.select { |c| c.is_a? Command }
+      def specs = children.select { |c| c.is_a? ArgSpec }
+
+      def initialize(parent, ident, idents)
+        constrain parent, (self.class == Program ? nil : Command)
+        super(parent, ident)
+        constrain idents, [Symbol]
+        constrain idents.include?(ident) # Same semantics as Option
+        @idents = idents
       end
     end
 
     class Program < Command
       def ident = :!
-      def uid = ident.to_s
       attr_reader :name
+      def uid = nil # To not prefix UID with program name in every Grammar class
 
       def initialize(name: nil)
-        super(nil, self.ident)
+        super(nil, self.ident, [self.ident])
         @name = name || File.basename($PROGRAM_NAME)
       end
     end
 
     class ArgSpec < Node
-      attr_reader :ident # An Symbol or Integer (the default)
-      attr_reader :args
-
-      def uid = @uid ||= "#{parent.uid}[#{ident}]"
-      def literal = ident.to_s # or fail
+      alias_method :args, :children
 
       # Note that +ident+ can be nil, if so it defaults to the index into the
       # parent's #args array
       def initialize(parent, ident)
-        super(parent, ident || parent.args.size)
-        parent.args << self
+        super(parent, ident || parent.spec.size)
       end
     end
 
-    class Arg
+    class Arg < Node
+      attr_reader :arg
+
+      def intialize(parent, ident, arg)
+        constrain parent, Command, Option
+        super(parent, ident)
+        @arg = arg
+      end
     end
   end
 end

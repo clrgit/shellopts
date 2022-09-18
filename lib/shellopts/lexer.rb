@@ -1,47 +1,57 @@
 
 module ShellOpts
   class Lexer
+    OPTION_RE = /--?\S/
     COMMAND_RE = /[a-z][a-z._-]*!/
+    DESCR_RE = /--\s/
+    SPEC_RE = /\+\+\s/
+    BRIEF_RE = /@/
 
-    DECL_RE = /^(?:-|--|\+|\+\+|(?:@(?:\s|$))|(?:[^\\!]\S*!(?:\s|$)))/
+    SINGLE_LINE_WORDS = %w(-- ++ @)
 
-    # Match ArgSpec argument words. TODO
-    SPEC_RE = /^[^a-z]{2,}$/
+#   DECL_RE = /^(?:-|--|\+|\+\+|(?:@(?:\s|$))|(?:[^\\!]\S*!(?:\s|$)))/
+    DECL_RE = /^(?:#{OPTION_RE}|#{COMMAND_RE}|#{DESCR_RE}|#{SPEC_RE}|#{BRIEF_RE})/
 
-    # Match ArgDescr words (should be at least two characters long)
-    DESCR_RE = /^[^a-z]{2,}$/
+    # Match argument spec words. The words should begin with at least two
+    # uppercase letters. This makes it possible to say +opts.FILE_ARGUMENT+
+    # because it can't conflict with a single letter uppercase option and long
+    # options are always downcased internally (TODO). Rather primitive for now
+    ARG_RE = /^[A-Z]{2,}$/
 
-    SECTIONS = %w(DESCRIPTION OPTION OPTIONS COMMAND COMMANDS)
+    SECTIONS = %w(NAME SYNOPSIS DESCRIPTION OPTIONS COMMANDS)
+    SECTION_ALIASES = {
+      "USAGE" => "SYNOPSIS",
+      "OPTION" => "OPTIONS",
+      "COMMAND" => "COMMANDS",
+    }.merge { SECTION_NAMES.map { |n| [n, n] }.to_h }
 
     using Ext::Array::ShiftWhile
 
     attr_reader :name # Name of program
-    attr_reader :source
-    attr_reader :tokens
+    attr_reader :source # A (possibly multiline) string
+    attr_reader :tokens # List of tokens. Initialized by #lex
     
-    def oneline?() @oneline end
-
-    def initialize(name, source, oneline)
+    def initialize(name, source)
       @name = name
-      @source = source
-      @oneline = oneline
-      @source += "\n" if @source[-1] != "\n" # Always terminate source with a newline
+      @source = source.end_with?("\n") ? source : source + "\n" # Always terminate source with a newline
     end
 
     def lex(lineno = 1, charno = 1)
       # Split source into lines and tag them with lineno and charno. Only the
-      # first line can have charno != 1
+      # first line can have charno != 1 (this happens in one-line declarations)
       lines = source[0..-2].split("\n").map.with_index { |line,i|
         l = Line.new(i + lineno, charno, line)
         charno = 1
         l
       }
 
-      # Skip initial comments and blank lines and compute indent level
-      lines.shift_while { |line| line.text == "" || line.text.start_with?("#") && line.charno == 1 }
+      # Skip initial comments and blank lines and compute indent level. All
+      # lines starting with '#' is considered a comment here so a spec can't
+      # start with an '#' list
+      lines.shift_while { |line| line.text == "" || line.text.start_with?("#") }
       initial_indent = lines.first&.charno
 
-      # Create artificial program token. Source is equal to the program name
+      # Create artificial program token. The token has the program name as value
       @tokens = [Token.new(:program, 0, 0, name)]
 
       # Reference to last non-blank token. Used to detect code blocks
@@ -49,89 +59,79 @@ module ShellOpts
 
       # Process lines
       while line = lines.shift
-        # Pass-trough blank lines
+        # Pass-trough blank lines. This makes sure last_nonblank is never set
+        # to a blank token
         if line.to_s == ""
           @tokens << Token.new(:blank, line.lineno, line.charno, "")
           next
         end
           
-        # Ignore comments. A comment is an outdented line starting with '#' 
+        # Ignore comments. A comment is an line starting with '#' and being
+        # less indented than the initial indent of the spec
         if line.charno < initial_indent
           next if line =~ /^#/
           error_token = Token.new(:text, line.lineno, 0, "")
-          lexer_error error_token, "Illegal indentation"
+          lexer_error line.lineno, 0, "Illegal indentation"
         end
 
-        # Line without escape sequences
-        source = line.text[(line.text =~ /^\\/ ? 1 : 0)..-1]
-
-        # Code lines
-        if last_nonblank.kind == :text && line.charno > last_nonblank.charno && line !~ DECL_RE
-          @tokens << Token.new(:text, line.lineno, line.charno, source)
+        # Code lines. Code is preceeded by a blank line and indented beyond the
+        # last non-blank token's indentation (just the parent?). It should also
+        # not look like declaration of an option or a command - the first line
+        # in the block can be escaped with a \ to solve that
+        if @tokens.last == :blank && line.charno > last_nonblank.charno && line !~ DECL_RE
+          text = line.text[(line.text =~ /^\\/ ? 1 : 0)..-1] # Unescape
+          @tokens << Token.new(:text, line.lineno, line.charno, text)
           lines.shift_while { |line| line.blank? || line.charno > last_nonblank.charno }.each { |line|
             kind = (line.blank? ? :blank : :text)
             @tokens << Token.new(kind, line.lineno, line.charno, line.text)
           }
 
         # Sections
-        elsif SECTIONS.include?(line.text)
-          @tokens << Token.new(:section, line.lineno, line.charno, line.text.sub(/S$/, ""))
+        elsif SECTION_ALIASES.key?(line.text)
+          value = SECTION_ALIASES[line.text]
+          @tokens << Token.new(:section, line.lineno, line.charno, value, line.text)
 
-        # Options, commands, usage, arguments, and briefs
+        # Options, commands, usage, arguments, and briefs. The line is broken
+        # into words to be able to handle one-line declarations - options with
+        # briefs and especially of one-line subcommands
         elsif line =~ DECL_RE
           words = line.words
           while (charno, word = words.shift)
+            # Ensure mandatory arguments. This doesn't include the '@text' brief type
+            if SINGLE_LINE_WORDS.include?(word) && words.empty?
+              lexer_error line.lineno, charno, "Empty '#{word}' declaration"
+            end
+
             case word
-              when "@"
-                if words.empty?
-                  error_token = Token.new(:text, line.lineno, charno, "@")
-                  lexer_error error_token, "Empty '@' declaration"
-                end
-                source = words.shift_while { true }.map(&:last).join(" ")
-                @tokens << Token.new(:brief, line.lineno, charno, source)
+              when /@(.+)?/ # $1 can be nil. If so, we know that there are some arguments
+                value = ([$1] + words.shift_while { true }.map(&:last)).compact.join(" ")
+                @tokens << Token.new(:brief, line.lineno, charno, value, "@")
               when "--"
-                @tokens << Token.new(:arg_descr, line.lineno, charno, "--")
-                source = words.shift_while { |_,w| w =~ DESCR_RE }.map(&:last).join(" ")
-                @tokens << Token.new(:arg_descr_string, line.lineno, charno, source)
+                # Almost eat rest of line
+                value = words.shift_while { |_,word| word !~ BRIEF_RE }.map(&:last).join(" ") 
+                @tokens << Token.new(:arg_descr, line.lineno, charno, value, "--")
               when "++"
                 @tokens << Token.new(:arg_spec, line.lineno, charno, "++")
-                words.shift_while { |c,w| 
-                  w =~ SPEC_RE and @tokens << Token.new(:argument, line.lineno, c, w) 
+                words.shift_while { |charno,word| 
+                  word =~ ARG_RE and @tokens << Token.new(:arg, line.lineno, charno, word) 
                 }
               when /^-|\+/
                 @tokens << Token.new(:option, line.lineno, charno, word)
               when /!$/
                 @tokens << Token.new(:command, line.lineno, charno, word)
             else
-              source = [word, words.shift_while { |_,w| w !~ DECL_RE }.map(&:last)].flatten.join(" ")
-              @tokens << Token.new(:brief, line.lineno, charno, source)
+              raise StandardError, "Internal error"
             end
           end
 
-          # TODO: Move to parser and remove @oneline from Lexer
-          (token = @tokens.last).kind != :brief || !oneline? or 
-              lexer_error token, "Briefs are only allowed in multi-line specifications"
-
-        # Single-line briefs
-        elsif source[0] == "@"
-          @tokens << Token.new(:brief, line.lineno, line.charno, source)
-
         # Paragraph lines
         else
-          @tokens << Token.new(:text, line.lineno, line.charno, source)
+          @tokens << Token.new(:text, line.lineno, line.charno, line.text)
         end
 
-        # FIXME Not sure about this
-#       last_nonblank = @tokens.last 
-        last_nonblank = @tokens.last if ![:blank, :arg_descr_string, :argument].include? @tokens.last.kind 
+        # This works because blank tokens never reach this line
+        last_nonblank = @tokens.last
       end
-
-      # Move arguments and briefs before first command if one-line source
-#     if oneline? && cmd_index = @tokens.index { |token| token.kind == :command }
-#       @tokens = 
-#           @tokens[0...cmd_index] +
-#           @tokens[cmd_index..-1].partition { |token| ![:command, :option].include?(token.kind) }.flatten
-#     end
 
       @tokens
     end
@@ -140,7 +140,10 @@ module ShellOpts
       Lexer.new(name, source, oneline).lex(lineno, charno)
     end
 
-    def lexer_error(token, message) raise LexerError.new(token), message end
+    def lexer_error(lineno, charno, message) 
+      token = Token.new(:text, lineno, charno, "")
+      raise LexerError.new(token), message
+    end
   end
 end
 

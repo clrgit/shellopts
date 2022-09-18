@@ -12,7 +12,7 @@ module ShellOpts
       forward_to :descr, :token
       attr_reader :grammar
       attr_reader :descr
-      attr_accessor :brief
+      attr_accessor :brief # Initialized by the parser
 
       def usage = abstract_method
 
@@ -38,7 +38,7 @@ module ShellOpts
 
     class Command < Node
       alias_method :command, :grammar
-      attr_accessor :arg_descr
+      attr_accessor :arg_descr # Spec::Line object. Initialized by the parser
 
       def intialize(grammar, descr)
         constrain grammar, Grammar::Command
@@ -56,11 +56,19 @@ module ShellOpts
       end
     end
 
-    class ArgSpec < Node # Doubtful
-      def initialize
-        super(grammar, nil)
-      end
-    end
+#   class ArgSpec < Node # Doubtful
+#     def initialize(grammar)
+#       constrain grammar, Grammar::Spec
+#       super(grammar, nil)
+#     end
+#   end
+#
+#   class Arg < Node # Doubtful
+#     def initialize(grammar)
+#       constrain grammar, Grammar::Arg
+#       super(grammar, nil)
+#     end
+#   end
   end
 end
 

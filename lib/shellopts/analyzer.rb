@@ -18,7 +18,7 @@ module ShellOpts
       end
 
       def remove_arg_spec_nodes
-        children.delete_if { |node| node.is_a?(ArgSpec) }
+        children.delete_if { |node| node.is_a?(Spec) }
       end
 
       def analyzer_error(token, message) 

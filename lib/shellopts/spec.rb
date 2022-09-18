@@ -2,7 +2,7 @@ module ShellOpts
   module Spec
     class Node
       attr_reader :parent
-      attr_reader :children
+      attr_reader :children # Array of child Node objects
       attr_reader :token
 
       def initialize(parent, token)
@@ -43,6 +43,7 @@ module ShellOpts
     class Lines < Node
       attr_reader :lines # Array of String objects
       def initialize(parent, token, lines = [])
+        constrain lines, [String]
         super(parent, token)
         @lines = lines
       end
@@ -51,6 +52,7 @@ module ShellOpts
     class Line < Lines
       def line = lines.first # A String object
       def initialize(parent, token, line = nil)
+        constrain line, String, nil
         super(parent, token, [line || token.source])
       end
     end
@@ -90,7 +92,7 @@ module ShellOpts
 
     class Definition < Node
       def header(formatter) = abstract_method
-      def description = child
+      def description = children.first
 
       def self.accepts = [Description]
     end

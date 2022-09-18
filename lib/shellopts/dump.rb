@@ -121,7 +121,7 @@ module ShellOpts
       end
     end
 
-    class ArgSpec < Node
+    class Spec < Node
       def dump_grammar(short = false)
         super
         dump_attrs :arguments

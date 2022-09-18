@@ -31,6 +31,7 @@ describe "CaseMatcher" do
     it "matches integers >= 1" do
       expect(match 0).to eq "integer"
       expect(match 1).to eq "ordinal"
+      expect(match 2).to eq "ordinal"
     end
   end
 

@@ -1,4 +1,5 @@
 
+# Outrageous but fun
 module CaseMatcher
   class CaseMatcher < BasicObject
   private

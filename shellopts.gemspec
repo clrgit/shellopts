@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "forward_to"
-  spec.add_dependency "constrain", "~> 0.5.1"
+  spec.add_dependency "constrain", "~> 0.8"
   spec.add_dependency "ruby-terminfo-r3"
   spec.add_dependency "indented_io"
 

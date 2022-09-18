@@ -10,6 +10,8 @@ include ForwardTo
 require 'constrain'
 include Constrain
 
+require './lib/shellopts/ext/case.rb'
+
 require './lib/shellopts.rb'
 require './lib/shellopts/ext/array.rb'
 require './lib/shellopts/line.rb'
@@ -55,8 +57,9 @@ SPEC = %(
     Description here
 )
 
-lexer = ShellOpts::Lexer.new("main", SPEC, false)
+lexer = ShellOpts::Lexer.new("main", SPEC)
 tokens = lexer.lex
+pp tokens
 parser = ShellOpts::Parser.new(tokens)
 parser.parse
 

@@ -32,26 +32,19 @@ module ShellOpts
 #   # The top node is the node currently being documented
 #   attr_reader :nodes
     
-    # Stack of Grammar::Command objects. This can include implicit sub-commands
-    # that are not present in nodes. 
-    attr_reader :cmds
+    # Stack of Grammar::Node objects, either Option or Command. It can include
+    # implicit sub-commands that are not present in nodes
+    attr_reader :nodes
 
-#   # Stack of Doc::Node objects
-#   attr_reader :docs
-
-    # Stack of Spec::Node objects
+    # Stack of ArgSpec::Node objects
     attr_reader :specs
 
     # Current node, command, doc, and description
-#   def node = nodes.last
-    def cmd = @cmds.last
-#   def doc = docs.last
-    def spec = @specs.last
-
+    def node = @nodes.last
+    def curr_spec = @specs.last
+  
     def initialize(tokens)
-#     @nodes = []
-      @cmds = []
-#     @docs = []
+      @nodes = []
       @specs = []
       @tokens = tokens.dup
     end
@@ -63,56 +56,125 @@ module ShellOpts
       [grammar, spec]
     end
 
+    def parse_arg(spec, token)
+      Grammar::Arg.new(spec, nil, token)
+    end
+
+    def parse_option(token, option_group)
+      long, short = [], []
+      ident = nil
+      case token.value
+        when /--(.*)/; ident = $1.to_sym; long << ident
+        when /-(.*)/; ident = $1.to_sym; short << ident
+      else
+        raise ArgumentError, "'#{token}' is not an option"
+      end
+      opt = Grammar::Option.new(node, ident, short, long)
+      doc = Doc::Option.new(opt, option_group.description)
+      opt
+    end
+
     def parse
       program, description = make_program(tokens.shift)
-      @cmds = [program]
+      @nodes = [program]
       @specs = [description]
-
-      pp @cmds
-      pp @specs
 
       while token = @tokens.shift
         unwind(token)
+        puts
+        puts "Processing #{token.kind}: #{token.value.inspect}"
+        puts "   node stack: #{@nodes.map(&:class).join(", ")}"
+        puts "   spec stack: #{@nodes.map(&:class).join(", ")}"
 
-        puts token.kind.inspect
         case token.kind
+          when :blank
+            ; # Do nothing
+
           when :brief
-            cmd.doc.brief.nil? or raise ParserError, "Duplicate brief in definition of #{cmd.name}"
-            cmd.doc.brief = Spec::Brief.new(token)
+            node.is_a?(Grammar::Command) || node.is_a?(Grammar::Option) or 
+                raise parse_error, token, "Unexpected brief definition"
+            node.doc.brief.nil? or raise ParserError, "Duplicate brief in definition of #{node.name}"
+            node.doc.brief = Spec::Brief.new(token)
+
+          when :arg_spec
+            node.is_a?(Grammar::Command) or raise parse_error, token, "Unexpected argument specification"
+            spec = Grammar::ArgSpec.new(node, token)
+            @tokens.shift_while { |t| t.kind == :arg and parse_arg(spec, t) }
+
+          when :arg
+            raise InternalError, ":arg tokens should be processed by :spec"
+
           when :arg_descr
-            cmd.doc.arg_descr = Spec::Line.new(spec, consume(:arg_descr_string))
+            node.is_a?(Grammar::Command) or raise parse_error, token, "Unexected argument description"
+            node.doc.arg_descr = Spec::Lines.new curr_spec, token, consume(:arg_descr, &:value)
 
-            # A way to signal that there may be no Command arg spec because
-            # we've already assigned a arg description
-            #
-            # Maybe rename
-            #   arg_spec -> spec
-            #   arg_descr -> usage
-            break
+          when :text
+            lines = [token.value] + consume(:text).map(&:value)
+            Spec::Lines.new(curr_spec, token, lines)
 
-          when :arg_descr_string
-            raise InternalError, ":arg_descr_string should be processed by :arg_descr handler"
-            
+          when :option
+            node.is_a?(Grammar::Command) or raise parse_error, token, "Unexpected option definition"
+            if !(option_group = curr_spec.is_a?(Spec::OptionGroup))
+              @specs.push Spec::OptionGroup.new(curr_spec, token)
+              option_group = curr_spec
+              Spec::Description.new(curr_spec, token) # FIXME WRONG TOKEN
+            end
+            @nodes << parse_option(token, option_group)
+
+          when :command
+            @nodes << Grammar::Command.new(node, token.value, [token.value])
+
+        else
+          puts "Unhandled token: #{token.kind}"
         end
       end
-      pp cmd
 
+      pp @nodes
+      pp @specs
+      exit
     end
 
   protected
     # Not public because it is always empty after parsing
     attr_reader :tokens
+    def token = @tokens.first
+    def shift = @tokens.shift
 
-    def consume(kind)
-      token = @tokens.shift
-      token.kind == kind or raise ParserError, "Expected #{kind}"
-      token
+    def consume(kind, recursive: false, &block)
+      if block_given?
+        @tokens.shift_while { |t| t.kind == kind }.map { |t| yield t }
+      else
+        @tokens.shift_while { |t| t.kind == kind }
+      end
     end
-      
+
+#   # Remove one token and return it. If a block is given, the block is
+#   # executed on the token and its result is returned instead. It is an
+#   # error if the token doesn't has the given kind
+#   def consume_one(kind, &block)
+#     token.kind == kind or raise ParserError, "Expected #{kind}"
+#     block_given? ? yield(@tokens.shift) : @tokens.shift
+#   end
+#
+#   # Like #consume_one but removes all tokens (if any) that have the given
+#   # kind. Returns a list of tokens or result of the block if a block was given
+#   def consume_all(kind, &block)
+#     consume(:kind, kind, &block)
+#   end
+#
+#   def consume_some(kind, &block)
+#     token.kind == kind or raise ParserError, "Expected #{kind}"
+#     consume_one(kind, &block)
+#     consume_all(kind, &block)
+#   end
 
       # Unwind stacks according to indentation
     def unwind(token)
-      cmds.pop_while { |c| token.charno <= c.token.charno }
+      puts "#unwind(#{token.inspect})"
+      puts "  nodes: #{nodes.size}"
+      puts "  specs: #{specs.size}"
+
+      nodes.pop_while { |c| token.charno <= c.token.charno }
       specs.pop_while { |d| token.charno <= d.token.charno }
     end
 
@@ -214,7 +276,7 @@ __END__
             Grammar::ArgDescr.parse(cmds.top, token)
 
           when :section
-            section = Spec::Section.new(docs.top, token)
+            section = ArgSpec::Section.new(docs.top, token)
             docs.push section
             nodes.push section
 
@@ -308,7 +370,7 @@ __END__
         @nodes << node if node.is_a?(Grammar::Node)
         @cmds << node if node.is_a?(Grammar::Command)
         @docs << node if node.is_a?(Grammar::Node) && node.doc
-        @descrs << node if node.is_a?(Spec::Node)
+        @descrs << node if node.is_a?(ArgSpec::Node)
         @descrs << node.description if node.is_a?(Doc::Node)
       end
 
@@ -516,7 +578,7 @@ __END__
               Grammar::ArgDescr.parse(cmds.top, token)
 
             when :section
-              section = Spec::Section.new(docs.top, token)
+              section = ArgSpec::Section.new(docs.top, token)
               docs.push section
               nodes.push section
 
@@ -733,7 +795,7 @@ __END__
     end
   end
 
-  module Spec
+  module ArgSpec
   end
 
 

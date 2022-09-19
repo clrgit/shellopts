@@ -32,6 +32,9 @@ module ShellOpts
     # :text
     #   any other text
     #
+    # :code
+    #   a multiline string of code
+    #
     # :blank
     #   a blank line
     #   

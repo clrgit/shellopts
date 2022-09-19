@@ -173,15 +173,54 @@ describe "Lexer" do
       expect(make src, fields: :kind).to eq [:text, :blank, :option]
     end
 
-    it "ignores initial blank and commented lines" do
+    it "ignores initial blank lines" do
       src = %(
         
         -a
-# Meta-comment
+      )
+      expect(make src, fields: :kind).to eq [:option]
+    end
+
+    it "ignores terminating blank lines" do
+      src = %(
+        -a
+        
+      )
+      expect(make src, fields: :kind).to eq [:option]
+    end
+
+    it "ignores full-line comments" do
+      src = %(
+        -a
+      # A comment
+        # A bullet
         Text
       )
-      expect(make src, fields: :kind).to eq [:option, :text]
+      expect(make src, fields: :kind).to eq [:option, :text, :text]
+      
+    end
+
+    it "removes in-line comments from declarations" do
+      src = %(
+        -a # a comment
+        cmd! # another comment
+      )
+      expect(make src, fields: :kind).to eq [:option, :command]
     end
   end
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

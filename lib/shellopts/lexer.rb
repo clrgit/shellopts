@@ -34,7 +34,7 @@ module ShellOpts
     using Ext::Array::ShiftWhile
 
     attr_reader :name # Name of program
-    attr_reader :source # A (possibly multiline) string
+    attr_reader :source # A multiline string
     attr_reader :tokens # List of tokens. Initialized by #lex
     
     def initialize(name, source)
@@ -88,23 +88,26 @@ module ShellOpts
           next # 'next' ensures that last_nonblank is unchanged
         end
           
-        # Ignore comments. A comment is an line starting with '#' and being
-        # less indented than the initial indent of the spec
+        # Ignore full-line comments. Full-line comments are lines with '#' as
+        # the first non-space character and with an indent less than the
+        # initial indent. This avoids conflicts with '#' as a bullet marker
+        next if line.charno < initial_indent && line.text.start_with?("#")
+
+        # Check indent
         if line.charno < initial_indent
-          next if line =~ /^#/
-          error_token = Token.new(:text, line.lineno, 0, "")
-          lexer_error line.lineno, 0, "Illegal indentation"
+          error_token = Token.new(:text, line.lineno, 1, "")
+          lexer_error line.lineno, 1, "Illegal indentation"
         end
 
         # Sections
-        if SECTION_ALIASES.key?(line.text)
-          value = SECTION_ALIASES[line.text]
-          @tokens << Token.new(:section, line.lineno, line.charno, line.text, value)
+        if SECTION_ALIASES.key?(line.expr)
+          value = SECTION_ALIASES[line.expr]
+          @tokens << Token.new(:section, line.lineno, line.charno, line.expr, value)
 
         # Options, commands, usage, arguments, and briefs. The line is broken
         # into words to be able to handle one-line declarations (options with
         # briefs and one-line subcommands)
-        elsif line =~ DECL_RE
+        elsif line.expr =~ DECL_RE
           words = line.words
           while (charno, word = words.shift)
             # Ensure mandatory arguments. This doesn't include the '@text' brief type
@@ -136,20 +139,16 @@ module ShellOpts
 
         # Paragraph lines
         else
-          value = line.text.sub(/^(\s*)\\/, '\1')
-          @tokens << Token.new(:text, line.lineno, line.charno, line.text, value)
+          @tokens << Token.new(:text, line.lineno, line.charno, line.text, unescape(line.text))
         end
 
-        # This works because blank tokens never reach this line
+        # This works because we know that only non-blank tokens reach this line
         last_nonblank = @tokens.last
       end
 
       @tokens
     end
 
-#   def self.lex(name, source, oneline, lineno = 1, charno = 1)
-#     Lexer.new(name, source, oneline).lex(lineno, charno)
-#   end
     def self.lex(name, source, lineno = 1, charno = 1)
       Lexer.new(name, source).lex(lineno, charno)
     end

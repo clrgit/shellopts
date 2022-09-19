@@ -22,9 +22,16 @@ module ShellOpts
 
     # The whole line as given to #initialize
     attr_reader :source
+#   def source=(source) @source = source; @text = 
 
-    # The source with prefixed and suffixed spaces removed
+    # The source with prefixed and suffixed spaces removed. #text is used by
+    # methods that treat the line as text
     attr_reader :text
+
+    # The text with in-line comments removed. This is only relevant for lines
+    # that are part of a definition, paragraphs and other text elements can't
+    # be commented. Computed lazily
+    def expr = @expr ||= text.sub(/\s+#.*/, "")
 
     # The given charno should be 1 except for a line in a one-line program
     # specification (eg. in +SPEC="-a ARG"+ charno should be 7)
@@ -39,12 +46,12 @@ module ShellOpts
 
     forward_to :@text, :=~, :!~, :to_s, :[]
 
-    # Words in text. Return array of [charno, word] tuples
+    # Words in expr. Return array of [charno, word] tuples
     def words
       return @words if @words
       @words = []
       charno = self.charno
-      text.scan(/(\s*)(\S*)/)[0..-2].each { |spaces, word|
+      expr.scan(/(\s*)(\S*)/)[0..-2].each { |spaces, word|
         charno += spaces.size
         @words << [charno, word]
         charno += word.size

@@ -5,7 +5,6 @@ module ShellOpts
   end
 end
 
-
 module ShellOpts
   # The parser extends Grammar objects with a parse method that is called with
   # the parent object and the current token as argument
@@ -14,40 +13,113 @@ module ShellOpts
     using Ext::Array::ShiftWhile
     using Ext::Array::PopWhile
 
-    # AST root node
-#   attr_reader :program
+    # The resulting Spec::Program object
+    attr_reader :program
 
-    # Commands by UID
-#   attr_reader :commands
-
-#   # Stack of Grammar Nodes. Follows the indentation of the source and not the
-#   # abstract hierarchy of commands and options as it may jump over implicit
-#   # sub-commands. 
-#   #
-#   # Implicit sub-commands are created when
-#   # intermediate subcommands doesn't exist in dotted command names like
-#   # 'cmd.subcmd.subsubcmd'. In this example, 'cmd' and 'subcmd' may be
-#   # implicit if they're not defined elsewhere
-#   #
-#   # The top node is the node currently being documented
-#   attr_reader :nodes
-    
-    # Stack of Grammar::Node objects, either Option or Command. It can include
-    # implicit sub-commands that are not present in nodes
-    attr_reader :nodes
-
-    # Stack of ArgSpec::Node objects
-    attr_reader :specs
-
-    # Current node, command, doc, and description
-    def node = @nodes.last
-    def curr_spec = @specs.last
-  
     def initialize(tokens)
-      @nodes = []
-      @specs = []
+      constrain tokens, [Token]
       @tokens = tokens.dup
+      @stack = []
     end
+
+    # Parse tokens and return top-level Spec::Program object
+    def parse
+      push(@program = Spec::Program.new(tokens.shift))
+      parse_description
+      program
+    end
+
+  protected
+    # Queue of token
+    attr_reader :tokens
+
+    # Stack of Spec nodes. The stack is unwinded before each token is processed
+    attr_reader :stack
+
+    # Top element on the stack
+    def top = @stack.last
+
+    # Push and pop elements on stach
+    def push(spec)
+      constrain spec, Spec::Node
+      @stack << spec
+    end
+
+    def pop = @stack.pop
+
+    def parse_description
+      while token = @tokens.shift
+        unwind(token)
+        puts "Processing token #{token.inspect}"
+
+        case token.kind
+          when :blank
+            ; # Do nothing
+
+          when :brief
+            push Spec::Brief.new(top, token)
+
+          when :text
+            # Collect subsequent lines with the same indentation into a single
+            # Paragraph
+            push Spec::Paragraph.new(top, token, [token.value] + consume(:text, &:value))
+
+          # Handle difference between...
+          #   --opt @brief <- Attaches to this option
+          #
+          # ...and
+          #   --opt
+          #     @brief <- Attaches to whole option group
+          #
+          #     Paragraph <- Attches to whole option group (not a code block)
+          #
+          when :option
+            # Collect subsequent options with the same indentation into a
+            # single OptionGroup object
+            options = [token]
+
+        else
+          puts "   Default"
+        end
+      end
+    end
+
+    # Breaks on blank lines and on descriptions
+    def parse_option(token)
+      push Spec::Option.new(top, token)
+      
+      while token = @tokens.shift
+        unwind(token) and break
+        case token.kind
+          when :blank
+          when :brief
+        else
+          # @tokens.unshift token
+          # Pop token from stack
+        end
+      end
+
+
+    end
+
+    def unwind(token)
+      stack.pop_while { |c| token.charno <= c.token.charno }
+    end
+
+    def consume(kind, &block)
+      if block_given?
+        @tokens.shift_while { |t| t.kind == kind }.map { |t| yield t }
+      else
+        @tokens.shift_while { |t| t.kind == kind }
+      end
+    end
+
+  end
+end
+
+__END__
+
+  
 
     def make_program(token)
       spec = Spec::Description.new(nil, token)

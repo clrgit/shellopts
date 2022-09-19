@@ -6,20 +6,34 @@ module ShellOpts
       attr_reader :token
 
       def initialize(parent, token)
+        constrain parent, Node, nil
+        constrain token, Token
         @token = token
         @children = []
         parent&.send(:attach, self)
       end
 
+      def dump
+        puts dump_header
+        indent { children.each(&:dump) }
+      end
+
     protected
       # List of classes that this class accepts as children. It is used in
       # #attach to check the type of the node
-      def self.accepts() [] end
+      def self.accepts = []
+      def accepts = self.class.accepts
+
+      # List of classes that this class doesn't accepts as children but which
+      # should be passed on to the parent as if the indentation level didn't
+      # match. Eg. Options 
+      def self.pass = []
+      def pass = self.class.pass
 
       # Attach a node to self. node#parent is also set to self. There is
       # currently no #detach method
       def attach(node)
-        constrain self.class.accepts.any? { |klass| node.is_a? klass }
+        constrain accepts.any? { |klass| node.is_a? klass }
         @children << node
         node.instance_variable_set(:@parent, self)
       end
@@ -29,13 +43,19 @@ module ShellOpts
         constrain children.size, 1
         children.first
       end
+
+      def dump_header
+        "#{self.class.to_s.sub(/.*::/, "")}: #{token.location}"
+      end
     end
 
-    # A Brief object act as a paragraph but is not part of any object hierarchy
+    # A Brief object act as a paragraph
     class Brief < Node
-      def text() @token.source end
-      def initialize(token)
-        super(nil, token)
+      def text() @token.value end
+
+      def dump
+        super
+        indent { puts text.inspect }
       end
     end
 
@@ -67,6 +87,11 @@ module ShellOpts
         constrain text, String, [String], nil
         @text = Array(text).flatten.compact.join(" ")
       end
+
+      def dump
+        super
+        indent { puts text.inspect }
+      end
     end
 
     # An enumeration is a single-line text followed by an indented paragraph
@@ -90,6 +115,11 @@ module ShellOpts
       def self.accepts = [Bullet]
     end
 
+    class Option < Node
+      def self.accepts = [ArgDescr, Brief]
+      def self.pass = [Description]
+    end
+
     class Definition < Node
       def header(formatter) = abstract_method
       def description = children.first
@@ -104,19 +134,13 @@ module ShellOpts
 
     class Group < Definition
       def header(formatter) = formatter.header(self)
-      attr_reader :grammars
-      def initialize(parent, token)
-        super(parent, token)
-        @grammars = []
-      end
     end
 
     class OptionGroup < Group
-      alias_method :options, :grammars
+      def self.accepts = super + [Brief]
     end
 
     class CommandGroup < Group
-      alias_method :commands, :grammars
     end
 
     class Section < Definition
@@ -134,14 +158,13 @@ module ShellOpts
 
     class Description < Node
       alias_method :elements, :children
-      def self.accepts = [Node]
+      def self.accepts = [Node] # Anything can go into a description. FIXME
     end
 
     class Program < Description
-      attr_reader :grammar
-      def initialize(parent, token, grammar)
-        super(parent, token)
-        @grammar = grammar
+      def initialize(token) 
+        constrain token.kind, :program
+        super nil, token
       end
     end
   end

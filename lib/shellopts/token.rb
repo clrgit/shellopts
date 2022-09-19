@@ -37,7 +37,7 @@ module ShellOpts
     #   
     KINDS = [
         :program, :section, :option, :command, :arg_spec, :arg, :arg_descr, :brief,
-        :text, :blank
+        :text, :code, :blank
     ]
 
     # Kind of token
@@ -50,14 +50,14 @@ module ShellOpts
     # make blank lines have the same indent level as the previous token)
     attr_accessor :charno
 
-    # Token string value. This is usually equal to source
-    attr_reader :value
-
     # Token source. Equal to #value except for section, brief, and descr tokens
     attr_reader :source
 
+    # Token string value. This is usually equal to source
+    attr_reader :value
+
     # +lineno+ and +charno+ are zero for the :program token and >= 1 otherwise
-    def initialize(kind, lineno, charno, value, source = value)
+    def initialize(kind, lineno, charno, source, value = source)
       constrain kind, *KINDS
       constrain [lineno, charno], [kind == :program ? Integer : Ordinal] # lol
       constrain value, String

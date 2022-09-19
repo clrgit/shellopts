@@ -2,9 +2,21 @@
 module ShellOpts
   class Lexer
     OPTION_RE = /--?\S/
-    COMMAND_RE = /[a-z][a-z._-]*!/
-    DESCR_RE = /--\s/
+
+    # Commands are always lower-case. This prevents collision with named
+    # arguments that are always upper-case
+    COMMAND_RE = /[a-z][a-z0-9._-]*!/ 
+
     SPEC_RE = /\+\+\s/
+
+    # Match argument spec words. The words should begin with at least two
+    # uppercase letters. This makes it possible to say +opts.FILE_ARGUMENT+
+    # because it can't conflict with a single letter uppercase option and long
+    # options are always downcased internally (TODO). Rather primitive for now
+    ARG_RE = /^[A-Z0-9_-]{2,}$/
+
+    DESCR_RE = /--\s/
+
     BRIEF_RE = /@/
 
     SINGLE_LINE_WORDS = %w(-- ++ @)
@@ -12,18 +24,12 @@ module ShellOpts
 #   DECL_RE = /^(?:-|--|\+|\+\+|(?:@(?:\s|$))|(?:[^\\!]\S*!(?:\s|$)))/
     DECL_RE = /^(?:#{OPTION_RE}|#{COMMAND_RE}|#{DESCR_RE}|#{SPEC_RE}|#{BRIEF_RE})/
 
-    # Match argument spec words. The words should begin with at least two
-    # uppercase letters. This makes it possible to say +opts.FILE_ARGUMENT+
-    # because it can't conflict with a single letter uppercase option and long
-    # options are always downcased internally (TODO). Rather primitive for now
-    ARG_RE = /^[A-Z]{2,}$/
-
     SECTIONS = %w(NAME SYNOPSIS DESCRIPTION OPTIONS COMMANDS)
     SECTION_ALIASES = {
       "USAGE" => "SYNOPSIS",
       "OPTION" => "OPTIONS",
-      "COMMAND" => "COMMANDS",
-    }.merge { SECTION_NAMES.map { |n| [n, n] }.to_h }
+      "COMMAND" => "COMMANDS"
+    }.merge SECTIONS.map { |n| [n, n] }.to_h
 
     using Ext::Array::ShiftWhile
 
@@ -59,11 +65,27 @@ module ShellOpts
 
       # Process lines
       while line = lines.shift
-        # Pass-trough blank lines. This makes sure last_nonblank is never set
-        # to a blank token
-        if line.to_s == ""
-          @tokens << Token.new(:blank, line.lineno, line.charno, "")
-          next
+        if line.blank? 
+          # Code block. A code block is preceeded by a blank line and indented
+          # beyond the last non-blank token's indentation (just the parent?).
+          # It should also not look like declaration of an option or a command
+          # - the first line in the block can be escaped with a \ to solve that
+          if lines.first && lines.first.charno > last_nonblank.charno && lines.first !~ DECL_RE
+            indent = lines.first.charno - 1
+            code = lines.shift_while { |l| l.blank? || l.charno >= indent }.map(&:source)
+            source = code.join("\n")
+            value = ([unescape(code[0])] + code[1..-1]).map { |s| s[indent..-1] || "" }
+                .join("\n")
+                .sub(/\n*\n$/, "\n")
+            @tokens << Token.new(:code, line.lineno, line.charno, source, value)
+            next # 'next' ensures that last_nonblank is unchanged
+          
+          # Ordinary blank line
+          else
+            @tokens << Token.new(:blank, line.lineno, line.charno, "")
+          end
+
+          next # 'next' ensures that last_nonblank is unchanged
         end
           
         # Ignore comments. A comment is an line starting with '#' and being
@@ -74,26 +96,14 @@ module ShellOpts
           lexer_error line.lineno, 0, "Illegal indentation"
         end
 
-        # Code lines. Code is preceeded by a blank line and indented beyond the
-        # last non-blank token's indentation (just the parent?). It should also
-        # not look like declaration of an option or a command - the first line
-        # in the block can be escaped with a \ to solve that
-        if @tokens.last == :blank && line.charno > last_nonblank.charno && line !~ DECL_RE
-          text = line.text[(line.text =~ /^\\/ ? 1 : 0)..-1] # Unescape
-          @tokens << Token.new(:text, line.lineno, line.charno, text)
-          lines.shift_while { |line| line.blank? || line.charno > last_nonblank.charno }.each { |line|
-            kind = (line.blank? ? :blank : :text)
-            @tokens << Token.new(kind, line.lineno, line.charno, line.text)
-          }
-
         # Sections
-        elsif SECTION_ALIASES.key?(line.text)
+        if SECTION_ALIASES.key?(line.text)
           value = SECTION_ALIASES[line.text]
-          @tokens << Token.new(:section, line.lineno, line.charno, value, line.text)
+          @tokens << Token.new(:section, line.lineno, line.charno, line.text, value)
 
         # Options, commands, usage, arguments, and briefs. The line is broken
-        # into words to be able to handle one-line declarations - options with
-        # briefs and especially of one-line subcommands
+        # into words to be able to handle one-line declarations (options with
+        # briefs and one-line subcommands)
         elsif line =~ DECL_RE
           words = line.words
           while (charno, word = words.shift)
@@ -105,13 +115,13 @@ module ShellOpts
             case word
               when /@(.+)?/ # $1 can be nil. If so, we know that there are some arguments
                 value = ([$1] + words.shift_while { true }.map(&:last)).compact.join(" ")
-                @tokens << Token.new(:brief, line.lineno, charno, value, "@")
+                @tokens << Token.new(:brief, line.lineno, charno, word, value)
               when "--"
                 # Almost eat rest of line
                 value = words.shift_while { |_,word| word !~ BRIEF_RE }.map(&:last).join(" ") 
-                @tokens << Token.new(:arg_descr, line.lineno, charno, value, "--")
+                @tokens << Token.new(:arg_descr, line.lineno, charno, word, value)
               when "++"
-                @tokens << Token.new(:arg_spec, line.lineno, charno, "++")
+                @tokens << Token.new(:arg_spec, line.lineno, charno, word)
                 words.shift_while { |charno,word| 
                   word =~ ARG_RE and @tokens << Token.new(:arg, line.lineno, charno, word) 
                 }
@@ -120,13 +130,14 @@ module ShellOpts
               when /!$/
                 @tokens << Token.new(:command, line.lineno, charno, word)
             else
-              raise StandardError, "Internal error"
+              lexer_error(line.lineno, line.charno, "Unexpected word: '#{word}'")
             end
           end
 
         # Paragraph lines
         else
-          @tokens << Token.new(:text, line.lineno, line.charno, line.text)
+          value = line.text.sub(/^(\s*)\\/, '\1')
+          @tokens << Token.new(:text, line.lineno, line.charno, line.text, value)
         end
 
         # This works because blank tokens never reach this line
@@ -136,14 +147,21 @@ module ShellOpts
       @tokens
     end
 
-    def self.lex(name, source, oneline, lineno = 1, charno = 1)
-      Lexer.new(name, source, oneline).lex(lineno, charno)
+#   def self.lex(name, source, oneline, lineno = 1, charno = 1)
+#     Lexer.new(name, source, oneline).lex(lineno, charno)
+#   end
+    def self.lex(name, source, lineno = 1, charno = 1)
+      Lexer.new(name, source).lex(lineno, charno)
     end
 
     def lexer_error(lineno, charno, message) 
       token = Token.new(:text, lineno, charno, "")
       raise LexerError.new(token), message
     end
+
+  protected
+    # Unescape line by removing initial '\'
+    def unescape(line) = line.sub(/^(\s*)\\/, '\1')
   end
 end
 

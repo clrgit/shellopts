@@ -47,7 +47,14 @@ require 'constrain'
 include Constrain
 require_relative 'shellopts/ext/forward_to.rb'
 include ForwardTo
-require_relative 'shellopts/line.rb' # To be able to test it while running main
+
+# To be able to test it while running main
+require_relative 'shellopts/ext/array.rb'
+require_relative 'shellopts/ext/case.rb'
+
+require_relative 'shellopts/token.rb'
+require_relative 'shellopts/lexer.rb'
+require_relative 'shellopts/line.rb' 
 
 __END__
 require 'indented_io'
@@ -55,8 +62,8 @@ require 'constrain'
 include Constrain
 
 require_relative 'shellopts/ext/array.rb'
-require_relative 'shellopts/ext/follow.rb'
-require_relative 'shellopts/ext/forward_to.rb'
+require_relative 'shellopts/ext/follow.rb' # OUTDATED
+require_relative 'shellopts/ext/forward_to.rb' # OUTDATED
 require_relative 'shellopts/ext/lcs.rb'
 include ForwardTo
 

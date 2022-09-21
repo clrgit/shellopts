@@ -47,6 +47,30 @@ module ShellOpts
 
     def pop = @stack.pop
 
+    def parse_option
+      
+    end
+
+    # Should pass breaking token to parent by popping itself from stack
+    # Breaks on anything but briefs
+    def parse_option(token)
+      push Spec::Option.new(top, token)
+      
+      while token = @tokens.shift
+        unwind(token) and break # TODO: ???????????
+        case token.kind
+#         when :blank
+          when :brief
+        else
+          # @tokens.unshift token
+          # Pop token from stack
+        end
+      end
+
+
+    end
+
+
     def parse_description
       while token = @tokens.shift
         unwind(token)
@@ -74,32 +98,16 @@ module ShellOpts
           #     Paragraph <- Attches to whole option group (not a code block)
           #
           when :option
+            parse_option(token)
+
             # Collect subsequent options with the same indentation into a
             # single OptionGroup object
-            options = [token]
+#           options = [token]
 
         else
           puts "   Default"
         end
       end
-    end
-
-    # Breaks on blank lines and on descriptions
-    def parse_option(token)
-      push Spec::Option.new(top, token)
-      
-      while token = @tokens.shift
-        unwind(token) and break
-        case token.kind
-          when :blank
-          when :brief
-        else
-          # @tokens.unshift token
-          # Pop token from stack
-        end
-      end
-
-
     end
 
     def unwind(token)

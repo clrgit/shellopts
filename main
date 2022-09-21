@@ -39,23 +39,26 @@ SPEC = %(
   description
 
   -a @brief option description
-    An option description
-
-  command! -- CMDARG1 CMDARG2 @brief description of command
-    A command
-
-    -c
-      @brief description of the command option
-      An option for the command
-
-  another_command!
-    -d
-      @ option -d brief
-      Option -d description
-    -- ARGS HERE
-    @ brief here
-    Description here
+  -b 
+    A description of the -a and -b option
+    bla.bla.bla
+    @a brief for both options
 )
+# command! -- CMDARG1 CMDARG2 @brief description of command
+#   A command
+#
+#   -c
+#     @brief description of the command option
+#     An option for the command
+#
+# another_command!
+#   -d
+#     @ option -d brief
+#     Option -d description
+#   -- ARGS HERE
+#   @ brief here
+#   Description here
+#)
 
 lexer = ShellOpts::Lexer.new("main", SPEC)
 tokens = lexer.lex

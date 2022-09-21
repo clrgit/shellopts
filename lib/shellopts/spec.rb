@@ -5,7 +5,7 @@ module ShellOpts
       attr_reader :children # Array of child Node objects
       attr_reader :token
 
-      def initialize(parent, token)
+      def initialize(parent, token, check: true)
         constrain parent, Node, nil
         constrain token, Token
         @token = token
@@ -24,16 +24,11 @@ module ShellOpts
       def self.accepts = []
       def accepts = self.class.accepts
 
-      # List of classes that this class doesn't accepts as children but which
-      # should be passed on to the parent as if the indentation level didn't
-      # match. Eg. Options 
-      def self.pass = []
-      def pass = self.class.pass
-
-      # Attach a node to self. node#parent is also set to self. There is
-      # currently no #detach method
-      def attach(node)
-        constrain accepts.any? { |klass| node.is_a? klass }
+      # Attach a node to self and set node's parent. There is currently no
+      # #detach method
+      def attach(node, check: true)
+        puts "Node#attach(#{node.class}, check: #{check})"
+        constrain accepts.any? { |klass| node.is_a? klass } if check
         @children << node
         node.instance_variable_set(:@parent, self)
       end
@@ -45,7 +40,7 @@ module ShellOpts
       end
 
       def dump_header
-        "#{self.class.to_s.sub(/.*::/, "")}: #{token.location}"
+        "#{self.class.to_s.sub(/.*::/, "")}: #{token.location}, children: #{children.size}"
       end
     end
 
@@ -115,11 +110,6 @@ module ShellOpts
       def self.accepts = [Bullet]
     end
 
-    class Option < Node
-      def self.accepts = [ArgDescr, Brief]
-      def self.pass = [Description]
-    end
-
     class Definition < Node
       def header(formatter) = abstract_method
       def description = children.first
@@ -130,17 +120,6 @@ module ShellOpts
     class Bullet < Definition
       attr_reader :list
       def header(formatter) list.bullet end
-    end
-
-    class Group < Definition
-      def header(formatter) = formatter.header(self)
-    end
-
-    class OptionGroup < Group
-      def self.accepts = super + [Brief]
-    end
-
-    class CommandGroup < Group
     end
 
     class Section < Definition
@@ -165,6 +144,44 @@ module ShellOpts
       def initialize(token) 
         constrain token.kind, :program
         super nil, token
+      end
+    end
+
+    class Option < Node
+      def initialize(parent, token, check: false)
+        super(parent, token, check: check)
+      end
+      def self.accepts = [Brief]
+    end
+
+    class Command < Node
+      def initialize(parent, token, check: false)
+        super(parent, token, check: check)
+      end
+      def self.accepts = [Brief, ArgSpec, ArgDescr] # FIXME: Not used when :check is false
+    end
+
+    class Group < Definition
+      def header(formatter) = formatter.header(self)
+      def <<(element) attach(element) end
+    end
+
+    class OptionGroup < Group
+      def self.accepts = [Brief, Description]
+    protected
+      def attach(node)
+        raise if node.nil?
+        puts
+        puts "OptionGroup#attach(#{node.class})"
+        super(node, check: !node.is_a?(Spec::Option))
+      end
+    end
+
+    class CommandGroup < Group
+      def self.accepts = [Brief, Description, CommandGroup]
+    protected
+      def attach(node)
+        super(node, check: !node.is_a?(Command))
       end
     end
   end

@@ -47,29 +47,60 @@ module ShellOpts
 
     def pop = @stack.pop
 
-    def parse_option
-      
-    end
+    def parse_error(token, message) raise ParserError, token, message end
 
-    # Should pass breaking token to parent by popping itself from stack
-    # Breaks on anything but briefs
-    def parse_option(token)
-      push Spec::Option.new(top, token)
-      
-      while token = @tokens.shift
-        unwind(token) and break # TODO: ???????????
+    # Parse a one-line option. #parse_option expects @tokens to start with the
+    # option token
+    def parse_option
+      constrain @tokens.first.kind, :option
+      option = Spec::Option.new(top, @tokens.shift)
+      while @tokens.first&.lineno == option.token.lineno
+        token = @tokens.shift
         case token.kind
-#         when :blank
           when :brief
-        else
-          # @tokens.unshift token
-          # Pop token from stack
+            Spec::Brief.new(option, token)
+          else
+            parse_error token, "Illegal indent"
         end
       end
-
-
+      option
     end
 
+    # Parse a one-line command
+    def parse_command
+      constrain @tokens.first.kind, :command
+      command = Spec::Command.new(top, @token.shift)
+      while @tokens.first&.lineno == command.token.lineno
+        case token.kind
+          when :brief
+            Spec::Brief.new(command, token)
+          when :arg_spec
+            arg_spec = Spec::ArgSpec.new(command, token)
+            while @tokens.first&.lineno == top.lineno && @tokens.first.kind == :arg
+              Spec::Arg.new(arg_spec, @tokens.shift)
+            end 
+          when :arg_descr
+            arg_descr = Spec::ArgDescr.new(command, token)
+          else
+            parser_error token, "Illegal indent"
+        end
+      end
+      command
+    end
+
+    # Parse a one-line arg spec
+    def parse_arg_spec
+      constrain @tokens.first.kind, :arg_spec
+      command = Spec::Command.new(top, @token.shift)
+      while @tokens.first&.lineno == top.lineno
+        case token.kind
+          when :arg
+            Spec::Arg.new(command, token)
+          else
+            parser_error token, "Illegal indent"
+        end
+      end
+    end
 
     def parse_description
       while token = @tokens.shift
@@ -84,26 +115,29 @@ module ShellOpts
             push Spec::Brief.new(top, token)
 
           when :text
+            # Create Description object if needed
+            if !top.is_a?(Spec::Description)
+              push Spec::Description.new(top, token)
+            end
+
             # Collect subsequent lines with the same indentation into a single
             # Paragraph
             push Spec::Paragraph.new(top, token, [token.value] + consume(:text, &:value))
 
-          # Handle difference between...
-          #   --opt @brief <- Attaches to this option
-          #
-          # ...and
-          #   --opt
-          #     @brief <- Attaches to whole option group
-          #
-          #     Paragraph <- Attches to whole option group (not a code block)
-          #
+          # Options are processed line-by-line and collected into option
+          # groups. Common definitions for the option group (briefs and
+          # description) are attached to the group and not the individual
+          # options
           when :option
-            parse_option(token)
+            @tokens.unshift token
+            group = Spec::OptionGroup.new(top, token)
+            push group
+            while @tokens.first&.kind == :option && @tokens.first.charno == group.token.charno
+              puts "before: #{@tokens.map(&:kind)}, group.children: #{group.children.size}"
+              parse_option
+              puts " after: #{@tokens.map(&:kind)}, group.children: #{group.children.size}"
 
-            # Collect subsequent options with the same indentation into a
-            # single OptionGroup object
-#           options = [token]
-
+            end
         else
           puts "   Default"
         end
@@ -112,6 +146,10 @@ module ShellOpts
 
     def unwind(token)
       stack.pop_while { |c| token.charno <= c.token.charno }
+    end
+
+    def unwind_line(token)
+      stack.pop_while { |c| token.charno <= c.token.charno && token.lineno != c.token.lineno }
     end
 
     def consume(kind, &block)

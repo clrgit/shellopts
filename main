@@ -43,14 +43,15 @@ SPEC = %(
     A description of the -a and -b option
     bla.bla.bla
     @a brief for both options
+  command! -- CMDARG1 CMDARG2 @brief description of command
+    @a brief for the command
+    A command
+
+    -c
+      @brief description of the command option
+      An option for the command
+
 )
-# command! -- CMDARG1 CMDARG2 @brief description of command
-#   A command
-#
-#   -c
-#     @brief description of the command option
-#     An option for the command
-#
 # another_command!
 #   -d
 #     @ option -d brief

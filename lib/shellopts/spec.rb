@@ -27,8 +27,10 @@ module ShellOpts
       # Attach a node to self and set node's parent. There is currently no
       # #detach method
       def attach(node, check: true)
-        puts "Node#attach(#{node.class}, check: #{check})"
-        constrain accepts.any? { |klass| node.is_a? klass } if check
+        if check && !accepts.any? { |klass| node.is_a? klass } 
+          raise Constrain::MatchError.new(nil, nil, message: "Can't attach a #{node.class} to #{self.class}")
+        end
+#       constrain accepts.any? { |klass| node.is_a? klass } if check
         @children << node
         node.instance_variable_set(:@parent, self)
       end
@@ -171,19 +173,27 @@ module ShellOpts
     protected
       def attach(node)
         raise if node.nil?
-        puts
-        puts "OptionGroup#attach(#{node.class})"
         super(node, check: !node.is_a?(Spec::Option))
       end
     end
 
     class CommandGroup < Group
-      def self.accepts = [Brief, Description, CommandGroup]
+      def self.accepts = [Brief, Description, CommandGroup, OptionGroup]
     protected
       def attach(node)
         super(node, check: !node.is_a?(Command))
       end
     end
+
+    class ArgSpec < Node
+    end
+
+    class Arg < Node
+    end
+
+    class ArgDescr < Node
+    end
+
   end
 end
 

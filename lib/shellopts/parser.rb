@@ -69,8 +69,9 @@ module ShellOpts
     # Parse a one-line command
     def parse_command
       constrain @tokens.first.kind, :command
-      command = Spec::Command.new(top, @token.shift)
+      command = Spec::Command.new(top, @tokens.shift)
       while @tokens.first&.lineno == command.token.lineno
+        token = @tokens.shift
         case token.kind
           when :brief
             Spec::Brief.new(command, token)
@@ -109,6 +110,7 @@ module ShellOpts
 
         case token.kind
           when :blank
+            p token.charno
             ; # Do nothing
 
           when :brief
@@ -133,10 +135,15 @@ module ShellOpts
             group = Spec::OptionGroup.new(top, token)
             push group
             while @tokens.first&.kind == :option && @tokens.first.charno == group.token.charno
-              puts "before: #{@tokens.map(&:kind)}, group.children: #{group.children.size}"
               parse_option
-              puts " after: #{@tokens.map(&:kind)}, group.children: #{group.children.size}"
+            end
 
+          when :command
+            @tokens.unshift token
+            group = Spec::CommandGroup.new(top, token)
+            push group
+            while @tokens.first&.kind == :command && @tokens.first.charno == group.token.charno
+              parse_command
             end
         else
           puts "   Default"

@@ -80,9 +80,10 @@ module ShellOpts
             @tokens << Token.new(:code, line.lineno, line.charno, source, value)
             next # 'next' ensures that last_nonblank is unchanged
           
-          # Ordinary blank line
+          # Ordinary blank line. Charno is set to the charno of the last
+          # non-blank line
           else
-            @tokens << Token.new(:blank, line.lineno, line.charno, "")
+            @tokens << Token.new(:blank, line.lineno, last_nonblank.charno, "")
           end
 
           next # 'next' ensures that last_nonblank is unchanged

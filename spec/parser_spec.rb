@@ -101,10 +101,36 @@ describe "Parser" do
           main
             group
               -a
-                brief
+                @brief
         )
       end
-      it "applies to an option group"
+      it "applies to an option group" do
+        s = %(
+          -a 
+            @ brief
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              -a
+              @brief
+        )
+      end
+      it "handles both option briefs and option group briefs" do
+        s = %(
+          -a @brief
+          -b
+            @brief
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              -a
+                @brief
+              -b
+              @brief
+        )
+      end
     end
   end
 end

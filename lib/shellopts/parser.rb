@@ -53,6 +53,7 @@ module ShellOpts
       parse_description
       program
     end
+
   protected
     # Queue of token
     attr_reader :tokens
@@ -134,6 +135,7 @@ module ShellOpts
         parse_singleline_arg_descr
         consume(:brief) { Spec::Brief.new(option, shift) } # Implicitly same line
       }
+    end
 
 
     def parse_option_group(token)
@@ -168,6 +170,7 @@ module ShellOpts
     def parse_command(token)
       command = Spec::Command.new(token)
       while kind == :option
+      end
 
     end
 

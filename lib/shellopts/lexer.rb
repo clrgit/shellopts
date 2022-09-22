@@ -40,6 +40,7 @@ module ShellOpts
     def initialize(name, source)
       @name = name
       @source = source.end_with?("\n") ? source : source + "\n" # Always terminate source with a newline
+      @last_token = nil
     end
 
     def lex(lineno = 1, charno = 1)
@@ -58,7 +59,7 @@ module ShellOpts
       initial_indent = lines.first&.charno
 
       # Create artificial program token. The token has the program name as value
-      @tokens = [Token.new(:program, 0, 0, name)]
+      @tokens = [Token.new(:program, 0, 0, false, name)]
 
       # Reference to last non-blank token. Used to detect code blocks
       last_nonblank = @tokens.first
@@ -77,13 +78,13 @@ module ShellOpts
             value = ([unescape(code[0])] + code[1..-1]).map { |s| s[indent..-1] || "" }
                 .join("\n")
                 .sub(/\n*\n$/, "\n")
-            @tokens << Token.new(:code, line.lineno, line.charno, source, value)
+            add_token :code, line.lineno, line.charno, source, value
             next # 'next' ensures that last_nonblank is unchanged
           
           # Ordinary blank line. Charno is set to the charno of the last
           # non-blank line
           else
-            @tokens << Token.new(:blank, line.lineno, last_nonblank.charno, "")
+            add_token :blank, line.lineno, last_nonblank.charno, ""
           end
 
           next # 'next' ensures that last_nonblank is unchanged
@@ -95,21 +96,20 @@ module ShellOpts
         next if line.charno < initial_indent && line.text.start_with?("#")
 
         # Check indent
-        if line.charno < initial_indent
-          error_token = Token.new(:text, line.lineno, 1, "")
-          lexer_error line.lineno, 1, "Illegal indentation"
-        end
+        line.charno >= initial_indent or lexer_error line.lineno, 1, false, "Illegal indent"
 
         # Sections
         if SECTION_ALIASES.key?(line.expr)
           value = SECTION_ALIASES[line.expr]
-          @tokens << Token.new(:section, line.lineno, line.charno, line.expr, value)
+          add_token :section, line.lineno, line.charno, line.expr, value
 
         # Options, commands, usage, arguments, and briefs. The line is broken
         # into words to be able to handle one-line declarations (options with
         # briefs and one-line subcommands)
         elsif line.expr =~ DECL_RE
           words = line.words
+          same_line = false # True if the token is on the same line as the previous token
+
           while (charno, word = words.shift)
             # Ensure mandatory arguments. This doesn't include the '@text' brief type
             if SINGLE_LINE_WORDS.include?(word) && words.empty?
@@ -119,28 +119,30 @@ module ShellOpts
             case word
               when /@(.+)?/ # $1 can be nil. If so, we know that there are some arguments
                 value = ([$1] + words.shift_while { true }.map(&:last)).compact.join(" ")
-                @tokens << Token.new(:brief, line.lineno, charno, word, value)
+                add_token :brief, line.lineno, charno, word, value
               when "--"
                 # Almost eat rest of line
                 value = words.shift_while { |_,word| word !~ BRIEF_RE }.map(&:last).join(" ") 
-                @tokens << Token.new(:arg_descr, line.lineno, charno, word, value)
+                add_token :arg_descr, line.lineno, charno, word, value
               when "++"
-                @tokens << Token.new(:arg_spec, line.lineno, charno, word)
+                add_token :arg_spec, line.lineno, charno, word
                 words.shift_while { |charno,word| 
-                  word =~ ARG_RE and @tokens << Token.new(:arg, line.lineno, charno, word) 
+                  word =~ ARG_RE and add_token :arg, line.lineno, charno, word
                 }
               when /^-|\+/
-                @tokens << Token.new(:option, line.lineno, charno, word)
+                add_token :option, line.lineno, charno, word
               when /!$/
-                @tokens << Token.new(:command, line.lineno, charno, word)
+                add_token :command, line.lineno, charno, word
             else
               lexer_error(line.lineno, line.charno, "Unexpected word: '#{word}'")
             end
+
+            same_line = true
           end
 
         # Paragraph lines
         else
-          @tokens << Token.new(:text, line.lineno, line.charno, line.text, unescape(line.text))
+          add_token :text, line.lineno, line.charno, line.text, unescape(line.text)
         end
 
         # This works because we know that only non-blank tokens reach this line
@@ -155,13 +157,20 @@ module ShellOpts
     end
 
     def lexer_error(lineno, charno, message) 
-      token = Token.new(:text, lineno, charno, "")
+      token = Token.new(:text, lineno, charno, false, "")
       raise LexerError.new(token), message
     end
 
   protected
     # Unescape line by removing initial '\'
     def unescape(line) = line.sub(/^(\s*)\\/, '\1')
+
+    def add_token(kind, lineno, charno, source, value = source)
+      same = (lineno == @last_token&.lineno)
+      @last_token = Token.new(kind, lineno, charno, same, source, value)
+      @tokens << @last_token
+      @last_token
+    end
   end
 end
 

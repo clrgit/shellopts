@@ -11,6 +11,7 @@ require 'constrain'
 include Constrain
 
 require './lib/shellopts/ext/case.rb'
+require './lib/shellopts/ext/class.rb'
 
 require './lib/shellopts.rb'
 require './lib/shellopts/ext/array.rb'
@@ -29,36 +30,82 @@ require './lib/shellopts/parser.rb'
 #include ShellOpts::Messages
 #p ShellOpts::Messages.is_included?
 
-SPEC = %(
-  @ An initial brief
-
-  -- AN ARG DESCR
-
-  A 
-  multiline
-  description
-
-  -a @brief option description
-  -b 
-    A description of the -a and -b option
-    bla.bla.bla
-    @a brief for both options
-  command! -- CMDARG1 CMDARG2 @brief description of command
-    @a brief for the command
-    A command
-
-    -c
-      @brief description of the command option
-      An option for the command
-
-)
+#SPEC = %(
+# @ An initial brief
+#
+# -- AN ARG DESCR
+#
+# A 
+# multiline
+# description
+#
+# -a @brief option description
+# -b -c @description of -b and -c
+# -d
+#   A description of the -a, -b, -c and -d options
+#   bla.bla.bla
+#   @a brief for both options
+#
+# command! -- CMDARG1 CMDARG2 @brief description of command
+#   @a conflicting brief for the command
+#   A command description
+# 
+#   -c
+#     @brief description of the command option
+#     An option for the command
+# All the way out here
+#
+# subcommand! -a -b @a subcommand and not much more
+#
+#)
 # another_command!
 #   -d
 #     @ option -d brief
-#     Option -d description
+#     Option -d description 
 #   -- ARGS HERE
 #   @ brief here
 #   Description here
+#)
+
+#SPEC = %(-a -b)
+#SPEC = %(
+# -a
+# -b
+#)
+#
+#SPEC = %(
+# -a
+# -b
+#
+# -c
+#)
+
+#SPEC = %(
+# -a @brief
+#)
+
+SPEC = %(
+  -a @brief
+  -b 
+    @brief
+)
+
+SPEC = %(
+  cmd! -a @brief
+  -b 
+    @brief
+)
+
+# Problem
+#   command --opt --opt arg arg @brief
+#   --opt @brief
+#   --opt
+#     @brief
+
+# -a
+# -b
+# -c
+#   Option group
 #)
 
 lexer = ShellOpts::Lexer.new("main", SPEC)
@@ -68,7 +115,8 @@ puts
 parser = ShellOpts::Parser.new(tokens)
 parser.parse
 puts
-parser.program.dump
+p parser.program.children.size
+puts parser.program.dn
 
 
 

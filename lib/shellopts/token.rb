@@ -53,6 +53,12 @@ module ShellOpts
     # make blank lines have the same indent level as the previous token)
     attr_accessor :charno
 
+    # Location. A tuple of [lineno, charno]. Implemented for convenience
+    def location = [lineno, charno]
+
+    # True if this token is on the same line as the previous token
+    def same? = @same
+
     # Token source. Equal to #value except for section, brief, and descr tokens
     attr_reader :source
 
@@ -60,12 +66,13 @@ module ShellOpts
     attr_reader :value
 
     # +lineno+ and +charno+ are zero for the :program token and >= 1 otherwise
-    def initialize(kind, lineno, charno, source, value = source)
+    def initialize(kind, lineno, charno, same, source, value = source)
       constrain kind, *KINDS
       constrain [lineno, charno], [kind == :program ? Integer : Ordinal] # lol
-      constrain value, String
+      constrain same, true, false
       constrain source, String
-      @kind, @lineno, @charno, @value, @source = kind, lineno, charno, value, source
+      constrain value, String
+      @kind, @lineno, @charno, @same, @value, @source = kind, lineno, charno, same, value, source
     end
 
     forward_to :value, :to_s, :empty?, :blank?, :=~, :!~

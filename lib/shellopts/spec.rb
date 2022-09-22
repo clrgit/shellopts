@@ -5,11 +5,13 @@ module ShellOpts
       attr_reader :children # Array of child Node objects
       attr_reader :token
 
-      def initialize(parent, token, check: true)
+      def initialize(parent, token, check: true, mode: nil)
         constrain parent, Node, nil
         constrain token, Token
+        constrain mode, :single, :multi, nil
         @token = token
         @children = []
+        @mode = mode || parent&.mode || :multi
         parent&.send(:attach, self)
       end
 
@@ -18,11 +20,35 @@ module ShellOpts
         indent { children.each(&:dump) }
       end
 
-    protected
+      def rs = token.value
+      def dn(device = $stdout) # dn - dump node
+        device.puts rs
+        device.indent { |dev| children.each { |node| node.dn(dev) } }
+      end
+
+#   protected
       # List of classes that this class accepts as children. It is used in
       # #attach to check the type of the node
       def self.accepts = []
       def accepts = self.class.accepts
+
+      # Mode of processing: :multi - elements are nested using indentation,
+      # :single - elements are all on the same line. The mode can be specified
+      # explicity but is otherwise inherited from the parent node. Default is
+      # :multi
+      attr_reader :mode
+
+      def self.whole? = false
+      def group? = self.class.whole?
+
+      def self.part? = false
+      def part? = self.class.part?
+
+      # If true, tokens that are not compatible with the current node are
+      # passed on to the parent node (after the current node has been popped
+      # off the stack)
+      def self.pass = false
+      def pass = self.class.pass
 
       # Attach a node to self and set node's parent. There is currently no
       # #detach method
@@ -50,6 +76,8 @@ module ShellOpts
     class Brief < Node
       def text() @token.value end
 
+      def rs = "@#{text}"
+
       def dump
         super
         indent { puts text.inspect }
@@ -64,6 +92,8 @@ module ShellOpts
         super(parent, token)
         @lines = lines
       end
+
+      def rs = @lines.inspect
     end
 
     class Line < Lines
@@ -72,6 +102,8 @@ module ShellOpts
         constrain line, String, nil
         super(parent, token, [line || token.source])
       end
+
+      def rs = line
     end
 
     class Code < Lines
@@ -89,6 +121,8 @@ module ShellOpts
         super
         indent { puts text.inspect }
       end
+
+      def rs = text
     end
 
     # An enumeration is a single-line text followed by an indented paragraph
@@ -149,40 +183,48 @@ module ShellOpts
       end
     end
 
+    # Options are processed line-by-line and collected into option groups.
+    # Common definitions for the option group (briefs and description) are
+    # attached to the group and not the individual options
     class Option < Node
       def initialize(parent, token, check: false)
-        super(parent, token, check: check)
+        super(parent, token, check: check, mode: :single)
       end
       def self.accepts = [Brief]
+      def self.pass = true
+      def self.part? = true
     end
 
     class Command < Node
       def initialize(parent, token, check: false)
-        super(parent, token, check: check)
+        super(parent, token, check: check, mode: :single)
       end
-      def self.accepts = [Brief, ArgSpec, ArgDescr] # FIXME: Not used when :check is false
+      def self.accepts = [Brief, ArgSpec, ArgDescr, OptionGroup]
+      def self.pass = true
+      def self.part? = true
     end
 
     class Group < Definition
       def header(formatter) = formatter.header(self)
       def <<(element) attach(element) end
+
+      def self.whole? = true
+
+      def rs = "group"
     end
 
     class OptionGroup < Group
       def self.accepts = [Brief, Description]
     protected
-      def attach(node)
-        raise if node.nil?
-        super(node, check: !node.is_a?(Spec::Option))
-      end
+      # Modify #attach to accept Option nodes too
+      def attach(node) = super(node, check: !node.is_a?(Option))
     end
 
     class CommandGroup < Group
       def self.accepts = [Brief, Description, CommandGroup, OptionGroup]
     protected
-      def attach(node)
-        super(node, check: !node.is_a?(Command))
-      end
+      # Modify #attach to accept Command nodes too
+      def attach(node) = super(node, check: !node.is_a?(Command))
     end
 
     class ArgSpec < Node

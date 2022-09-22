@@ -55,7 +55,8 @@ require_relative 'shellopts/ext/case.rb'
 require_relative 'shellopts/token.rb'
 require_relative 'shellopts/lexer.rb'
 require_relative 'shellopts/line.rb' 
-
+require_relative 'shellopts/spec.rb'
+require_relative 'shellopts/parser.rb'
 __END__
 require 'indented_io'
 require 'constrain'

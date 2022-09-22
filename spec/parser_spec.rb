@@ -2,10 +2,10 @@
 include ShellOpts
 
 describe "Parser" do
-  def prog(source)
-    oneline = source.index("\n").nil?
-    tokens = Lexer.lex("main", source, oneline)
-    ast = Parser.parse tokens
+# def prog(source)
+#   oneline = source.index("\n").nil?
+#   tokens = Lexer.lex("main", source, oneline)
+#   ast = Parser.parse tokens
 
 #   puts "Tokens"
 #   indent { tokens.each(&:dump) }
@@ -14,7 +14,7 @@ describe "Parser" do
 #   indent { ast.dump_ast }
 #   puts
 
-    grammar = Analyzer.analyze(ast)
+#   grammar = Analyzer.analyze(ast)
 
 #   puts "Grammar"
 #   indent { grammar.dump_grammar }
@@ -23,12 +23,93 @@ describe "Parser" do
 #   indent { grammar.dump_doc }
 #   puts
 
-    grammar
+#   grammar
+# end
+# def struct(source)
+#   prog(source).render_structure
+# end
+
+
+  def parse(s) 
+    lexer = Lexer.new("main", s)
+    tokens = lexer.lex
+    parser = Parser.new(tokens)
+    dump parser.parse
   end
 
-  def struct(source)
-    prog(source).render_structure
+  def dump(node)
+    io = StringIO.new
+    node.dn(io)
+    io.string
   end
+
+  describe "#parse" do
+    context "option grouping" do
+      it "creates an option group around an option" do
+        s = "-a"
+        expect(parse s).to eq undent %(
+          main
+            group
+              -a
+        )
+      end
+      it "creates an option group around a multi-line list of options" do
+        s = %(
+          -a
+          -b
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              -a
+              -b
+        )
+      end
+      it "creates an option group around each single-line option" do
+        s = "-a -b"
+        expect(parse s).to eq undent %(
+          main
+            group
+              -a
+            group
+              -b
+        )
+      end
+      it "creates an option group around each continous list of options" do
+        s = %(
+          -a
+          -b
+
+          -c
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              -a
+              -b
+            group
+              -c
+        )
+      end
+    end
+    context "briefs" do
+      it "applies to an option" do
+        s = %(
+          -a @ brief
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              -a
+                brief
+        )
+      end
+      it "applies to an option group"
+    end
+  end
+end
+
+__END__
 
   describe "::parse" do
     it "parses -a" do

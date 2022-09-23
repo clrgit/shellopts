@@ -234,6 +234,7 @@ module ShellOpts
     end
 
     class ArgSpec < Node
+      def self.accepts = [Arg]
     end
 
     class Arg < Node

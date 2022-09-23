@@ -118,7 +118,7 @@ module ShellOpts
               command = Spec::Command.new(group, t)
 
               # Then consume arg_spec, arg_descr, and briefs on that line
-              tokens.consume([:arg_descr, :brief], t.lineno, nil) { |t|
+              tokens.consume([:arg_spec, :arg_descr, :brief], t.lineno, nil) { |t|
                 case t.kind
                   when :arg_descr; Spec::ArgDescr.new(command, t)
                   when :arg_spec
@@ -130,7 +130,7 @@ module ShellOpts
             }
 
           when :arg_descr
-            stack.unwind(token.charno)
+#           stack.unwind(token.charno)
             Spec::ArgDescr.new(stack.top, token)
 
 

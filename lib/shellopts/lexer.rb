@@ -59,7 +59,7 @@ module ShellOpts
       initial_indent = lines.first&.charno
 
       # Create artificial program token. The token has the program name as value
-      @tokens = [Token.new(:program, 0, 0, false, name)]
+      @tokens = [Token.new(:program, 0, 0, name)]
 
       # Reference to last non-blank token. Used to detect code blocks
       last_nonblank = @tokens.first
@@ -107,8 +107,6 @@ module ShellOpts
         # briefs and one-line subcommands)
         elsif line.expr =~ DECL_RE
           words = line.words
-          same_line = false # True if the token is on the same line as the previous token
-
           while (charno, word = words.shift)
             # Ensure mandatory arguments. This doesn't include the '@text' brief type
             if SINGLE_LINE_WORDS.include?(word) && words.empty?
@@ -135,8 +133,6 @@ module ShellOpts
             else
               lexer_error(line.lineno, line.charno, "Unexpected word: '#{word}'")
             end
-
-            same_line = true
           end
 
         # Paragraph lines
@@ -156,7 +152,7 @@ module ShellOpts
     end
 
     def lexer_error(lineno, charno, message) 
-      token = Token.new(:text, lineno, charno, false, "")
+      token = Token.new(:text, lineno, charno, "")
       raise LexerError.new(token), message
     end
 
@@ -165,11 +161,10 @@ module ShellOpts
     def unescape(line) = line.sub(/^(\s*)\\/, '\1')
 
     def add_token(kind, lineno, charno, source, value_or_lines = source)
-      same = (lineno == @last_token&.lineno)
       if kind == :code
-        @last_token = CodeToken.new(lineno, charno, same, source, value_or_lines)
+        @last_token = CodeToken.new(lineno, charno, source, value_or_lines)
       else
-        @last_token = Token.new(kind, lineno, charno, same, source, value_or_lines)
+        @last_token = Token.new(kind, lineno, charno, source, value_or_lines)
       end
       @tokens << @last_token
       @last_token

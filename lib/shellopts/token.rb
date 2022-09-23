@@ -56,9 +56,6 @@ module ShellOpts
     # Location. A tuple of [lineno, charno]. Implemented for convenience
     def location = [lineno, charno]
 
-    # True if this token is on the same line as the previous token
-    def same? = @same
-
     # Token source. Equal to #value except for section, brief, and descr tokens
     attr_reader :source
 
@@ -66,13 +63,12 @@ module ShellOpts
     attr_reader :value
 
     # +lineno+ and +charno+ are zero for the :program token and >= 1 otherwise
-    def initialize(kind, lineno, charno, same, source, value = source)
+    def initialize(kind, lineno, charno, source, value = source)
       constrain kind, *KINDS
       constrain [lineno, charno], [kind == :program ? Integer : Ordinal] # lol
-      constrain same, true, false
       constrain source, String
       constrain value, String, nil
-      @kind, @lineno, @charno, @same, @value, @source = kind, lineno, charno, same, value, source
+      @kind, @lineno, @charno, @value, @source = kind, lineno, charno, value, source
     end
 
     forward_to :value, :to_s, :empty?, :blank?, :=~, :!~
@@ -82,7 +78,6 @@ module ShellOpts
       "#{start_lineno + lineno - 1}:#{start_charno + charno - 1}" 
     end
 
-#   def same?(other) = charno == other.charno
 #   def indented?(other) = charno < other.charno
 #   def outdented?(other) = charno > other.charno
 
@@ -102,8 +97,8 @@ module ShellOpts
       @value ||= lines.join("\n")
     end
     attr_reader :lines
-    def initialize(lineno, charno, same, source, lines)
-      super(:code, lineno, charno, same, source, nil)
+    def initialize(lineno, charno, source, lines)
+      super(:code, lineno, charno, source, nil)
       @lines = lines
       @lines.pop_while(&:nil?)
     end

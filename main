@@ -157,10 +157,9 @@ $trace = true
 #)
 
 SPEC = %(
-  -a @brief1
-  -b @brief2
-  -c -d @brief3
-  -e
+  Text
+    
+    some_code()
 )
 
 

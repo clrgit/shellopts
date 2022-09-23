@@ -339,6 +339,29 @@ describe "Parser" do
       end
     end
 
+    context "code" do
+      it "applies to descriptions" do
+        s = %(
+          Text
+
+            code()
+        )
+        check s, %(
+          Text
+          ()    
+            code()
+        )
+      end
+      it "can't be the first element in the parent" do
+        s = %(
+          code()
+        )
+        check s, %(
+          code()
+        )
+      end
+    end
+
     context "texts" do
       it "applies to option groups" do
         s = %(

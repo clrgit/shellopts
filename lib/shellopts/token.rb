@@ -96,8 +96,11 @@ module ShellOpts
     def value()
       @value ||= lines.join("\n")
     end
+
     attr_reader :lines
+
     def initialize(lineno, charno, source, lines)
+      constrain lines, [String, nil]
       super(:code, lineno, charno, source, nil)
       @lines = lines
       @lines.pop_while(&:nil?)

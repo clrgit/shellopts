@@ -111,6 +111,17 @@ module ShellOpts
     end
 
     class Code < Lines
+      def initialize(parent, token)
+        constrain token, CodeToken
+        super(parent, token, token.lines)
+      end
+      def rs = nil
+      def dn(device = $stdout)
+        device.puts "()"
+        device.indent { |dev|
+          dev.puts lines
+        }
+      end
     end
 
     class Paragraph < Node

@@ -113,9 +113,9 @@ module ShellOpts
             Spec::Paragraph.new(
                 stack.top, token, [token.value] + tokens.consume(:text, nil, token.charno, &:value))
 
-#         when :code
-#           Spec::Code.new(
-#               stack.top, token
+          when :code
+            stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
+            Spec::Code.new(stack.top, token)
 
         else
           ;

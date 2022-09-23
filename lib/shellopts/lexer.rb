@@ -76,6 +76,7 @@ module ShellOpts
             code = lines
                 .shift_while { |l| l.blank? || l.charno >= indent }
                 .map { |line| line.source[indent..-1] }
+            code[0] = code[0] && unescape(code[0])
             source = code.join("\n")
             add_token :code, line.lineno, line.charno, source, code
             next # 'next' ensures that last_nonblank is unchanged
@@ -162,12 +163,12 @@ module ShellOpts
 
     def add_token(kind, lineno, charno, source, value_or_lines = source)
       if kind == :code
-        @last_token = CodeToken.new(lineno, charno, source, value_or_lines)
+        token = CodeToken.new(lineno, charno, source, value_or_lines)
       else
-        @last_token = Token.new(kind, lineno, charno, source, value_or_lines)
+        token = Token.new(kind, lineno, charno, source, value_or_lines)
       end
-      @tokens << @last_token
-      @last_token
+      @tokens << token
+      token
     end
   end
 end

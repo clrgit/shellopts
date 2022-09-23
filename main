@@ -53,6 +53,10 @@ require './lib/shellopts/parser.rb'
 #   -c
 #     @brief description of the command option
 #     An option for the command
+#
+#   --with --without @a brief that shouldn't be there
+#     @an option group brief
+#     This is an option group defined on one line
 # All the way out here
 #
 # subcommand! -a -b @a subcommand and not much more
@@ -67,12 +71,38 @@ require './lib/shellopts/parser.rb'
 #   Description here
 #)
 
+$trace = true
+
 #SPEC = %(-a -b)
+
 #SPEC = %(
 # -a
 # -b
 #)
-#
+
+SPEC = %(
+  -a -b @brief
+  
+  -c @brief
+  -d
+    @brief
+
+  -e -f @brief
+  -g @brief2
+  -h
+    @brief3
+
+    Here is some text
+
+    --random-option
+
+    Here is some more text
+    spread over 
+    multiple lines
+)
+
+
+
 #SPEC = %(
 # -a
 # -b
@@ -84,17 +114,17 @@ require './lib/shellopts/parser.rb'
 # -a @brief
 #)
 
-SPEC = %(
-  -a @brief
-  -b 
-    @brief
-)
+#SPEC = %(
+# -a @brief
+# -b 
+#   @brief
+#)
 
-SPEC = %(
-  cmd! -a @brief
-  -b 
-    @brief
-)
+#SPEC = %(
+# cmd! -a @brief
+# -b 
+#   @brief
+#)
 
 # Problem
 #   command --opt --opt arg arg @brief

@@ -1,29 +1,4 @@
 
-# IDEA:
-#   Transform single-line to multiline:
-#
-#       -a -b cmd! -c cmd.sub! -d
-#
-#       -a
-#
-#       -b
-#
-#       cmd!
-#         -c
-#
-#         cmd.sub!
-#           -d
-#           
-#
-#
-#
-
-
-
-
-
-
-
 module ShellOpts
   def program_name
     @program_name ||= File.basename($PROGRAM_NAME)
@@ -43,43 +18,35 @@ module ShellOpts
 
     def initialize(tokens)
       constrain tokens, [Token]
-      @tokens = tokens.dup
-      @stack = []
+      @tokens = TokenQueue.new tokens
+      @stack = Stack.new
     end
 
-    # Parse tokens and return top-level Spec::Program object
+    # Parse tokens and return stack.top-level Spec::Program object
     def parse
-      push(@program = Spec::Program.new(tokens.shift))
+      stack.push(@program = Spec::Program.new(tokens.shift))
       parse_description
       program
     end
 
   protected
-    # Queue of token
+    def trace(*args) 
+      puts *args if $trace
+    end
+
+    # Queue of tokens (TokenQueue object)
     attr_reader :tokens
 
-    # Token operations
-    def shift = @tokens.shift
-    def unshift(token) = @tokens.unshift
-    def first = @tokens.first
-    def kind = first&.kind 
-    def charno = first&.charno 
-
-    # Stack of Spec nodes. The stack is unwinded before each token is processed
+    # Stack of Spec nodes (Stack object)
     attr_reader :stack
-
-    # Stack operations
-    def top = @stack.last
-    def push(spec) = @stack << spec
-    def pop = @stack.pop
 
     def parse_error(token, message) = raise ParserError, token, message
 
     # Parse a one-line arg spec
     def parse_arg_spec
-      constrain @tokens.first.kind, :arg_spec
-      command = Spec::Command.new(top, shift)
-      while first&.lineno == top.lineno
+      constrain tokens.kind, :arg_spec
+      command = Spec::Command.new(stack.top, shift)
+      while first&.lineno == stack.top.lineno
         case kind
           when :arg
             Spec::Arg.new(command, token)
@@ -89,40 +56,78 @@ module ShellOpts
       end
     end
 
-    def parse_singleline_options(command, token)
-      unshift token
-      while kind == :option
-        token = shift
-        group = Spec::OptionGroup.new(command, token)
-        Spec::Option.new(group, token)
-      end
-    end
+    ###################
 
-    def parse_multiline_options(token)
-      push Spec::OptionGroup.new(top, token)
-      parse_multiline_options_header(token)
-      parse_description if first&.kind
-    end
+    def parse_description
+      while token = tokens.shift
+        puts
+        puts "Processing token #{token.inspect}"
+        dump_stack
 
-    def parse_multiline_options_header(token)
-      charno = token.charno
-      unshift token
-      while kind == :option && first&.charno == charno
-        option = Spec::Option.new(top, shift)
-        while kind == :brief && first.same?
-          Spec::Brief.new(option, shift)
+        case token.kind
+          when :blank
+            ; # Do nothing
+
+          when :brief
+            stack.unwind(token.charno)
+            dump_stack
+            Spec::Brief.new(stack.top, token)
+
+          when :text
+            stack.unwind(token.charno)
+            dump_stack
+
+            # Create Description object if needed
+            stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
+
+            # Collect subsequent lines with the same indentation into a single
+            # Paragraph
+            Spec::Paragraph.new(
+                stack.top, token, [token.value] + tokens.consume(:text, nil, token.charno, &:value))
+
+          when :option
+            stack.unwind(token.charno)
+            dump_stack
+            stack.push (group = Spec::OptionGroup.new(stack.top, token))
+            tokens.unshift token
+
+            # First consume option lines
+            tokens.consume(:option, nil, token.charno) { |t|
+              option = Spec::Option.new(stack.top, t)
+              tokens.consume(:brief, t.lineno, nil) { |brief| Spec::Brief.new(option, brief) }
+
+              # Then, for each line, consume other options on that line
+              tokens.consume(:option, t.lineno, nil) { |t|
+                option = Spec::Option.new(stack.top, t)
+                # The brief is associated with the group and not the (last) option
+                tokens.consume(:brief, t.lineno, nil) { |brief| Spec::Brief.new(group, brief) }
+              }
+            }
+
+          when :command
+            stack.pop if stack.top.is_a? Spec::Command
+            stack.pop if token.same? && stack.top.is_a?(Spec::CommandGroup)
+            stack.push Spec::CommandGroup.new(stack.top, token) if !stack.top.is_a? Spec::CommandGroup
+            stack.push Spec::Command.new(stack.top, token)
+        else
+          ;
+#         puts "   Default"
         end
+        dump_stack
       end
+
     end
 
-    def parse_multiline_options_header(token)
-      charno = token.charno
-      consume(:option, token.charno) { 
-        option = Spec::Option.new(top, shift)
-        consume(:brief) { Spec::Brief.new(option, shift) } # Implicitly same line
-      }
+    def dump_stack
+        puts "                 #{@stack.map { |node| node.class.name }.inspect}"
     end
 
+    # TODO Add subject
+
+  end
+end
+
+__END__
     def parse_singleline_commands(command, token)
     end
 
@@ -152,7 +157,7 @@ module ShellOpts
     end
 
     def parse_option_groups(token)
-      unshift token
+      tokens.unshift token
       while kind == :option
         push Spec::OptionGroup.new(top, token)
         parse_option shift
@@ -173,140 +178,6 @@ module ShellOpts
       end
 
     end
-
-    def parse_description
-      while token = @tokens.shift
-        puts
-        puts "Processing token #{token.inspect}"
-        dump_stack
-
-        case token.kind
-          when :blank
-            pop if top.is_a? Spec::Option
-            pop if top.is_a? Spec::OptionGroup
-            pop if top.is_a? Spec::Command
-            pop if top.is_a? Spec::CommandGroup
-            ; # Do nothing
-
-          when :brief
-            # In single line processing mode the subject of the brief is the
-            # first non-group node on the same line
-#           if top.send(:mode) == :single
-#             popped = @stack.pop_while { |n| n.send(:mode) == :single }
-#             @stack.push popped[0..1]
-
-            if token.same?
-              first_node = @stack.reverse.find { |node| !node.token.same? }
-              Spec::Brief.new(first_node, token)
-            else
-              pop if top.is_a? Spec::Option
-              pop if top.is_a? Spec::Command
-              Spec::Brief.new(top, token)
-            end
-
-          when :text
-            unwind(token)
-
-            # Create Description object if needed
-            push Spec::Description.new(top, token) if !top.is_a?(Spec::Description)
-
-            # Collect subsequent lines with the same indentation into a single
-            # Paragraph
-            push Spec::Paragraph.new(top, token, [token.value] + consume(token.charno, :text, &:value))
-
-          # Keep track of option parent (command)
-          # Keep track of command parent (command)
-
-          when :option
-            
-            pop if top.is_a? Spec::Option
-            pop if token.same? && top.is_a?(Spec::OptionGroup)
-            push Spec::OptionGroup.new(top, token) if !top.is_a? Spec::OptionGroup
-            push Spec::Option.new(top, token)
-
-#           pop if top.is_a? Spec::Option
-#           dump_stack
-#           push Spec::OptionGroup.new(top, token) if !top.is_a? Spec::OptionGroup
-#           dump_stack
-#           dump_stack
-#           case top
-#             when Option
-#               pop
-#             when OptionGroup
-#               push Spec::Option.new(top, token)
-#           else
-#             push OptionGroup.new(top, token)
-#             @tokens.unshift token
-#           end
-
-#           ensure_group(Spec::OptionGroup)
-#           unwind_group(Spec::OptionGroup)
-#           push Spec::OptionGroup.new(top, token) if !top.is_a? Spec::OptionGroup
-#           push Spec::Option.new(top, token)
-
-          when :command
-            pop if top.is_a? Spec::Command
-            pop if token.same? && top.is_a?(Spec::CommandGroup)
-            push Spec::CommandGroup.new(top, token) if !top.is_a? Spec::CommandGroup
-            push Spec::Command.new(top, token)
-        else
-          ;
-#         puts "   Default"
-        end
-
-      end
-
-      dump_stack
-    end
-
-    def dump_stack
-        puts "                 #{@stack.map { |node| node.class.name }.inspect}"
-    end
-
-    # TODO Add subject
-
-    # Unwind stack based on lineno or charno based on processing mode. The
-    # processing mode is read from the top token. If it is :multi then the
-    # stack is unwinded until the the token is more indented than the top node,
-    # if it is :single, all nodes in :single mode are popped first before
-    # processing the rest in multiline mode
-    #
-    # Option and Command object are processed in :single mode so the net effect
-    # is that when there is an option or a command somewhere in the stack and
-    # the token is on a new line, then the stack is unwinded down to and
-    # including the option or command. This behaviour is needed for processing
-    # groups
-    def unwind(token)
-#     if top.send(:mode) == :single
-#       if token.lineno != top.token.lineno
-#         stack.pop_while { |node| node.send(:mode) == :single }
-#       else
-#         stack.pop_while { |node| !node.is_a?(Spec::Group) } # Why
-#       end
-#       stack.pop_while { |curr| token.charno < curr.token.charno } # '<' to not pop the group
-#     else
-        stack.pop_while { |curr| token.charno < curr.token.charno }
-        stack.pop if token.charno == top.token.charno
-#     end
-    end
-
-    def unwind_parts(klass) = stack.pop_while { |node| node.part? && node.class == klass }
-
-    def unwind_group(klass) 
-      puts "           stack #{@stack.map { |node| node.class.name }.inspect}"
-      stack.pop_while { |node| !node.is_a? klass }
-      puts "           stack #{@stack.map { |node| node.class.name }.inspect}"
-    end
-    def consume(charno, kind, &block)
-      if block_given?
-        @tokens.shift_while { |t| t.charno == charno && t.kind == kind }.map { |t| yield t }
-      else
-        @tokens.shift_while { |t| t.charno == charno && t.kind == kind }
-      end
-    end
-  end
-end
-
 __END__
 
   

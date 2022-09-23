@@ -22,8 +22,12 @@ module ShellOpts
 
       def rs = token.value
       def dn(device = $stdout) # dn - dump node
-        device.puts rs
-        device.indent { |dev| children.each { |node| node.dn(dev) } }
+        if rs
+          device.puts rs
+          device.indent { |dev| children.each { |node| node.dn(dev) } }
+        else
+          children.each { |node| node.dn(device) }
+        end
       end
 
 #   protected
@@ -174,6 +178,7 @@ module ShellOpts
     class Description < Node
       alias_method :elements, :children
       def self.accepts = [Node] # Anything can go into a description. FIXME
+      def rs = nil
     end
 
     class Program < Description
@@ -181,6 +186,7 @@ module ShellOpts
         constrain token.kind, :program
         super nil, token
       end
+      def rs = Node.instance_method(:rs).bind(self).call # override Description's override
     end
 
     # Options are processed line-by-line and collected into option groups.

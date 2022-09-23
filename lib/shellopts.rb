@@ -50,6 +50,8 @@ include ForwardTo
 
 # To be able to test it while running main
 require_relative 'shellopts/ext/array.rb'
+require_relative 'shellopts/ext/stack.rb'
+require_relative 'shellopts/ext/queue.rb'
 require_relative 'shellopts/ext/case.rb'
 
 require_relative 'shellopts/token.rb'

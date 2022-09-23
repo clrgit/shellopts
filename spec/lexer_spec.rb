@@ -60,13 +60,47 @@ describe "Lexer" do
       expect(make src, fields: :source).to eq %w(cmd! cmd.cmd2!)
     end
 
+    it "creates descr tokens" do
+      src = "-- ARG1 ARG2"
+      expect(make src, fields: :kind).to eq [:arg_descr]
+      expect(make src, fields: :source).to eq ["--"]
+      expect(make src, fields: :value).to eq ["ARG1 ARG2"]
+    end
+
+    it "creates repeated descr tokens" do
+      src = "-- ARG1 -- ARG2"
+      expect(make src, fields: :kind).to eq [:arg_descr, :arg_descr]
+      expect(make src, fields: :value).to eq %w(ARG1 ARG2)
+    end
+
     it "creates spec and argument tokens" do
-      src = %(
-        -a ++ ARG1 ARG2
-      )
+      src = "-a ++ ARG1 ARG2"
       expect(make src, fields: :kind).to eq [:option, :arg_spec, :arg, :arg]
       expect(make src, fields: :source).to eq %w(-a ++ ARG1 ARG2)
     end
+
+    it "creates repeated specs" do
+      src = "++ ARG1 ++ ARG2"
+      expect(make src, fields: :kind).to eq [:arg_spec, :arg, :arg_spec, :arg]
+      expect(make src, fields: :source).to eq %w(++ ARG1 ++ ARG2)
+    end
+
+    it "creates brief tokens" do
+      src = "\n-c @ Brief"
+      expect(make src, fields: :kind).to eq [:option, :brief]
+      expect(make src, fields: :source).to eq %w(-c @)
+      expect(make src, fields: :value).to eq %w(-c Brief)
+    end
+
+    it "parses a mix of descrs, specs, and briefs" do
+      src = "-- ARG @brief"
+      expect(make src, fields: :kind).to eq [:arg_descr, :brief]
+      src = "++ ARG @brief"
+      expect(make src, fields: :kind).to eq [:arg_spec, :arg, :brief]
+      src = "-- ARG ++ ARG @brief"
+      expect(make src, fields: :kind).to eq [:arg_descr, :arg_spec, :arg, :brief]
+    end
+
 
     it "rejects text in command definitions" do
       src = "cmd! TEXT"
@@ -76,20 +110,6 @@ describe "Lexer" do
     it "rejects text in option definitions" do
       src = "-a ARG"
       expect { ::ShellOpts::Lexer.lex("main", src) }.to raise_error LexerError
-    end
-
-    it "creates descr tokens" do
-      src = "-- ARG1 ARG2"
-      expect(make src, fields: :kind).to eq [:arg_descr]
-      expect(make src, fields: :source).to eq ["--"]
-      expect(make src, fields: :value).to eq ["ARG1 ARG2"]
-    end
-
-    it "creates brief tokens" do
-      src = "\n-c @ Brief"
-      expect(make src, fields: :kind).to eq [:option, :brief]
-      expect(make src, fields: :source).to eq %w(-c @)
-      expect(make src, fields: :value).to eq %w(-c Brief)
     end
 
     it "creates doc tokens" do

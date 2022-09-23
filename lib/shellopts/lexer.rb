@@ -7,7 +7,12 @@ module ShellOpts
     # arguments that are always upper-case
     COMMAND_RE = /[a-z][a-z0-9._-]*!/ 
 
-    SPEC_RE = /\+\+\s/
+    SPEC_RE = /\+\+/
+    DESCR_RE = /--/
+    BRIEF_RE = /@/
+
+    DESCR_STOP_RE = /^(?:#{SPEC_RE}|#{DESCR_RE}|#{BRIEF_RE})/
+    SPEC_STOP_RE = /^(?:#{SPEC_RE}|#{DESCR_RE}|#{BRIEF_RE})/
 
     # Match argument spec words. The words should begin with at least two
     # uppercase letters. This makes it possible to say +opts.FILE_ARGUMENT+
@@ -15,14 +20,9 @@ module ShellOpts
     # options are always downcased internally (TODO). Rather primitive for now
     ARG_RE = /^[A-Z0-9_-]{2,}$/
 
-    DESCR_RE = /--\s/
-
-    BRIEF_RE = /@/
-
     SINGLE_LINE_WORDS = %w(-- ++ @)
 
-#   DECL_RE = /^(?:-|--|\+|\+\+|(?:@(?:\s|$))|(?:[^\\!]\S*!(?:\s|$)))/
-    DECL_RE = /^(?:#{OPTION_RE}|#{COMMAND_RE}|#{DESCR_RE}|#{SPEC_RE}|#{BRIEF_RE})/
+    DECL_RE = /^(?:#{OPTION_RE}|#{COMMAND_RE}|#{DESCR_RE} |#{SPEC_RE} |#{BRIEF_RE})/
 
     SECTIONS = %w(NAME SYNOPSIS DESCRIPTION OPTIONS COMMANDS)
     SECTION_ALIASES = {
@@ -121,12 +121,12 @@ module ShellOpts
                 value = ([$1] + words.shift_while { true }.map(&:last)).compact.join(" ")
                 add_token :brief, line.lineno, charno, word, value
               when "--"
-                # Almost eat rest of line
-                value = words.shift_while { |_,word| word !~ BRIEF_RE }.map(&:last).join(" ") 
+                # Eat line until stop-word
+                value = words.shift_while { |_,word| word !~ DESCR_STOP_RE }.map(&:last).join(" ") 
                 add_token :arg_descr, line.lineno, charno, word, value
               when "++"
                 add_token :arg_spec, line.lineno, charno, word
-                words.shift_while { |charno,word| 
+                words.shift_while { |charno,word|
                   word =~ ARG_RE and add_token :arg, line.lineno, charno, word
                 }
               when /^-|\+/

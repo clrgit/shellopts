@@ -24,9 +24,10 @@ module ShellOpts
     def each(&block) = @elements.each(&block)
     def shift_while(&block) = @elements.shift_while(&block) 
 
-    def consume(kind, lineno, charno, &block)
-      l = lambda { |t| 
-        t.kind == kind && t.lineno == (lineno || t.lineno) && t.charno == (charno || t.charno)
+    def consume(kinds, lineno, charno, &block)
+      kinds = Array(kinds).flatten
+      l = lambda { |t|
+        kinds.include?(t.kind) && t.lineno == (lineno || t.lineno) && t.charno == (charno || t.charno)
       }
       r = []
       if block_given?

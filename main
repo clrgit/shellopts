@@ -80,30 +80,30 @@ $trace = true
 # -b
 #)
 
-SPEC = %(
-  -a -b @brief
-  
-  -c @brief
-  -d
-    @brief
-
-  -e -f @brief
-  -g @brief2
-  -h
-    @brief3
-
-    Here is some text
-    for the option 
-    group
-
-  Here is some more text
-  spread over 
-  multiple lines
-
-  --random-option
-
-  And yet some more
-)
+#SPEC = %(
+# -a -b @brief
+# 
+# -c @brief
+# -d
+#   @brief
+#
+# -e -f @brief
+# -g @brief2
+# -h
+#   @brief3
+#
+#   Here is some text
+#   for the option 
+#   group
+#
+# Here is some more text
+# spread over 
+# multiple lines
+#
+# --random-option
+#
+# And yet some more
+#)
 
 
 
@@ -141,6 +141,28 @@ SPEC = %(
 # -c
 #   Option group
 #)
+
+#SPEC = %(
+# cmd1! @brief
+# cmd2! @brief
+#)
+
+#SPEC = %(
+# cmd!  -- AN ARG -- ANOTHER ARG
+#)
+#SPEC = %(
+# -a -b @brief1
+# -c
+#   @brief2
+#)
+
+SPEC = %(
+  -a @brief1
+  -b @brief2
+  -c -d @brief3
+  -e
+)
+
 
 lexer = ShellOpts::Lexer.new("main", SPEC)
 tokens = lexer.lex

@@ -53,8 +53,15 @@ describe "Parser" do
               -a
         )
       end
-      it "processes arg_spec"
-      it "processes briefs"
+      it "creates an option group around single-line list of options" do
+        s = "-a -b"
+        expect(parse s).to eq undent %(
+          main
+            group
+              -a
+              -b
+        )
+      end
       it "creates an option group around a multi-line list of options" do
         s = %(
           -a
@@ -67,13 +74,19 @@ describe "Parser" do
               -b
         )
       end
-      it "creates an option group around single-line list of options" do
-        s = "-a -b"
+      it "can mix single-line and multi-line lists" do
+        s = %(
+          -a -b
+          -c
+          -d
+        )
         expect(parse s).to eq undent %(
           main
             group
               -a
               -b
+              -c
+              -d
         )
       end
       it "creates an option group around each continous list of options" do
@@ -97,17 +110,34 @@ describe "Parser" do
     context "commands" do
       it "creates a command group around a command" do
         s = %(
-          cmd!
+          cmd1!
+
+          cmd2!
         )
         expect(parse s).to eq undent %(
           main
             group
-              cmd!
+              cmd1!
+            group
+              cmd2!
         )
       end
-      it "creates a command group around a multi-line list of commands"
-      it "creates a command group around a single-line list of commands"
-      it "creates a command group around each continous list of commands"
+      it "creates a command group around a multi-line list of commands" do
+        s = %(
+          cmd1!
+          cmd2!
+
+          cmd3!
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              cmd1!
+              cmd2!
+            group
+              cmd3!
+        )
+      end
     end
 
     context "briefs" do
@@ -134,34 +164,92 @@ describe "Parser" do
               @brief
         )
       end
-      it "handles both option briefs and option group briefs" do
+      it "applies to a single-line list of options as a group brief" do
         s = %(
-          -a @brief
-          -b
-            @brief
+          -a -b @brief
         )
         expect(parse s).to eq undent %(
           main
             group
               -a
-                @brief
               -b
               @brief
         )
       end
-      it "applies to a command"
-      it "applies to a command group"
-      it "handles both command briefs and command group briefs"
-    end
-
-    context "arg_descr" do
+      it "applies to a mix of single- and multi-line options" do
+        s = %(
+          -a -b @brief1
+          -c
+            @brief2
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              -a
+              -b
+              @brief1
+              -c
+              @brief2
+        )
+      end
       it "applies to a command" do
-        s = "cmd! -- AN ARG DESCR"
+        s = %(
+          cmd! @brief
+        )
         expect(parse s).to eq undent %(
           main
             group
               cmd!
-                -- AN ARG DESCR
+                @brief
+        )
+      end
+
+      it "applies to a command group" do
+        s = %(
+          cmd! 
+            @brief
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              cmd!
+              @brief
+        )
+      end
+
+      it "can be applied multiple times" do
+        s = %(
+          -a
+            @brief1
+            @brief2
+          cmd!
+            @brief3
+            @brief4
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              -a
+              @brief1
+              @brief2
+            group
+              cmd!
+              @brief3
+              @brief4
+        )
+      end
+    end
+
+    context "arg_descr" do
+      it "applies to a command" do
+        s = %(
+          cmd! -- AN ARG
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              cmd!
+                -- AN ARG
         )
       end
 
@@ -169,18 +257,41 @@ describe "Parser" do
         s = %(
           cmd1!
           cmd2!
-            -- AN ARG DESCR
+            -- AN ARG
         )
         expect(parse s).to eq undent %(
           main
             group
               cmd1!
               cmd2!
-              -- AN ARG DESCR
+              -- AN ARG
         )
       end
 
-
+      it "can be applied multiple times" do
+        s = %(
+          cmd!  -- ARG1 -- ARG2
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              cmd!
+                -- ARG1
+                -- ARG2
+        )
+        s = %(
+          cmd!
+            -- ARG1
+            -- ARG2
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              cmd!
+              -- ARG1
+              -- ARG2
+        )
+      end
     end
 
     context "texts" do

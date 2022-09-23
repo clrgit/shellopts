@@ -101,6 +101,7 @@ module ShellOpts
               tokens.consume(:brief, t.lineno, nil) { |brief| Spec::Brief.new(option, brief) }
 
               # Then, for each line, consume other options on that line
+              # (multiple options can be declared on one line)
               tokens.consume(:option, t.lineno, nil) { |t|
                 option = Spec::Option.new(stack.top, t)
                 # The brief is associated with the group and not the (last) option
@@ -112,11 +113,20 @@ module ShellOpts
             stack.push (group = Spec::CommandGroup.new(stack.top, token))
             tokens.unshift token
 
-            # Consume command lines
+            # First consume command lines
             tokens.consume(:command, nil, token.charno) { |t|
               command = Spec::Command.new(group, t)
-              # TODO Options, briefs, and arg_spec
-              tokens.consume(:arg_descr, token.lineno, nil) { |t| Spec::ArgDescr.new(command, t) }
+
+              # Then consume arg_spec, arg_descr, and briefs on that line
+              tokens.consume([:arg_descr, :brief], t.lineno, nil) { |t|
+                case t.kind
+                  when :arg_descr; Spec::ArgDescr.new(command, t)
+                  when :arg_spec
+                    spec = Spec::ArgSpec.new(command, t)
+                    tokens.consume(:arg, t.lineno, nil) { |t| Spec::Arg.new(spec, t) }
+                  when :brief; Spec::Brief.new(command, t)
+                end
+              }
             }
 
           when :arg_descr

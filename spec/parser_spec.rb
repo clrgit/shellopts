@@ -65,13 +65,12 @@ describe "Parser" do
               -b
         )
       end
-      it "creates an option group around each single-line option" do
+      it "creates an option group around single-line list of options" do
         s = "-a -b"
         expect(parse s).to eq undent %(
           main
             group
               -a
-            group
               -b
         )
       end

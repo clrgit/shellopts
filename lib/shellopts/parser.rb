@@ -63,18 +63,17 @@ module ShellOpts
         puts
         puts "Processing token #{token.inspect}"
         dump_stack
+        stack.unwind(token.charno)
 
         case token.kind
           when :blank
             ; # Do nothing
 
           when :brief
-            stack.unwind(token.charno)
             dump_stack
             Spec::Brief.new(stack.top, token)
 
           when :text
-            stack.unwind(token.charno)
             dump_stack
 
             # Create Description object if needed
@@ -86,7 +85,6 @@ module ShellOpts
                 stack.top, token, [token.value] + tokens.consume(:text, nil, token.charno, &:value))
 
           when :option
-            stack.unwind(token.charno)
             dump_stack
             stack.push (group = Spec::OptionGroup.new(stack.top, token))
             tokens.unshift token
@@ -105,10 +103,12 @@ module ShellOpts
             }
 
           when :command
-            stack.pop if stack.top.is_a? Spec::Command
-            stack.pop if token.same? && stack.top.is_a?(Spec::CommandGroup)
-            stack.push Spec::CommandGroup.new(stack.top, token) if !stack.top.is_a? Spec::CommandGroup
-            stack.push Spec::Command.new(stack.top, token)
+            
+
+#           stack.pop if stack.top.is_a? Spec::Command
+#           stack.pop if token.same? && stack.top.is_a?(Spec::CommandGroup)
+#           stack.push Spec::CommandGroup.new(stack.top, token) if !stack.top.is_a? Spec::CommandGroup
+#           stack.push Spec::Command.new(stack.top, token)
         else
           ;
 #         puts "   Default"

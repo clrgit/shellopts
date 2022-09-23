@@ -93,12 +93,16 @@ SPEC = %(
     @brief3
 
     Here is some text
+    for the option 
+    group
 
-    --random-option
+  Here is some more text
+  spread over 
+  multiple lines
 
-    Here is some more text
-    spread over 
-    multiple lines
+  --random-option
+
+  And yet some more
 )
 
 

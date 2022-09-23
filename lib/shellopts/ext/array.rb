@@ -7,7 +7,8 @@ module Ext
         # element has already been removed
         def shift_while(&block)
           r = []
-          while value = self.shift
+          while !empty?
+            value = self.shift
             if !block.call(value)
               self.unshift value
               break
@@ -26,7 +27,8 @@ module Ext
         # element has already been removed
         def pop_while(&block)
           r = []
-          while value = self.pop
+          while !empty?
+            value = self.pop
             if !block.call(value)
               self.push value
               break

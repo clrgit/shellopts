@@ -44,7 +44,7 @@ describe "Parser" do
   end
 
   describe "#parse" do
-    context "option grouping" do
+    context "options" do
       it "creates an option group around an option" do
         s = "-a"
         expect(parse s).to eq undent %(
@@ -53,6 +53,8 @@ describe "Parser" do
               -a
         )
       end
+      it "processes arg_spec"
+      it "processes briefs"
       it "creates an option group around a multi-line list of options" do
         s = %(
           -a
@@ -91,6 +93,23 @@ describe "Parser" do
         )
       end
     end
+
+    context "commands" do
+      it "creates a command group around a command" do
+        s = %(
+          cmd!
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              cmd!
+        )
+      end
+      it "creates a command group around a multi-line list of commands"
+      it "creates a command group around a single-line list of commands"
+      it "creates a command group around each continous list of commands"
+    end
+
     context "briefs" do
       it "applies to an option" do
         s = %(
@@ -128,6 +147,68 @@ describe "Parser" do
                 @brief
               -b
               @brief
+        )
+      end
+      it "applies to a command"
+      it "applies to a command group"
+      it "handles both command briefs and command group briefs"
+    end
+
+    context "arg_descr" do
+      it "applies to a command" do
+        s = "cmd! -- AN ARG DESCR"
+        expect(parse s).to eq undent %(
+          main
+            group
+              cmd!
+                -- AN ARG DESCR
+        )
+      end
+
+      it "applies to a command group" do
+        s = %(
+          cmd1!
+          cmd2!
+            -- AN ARG DESCR
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              cmd1!
+              cmd2!
+              -- AN ARG DESCR
+        )
+      end
+
+
+    end
+
+    context "texts" do
+      it "applies to option groups" do
+        s = %(
+          -a -b
+            Single-line options
+
+          -c
+          -d
+            Multi-line options
+
+          Free text
+
+          More free text
+        )
+        expect(parse s).to eq undent %(
+          main
+            group
+              -a
+              -b
+              Single-line options
+            group
+              -c
+              -d
+              Multi-line options
+            Free text
+            More free text
         )
       end
     end

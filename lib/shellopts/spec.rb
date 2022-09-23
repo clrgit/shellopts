@@ -227,7 +227,7 @@ module ShellOpts
     end
 
     class CommandGroup < Group
-      def self.accepts = [Brief, Description, CommandGroup, OptionGroup]
+      def self.accepts = [Brief, Description, CommandGroup, OptionGroup, ArgDescr]
     protected
       # Modify #attach to accept Command nodes too
       def attach(node) = super(node, check: !node.is_a?(Command))
@@ -240,6 +240,7 @@ module ShellOpts
     end
 
     class ArgDescr < Node
+      def rs = "-- " + super
     end
 
   end

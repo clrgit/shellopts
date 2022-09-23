@@ -146,7 +146,7 @@ describe "Lexer" do
           this_is_code()
       )
       expect(make src, fields: :kind).to eq [:text, :code]
-      expect(make src, fields: :value).to eq ["Text", "this_is_code()\n"]
+      expect(make src, fields: :value).to eq ["Text", "this_is_code()"]
     end
 
     it "preserves indentation in code blocks" do
@@ -158,7 +158,7 @@ describe "Lexer" do
       )
 
       expect(make src, fields: :kind).to eq [:text, :code]
-      expect(make src, fields: :value).to eq ["Text", "this_is_code()\n  and_more_code()\n"]
+      expect(make src, fields: :value).to eq ["Text", "this_is_code()\n  and_more_code()"]
     end
 
     it "ignores suffixed blanks line in code blocks" do
@@ -170,9 +170,20 @@ describe "Lexer" do
       )
 
       expect(make src, fields: :kind).to eq [:text, :code]
-      expect(make src, fields: :value).to eq ["Text", "this_is_code()\n"]
+      expect(make src, fields: :value).to eq ["Text", "this_is_code()"]
     end
 
+    it "accepts blank lines in code blocks" do
+      src = %(
+        Text
+
+          this_is_code()
+
+          some_more()
+      )
+      expect(make src, fields: :kind).to eq [:text, :code]
+      expect(make src, fields: :value).to eq ["Text", "this_is_code()\n\nsome_more()"]
+    end
     
 
     it "considers lines starting with \ as text" do

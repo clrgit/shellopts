@@ -66,19 +66,18 @@ module ShellOpts
 
       # Process lines
       while line = lines.shift
-        if line.blank? 
+        if line.blank?
           # Code block. A code block is preceeded by a blank line and indented
           # beyond the last non-blank token's indentation (just the parent?).
           # It should also not look like declaration of an option or a command
           # - the first line in the block can be escaped with a \ to solve that
           if lines.first && lines.first.charno > last_nonblank.charno && lines.first !~ DECL_RE
             indent = lines.first.charno - 1
-            code = lines.shift_while { |l| l.blank? || l.charno >= indent }.map(&:source)
+            code = lines
+                .shift_while { |l| l.blank? || l.charno >= indent }
+                .map { |line| line.source[indent..-1] }
             source = code.join("\n")
-            value = ([unescape(code[0])] + code[1..-1]).map { |s| s[indent..-1] || "" }
-                .join("\n")
-                .sub(/\n*\n$/, "\n")
-            add_token :code, line.lineno, line.charno, source, value
+            add_token :code, line.lineno, line.charno, source, code
             next # 'next' ensures that last_nonblank is unchanged
           
           # Ordinary blank line. Charno is set to the charno of the last
@@ -165,9 +164,13 @@ module ShellOpts
     # Unescape line by removing initial '\'
     def unescape(line) = line.sub(/^(\s*)\\/, '\1')
 
-    def add_token(kind, lineno, charno, source, value = source)
+    def add_token(kind, lineno, charno, source, value_or_lines = source)
       same = (lineno == @last_token&.lineno)
-      @last_token = Token.new(kind, lineno, charno, same, source, value)
+      if kind == :code
+        @last_token = CodeToken.new(lineno, charno, same, source, value_or_lines)
+      else
+        @last_token = Token.new(kind, lineno, charno, same, source, value_or_lines)
+      end
       @tokens << @last_token
       @last_token
     end

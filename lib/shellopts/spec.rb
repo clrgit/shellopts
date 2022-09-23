@@ -205,7 +205,7 @@ module ShellOpts
       def initialize(parent, token, check: false)
         super(parent, token, check: check, mode: :single)
       end
-      def self.accepts = [Brief, ArgSpec, ArgDescr, OptionGroup]
+      def self.accepts = [OptionGroup, ArgSpec, ArgDescr, Brief]
       def self.pass = true
       def self.part? = true
     end
@@ -220,14 +220,14 @@ module ShellOpts
     end
 
     class OptionGroup < Group
-      def self.accepts = [Brief, Description]
+      def self.accepts = Option.accepts + [Description]
     protected
       # Modify #attach to accept Option nodes too
       def attach(node) = super(node, check: !node.is_a?(Option))
     end
 
     class CommandGroup < Group
-      def self.accepts = [Brief, Description, CommandGroup, OptionGroup, ArgDescr]
+      def self.accepts = Command.accepts + [CommandGroup, Description]
     protected
       # Modify #attach to accept Command nodes too
       def attach(node) = super(node, check: !node.is_a?(Command))

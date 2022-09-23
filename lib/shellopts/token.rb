@@ -71,7 +71,7 @@ module ShellOpts
       constrain [lineno, charno], [kind == :program ? Integer : Ordinal] # lol
       constrain same, true, false
       constrain source, String
-      constrain value, String
+      constrain value, String, nil
       @kind, @lineno, @charno, @same, @value, @source = kind, lineno, charno, same, value, source
     end
 
@@ -92,6 +92,20 @@ module ShellOpts
 
     def dump
       puts "#{kind}@#{lineno}:#{charno} #{value.inspect}"
+    end
+  end
+
+  class CodeToken < Token
+    using Ext::Array::PopWhile
+
+    def value()
+      @value ||= lines.join("\n")
+    end
+    attr_reader :lines
+    def initialize(lineno, charno, same, source, lines)
+      super(:code, lineno, charno, same, source, nil)
+      @lines = lines
+      @lines.pop_while(&:nil?)
     end
   end
 end

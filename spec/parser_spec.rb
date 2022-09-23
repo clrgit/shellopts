@@ -141,19 +141,65 @@ describe "Parser" do
     end
 
     context "arg_spec" do
+      it "applies to main" do
+        s = "++ ARG"
+        check s, %(
+          ++
+            ARG
+        )
+      end
       it "applies to a command" do
-        s = "cmd! ++ AN ARG"
+        s = "cmd! ++ ARG"
         check s, %(
           group
             cmd!
               ++
-                AN
                 ARG
+        )
+      end
+      it "applies to a command group" do
+        s = %(
+          cmd!
+            ++ ARG
+        )
+        check s, %(
+          group
+            cmd!
+            ++ 
+              ARG
+        )
+      end
+      it "can be applied multiple times" do
+        s = %(
+          ++ ARG1
+          ++ ARG2
+        )
+        check s, %(
+          ++
+            ARG1
+          ++ 
+            ARG2
+        )
+      end
+
+      it "takes a number of arguments" do
+        s = "++ ARG1 ARG2 ARG3"
+        check s, %(
+          ++
+            ARG1
+            ARG2
+            ARG3
         )
       end
     end
 
     context "arg_descr" do
+      it "applies to main" do
+        s = "-- AN ARG"
+        check s, %(
+          -- AN ARG
+        )
+      end
       it "applies to a command" do
         s = %(
           cmd! -- AN ARG
@@ -181,29 +227,26 @@ describe "Parser" do
 
       it "can be applied multiple times" do
         s = %(
-          cmd!  -- ARG1 -- ARG2
+          -- ARG1 -- ARG2
+          -- ARG3
+          -- ARG4
         )
         check s, %(
-          group
-            cmd!
-              -- ARG1
-              -- ARG2
-        )
-        s = %(
-          cmd!
             -- ARG1
             -- ARG2
-        )
-        check s, %(
-          group
-            cmd!
-            -- ARG1
-            -- ARG2
+            -- ARG3
+            -- ARG4
         )
       end
     end
 
     context "briefs" do
+      it "applies to main" do
+        s = "@brief"
+        check s, %(
+          @brief
+        )
+      end
       it "applies to an option" do
         s = %(
           -a @ brief

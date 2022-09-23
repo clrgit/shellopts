@@ -48,22 +48,6 @@ module ShellOpts
 
     def parse_error(token, message) = raise ParserError, token, message
 
-    # Parse a one-line arg spec
-    def parse_arg_spec
-      constrain tokens.kind, :arg_spec
-      command = Spec::Command.new(stack.top, shift)
-      while first&.lineno == stack.top.lineno
-        case kind
-          when :arg
-            Spec::Arg.new(command, token)
-          else
-            parser_error token, "Illegal indent"
-        end
-      end
-    end
-
-    ###################
-
     def parse_description
       while token = tokens.shift
         putd
@@ -74,21 +58,6 @@ module ShellOpts
         case token.kind
           when :blank
             ; # Do nothing
-
-          when :brief
-            dump_stack
-            Spec::Brief.new(stack.top, token)
-
-          when :text
-            dump_stack
-
-            # Create Description object if needed
-            stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
-
-            # Collect subsequent lines with the same indentation into a single
-            # Paragraph
-            Spec::Paragraph.new(
-                stack.top, token, [token.value] + tokens.consume(:text, nil, token.charno, &:value))
 
           when :option
             dump_stack
@@ -129,24 +98,31 @@ module ShellOpts
               }
             }
 
+          when :arg_spec
+            spec = Spec::ArgSpec.new(stack.top, token)
+            tokens.consume(:arg, token.lineno, nil) { |t| Spec::Arg.new(spec, t) }
+
           when :arg_descr
-#           stack.unwind(token.charno)
             Spec::ArgDescr.new(stack.top, token)
 
+          when :brief
+            Spec::Brief.new(stack.top, token)
 
-            
+          when :text
+            stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
+            Spec::Paragraph.new(
+                stack.top, token, [token.value] + tokens.consume(:text, nil, token.charno, &:value))
 
-#           stack.pop if stack.top.is_a? Spec::Command
-#           stack.pop if token.same? && stack.top.is_a?(Spec::CommandGroup)
-#           stack.push Spec::CommandGroup.new(stack.top, token) if !stack.top.is_a? Spec::CommandGroup
-#           stack.push Spec::Command.new(stack.top, token)
+#         when :code
+#           Spec::Code.new(
+#               stack.top, token
+
         else
           ;
 #         puts "   Default"
         end
         dump_stack
       end
-
     end
 
     def dump_stack

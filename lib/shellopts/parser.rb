@@ -5,8 +5,6 @@ module ShellOpts
   end
 end
 
-$trace = false
-
 module ShellOpts
   # The parser extends Grammar objects with a parse method that is called with
   # the parent object and the current token as argument
@@ -32,14 +30,6 @@ module ShellOpts
     end
 
   protected
-    def trace(*args) 
-      puts *args if $trace
-    end
-
-    def putd(*args)
-      puts *args if $trace
-    end
-
     # Queue of tokens (TokenQueue object)
     attr_reader :tokens
 
@@ -50,9 +40,6 @@ module ShellOpts
 
     def parse_description
       while token = tokens.shift
-        putd
-        putd "Processing token #{token.inspect}"
-#       dump_stack
         stack.unwind(token.charno)
 
         case token.kind
@@ -60,11 +47,8 @@ module ShellOpts
             ; # Do nothing
 
           when :section
-            
-
 
           when :option
-            dump_stack
             stack.push (group = Spec::OptionGroup.new(stack.top, token))
             tokens.unshift token
 
@@ -123,18 +107,9 @@ module ShellOpts
 
         else
           ;
-#         puts "   Default"
         end
-        dump_stack
       end
     end
-
-    def dump_stack
-        putd "                 #{@stack.map { |node| node.class.name }.inspect}"
-    end
-
-    # TODO Add subject
-
   end
 end
 

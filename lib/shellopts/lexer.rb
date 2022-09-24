@@ -32,6 +32,7 @@ module ShellOpts
     }.merge SECTIONS.map { |n| [n, n] }.to_h
 
     using Ext::Array::ShiftWhile
+    using Ext::Array::PopWhile
 
     attr_reader :name # Name of program
     attr_reader :source # A multiline string
@@ -73,9 +74,9 @@ module ShellOpts
           # - the first line in the block can be escaped with a \ to solve that
           if lines.first && lines.first.charno > last_nonblank.charno && lines.first !~ DECL_RE
             indent = lines.first.charno - 1
-            code = lines
-                .shift_while { |l| l.blank? || l.charno >= indent }
-                .map { |line| line.source[indent..-1] || "" }
+            code = lines.shift_while { |l| l.blank? || l.charno >= indent }
+            code.pop_while(&:blank?)
+            code.map! { |line| line.source[indent..-1] || "" }
             code[0] = code[0] && unescape(code[0])
             source = code.join("\n")
             add_token :code, line.lineno, line.charno, source, nil, code
@@ -101,7 +102,7 @@ module ShellOpts
         # Sections
         if SECTION_ALIASES.key?(line.expr)
           value = SECTION_ALIASES[line.expr]
-          add_token :section, line.lineno, line.charno, line.source, value
+          add_token :section, line.lineno, line.charno, line.expr, value
 
         # Options, commands, usage, arguments, and briefs. The line is broken
         # into words to be able to handle one-line declarations (options with

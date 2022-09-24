@@ -174,12 +174,14 @@ module ShellOpts
     end
 
     class Section < Definition
+      attr_reader :level
+
       def header(formatter = nil)
         constrain formatter, Formatter::Formatter, nil
         [@header]
       end
 
-      def initialize(parent, token, header)
+      def initialize(parent, token, level, header)
         super(parent, token)
         constrain header, String
         @header = header
@@ -223,7 +225,7 @@ module ShellOpts
 
     class Group < Definition
       def header(formatter) = formatter.header(self)
-      def <<(element) attach(element) end
+#     def <<(element) attach(element) end
 
       def self.whole? = true
 

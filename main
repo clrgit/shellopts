@@ -71,8 +71,6 @@ require './lib/shellopts/parser.rb'
 #   Description here
 #)
 
-$trace = true
-
 #SPEC = %(-a -b)
 
 #SPEC = %(

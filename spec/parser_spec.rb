@@ -402,6 +402,20 @@ describe "Parser" do
         )
       end
     end
+
+#   context "sections" do
+#     it "asdf" do
+#       s = %(
+#         NAME
+#           Text
+#       )
+#       check s, %(
+#         section
+#           Text
+#       )
+#     end
+#
+#   end
   end
 end
 

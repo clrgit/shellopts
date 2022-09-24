@@ -58,7 +58,7 @@ module ShellOpts
     # Location. A tuple of [lineno, charno]. Implemented for convenience
     def location = [lineno, charno]
 
-    # Token source. Equal to #value except for section, brief, and descr tokens
+    # Token source
     attr_reader :source
 
     # Token string value. This is usually equal to source

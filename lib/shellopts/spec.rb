@@ -102,10 +102,12 @@ module ShellOpts
 
     class Line < Lines
       def line = lines.first # A String object
-      def initialize(parent, token, line = nil)
-        constrain line, String, nil
-        super(parent, token, [line || token.source])
+      def initialize(parent, token, line = token.value)
+        constrain line, String
+        super(parent, token, [line])
       end
+
+      def to_s = lines.first
 
       def rs = line
     end
@@ -124,6 +126,35 @@ module ShellOpts
       end
     end
 
+    class Option < Node
+      def initialize(parent, token, check: false)
+        constrain parent, OptionGroup, Command
+        super(parent, token, check: check, mode: :single)
+      end
+      def to_s = token.value
+      def self.accepts = [Brief]
+    end
+
+    class Command < Node
+      def initialize(parent, token, check: false)
+        constrain parent, CommandGroup
+        super(parent, token, check: check, mode: :single)
+      end
+      def to_s = token.value
+      def self.accepts = [Option, ArgSpec, ArgDescr, Brief]
+    end
+
+    class ArgSpec < Node
+      def self.accepts = [Arg]
+    end
+
+    class Arg < Node
+    end
+
+    class ArgDescr < Node
+      def rs = "-- " + super
+    end
+
     class Paragraph < Node
       attr_reader :text
       def initialize(parent, token, text)
@@ -140,54 +171,6 @@ module ShellOpts
       def rs = text
     end
 
-    # An enumeration is a single-line text followed by an indented paragraph
-    class Enumeration < Node
-      alias_method :definitions, :children
-      def descriptions = definitions.map(&:description)
-
-      def self.accepts = [Definition]
-    end
-
-    # A List is an enumeration with the single-line text replaced by a bullet
-    class List < Enumeration
-      attr_reader :bullet # ".", "#", "o", "*", "-"
-
-      def initialize(parent, token, bullet)
-        super(parent, token)
-        constrain bullet, ".", "#", "o", "*", "-"
-        @bullet = bullet
-      end
-
-      def self.accepts = [Bullet]
-    end
-
-    class Definition < Node
-      def header(formatter) = abstract_method
-      def description = children.first
-
-      def self.accepts = [Description]
-    end
-
-    class Bullet < Definition
-      attr_reader :list
-      def header(formatter) list.bullet end
-    end
-
-    class Section < Definition
-      attr_reader :level
-
-      def header(formatter = nil)
-        constrain formatter, Formatter::Formatter, nil
-        [@header]
-      end
-
-      def initialize(parent, token, level, header)
-        super(parent, token)
-        constrain header, String
-        @header = header
-      end
-    end
-
     class Description < Node
       alias_method :elements, :children
       def self.accepts = [Node] # Anything can go into a description. FIXME
@@ -202,52 +185,87 @@ module ShellOpts
       def rs = Node.instance_method(:rs).bind(self).call # override Description's override
     end
 
-    # Options are processed line-by-line and collected into option groups.
-    # Common definitions for the option group (briefs and description) are
-    # attached to the group and not the individual options
-    class Option < Node
-      def initialize(parent, token, check: false)
-        super(parent, token, check: check, mode: :single)
+    # A List is an enumeration with the single-line text replaced by a bullet
+    class List < Node
+      attr_reader :bullet # ".", "#", "o", "*", "-"
+
+      def initialize(parent, token, bullet)
+        super(parent, token)
+        constrain bullet, ".", "#", "o", "*", "-"
+        @bullet = bullet
       end
-      def self.accepts = [Brief]
+
+      def self.accepts = [Description]
     end
 
-    class Command < Node
-      def initialize(parent, token, check: false)
-        super(parent, token, check: check, mode: :single)
+    class Definition < Node
+      def subject = children[0]
+      def description = children[1] # Can be nil TODO: Maybe default to EmptyDescription?
+
+      # The header of the definition as an array of strings
+      def header = subject.header
+
+      def self.accepts = [Subject, Description]
+
+      def dn(device = $stdout) # dn - dump node
+        subject.dn(device)
+        device.indent { |dev| description&.dn(dev) }
       end
-      def self.accepts = [OptionGroup, ArgSpec, ArgDescr, Brief]
     end
 
-    class Group < Definition
-      def header(formatter) = formatter.header(self)
+    class Subject < Node
+      alias_method :definition, :parent
+      forward_to :definition, :description
+
+      # Returns the subject header as an array of strings
+      def header = abstract_method
+
+      def initialize(parent, token)
+        constrain parent, Definition
+        super
+      end
+    end
+
+    class Section < Subject
+      attr_reader :level # TODO: Swap with header
+      attr_reader :header
+
+      def initialize(parent, token, level, header = token.value)
+        super(parent, token)
+        constrain level, Integer
+        constrain header, String
+        @level = level
+        @header = [header]
+      end
+    end
+
+    class MainSection < Section
+      def initialize(parent, token, header)
+        constrain header, *Lexer::SECTIONS
+        super(parent, token, 0, header)
+      end
+    end
+
+    class Group < Subject
+      def header = children.map(&:to_s)
+
+#     def header(formatter) = formatter.header(self)
 
       def rs = "group"
     end
 
     class OptionGroup < Group
-      def self.accepts = Option.accepts + [Description]
+      def self.accepts = Option.accepts
     protected
       # Modify #attach to accept Option nodes too
       def attach(node) = super(node, check: !node.is_a?(Option))
     end
 
     class CommandGroup < Group
-      def self.accepts = Command.accepts + [CommandGroup, Description]
+      def self.accepts = Command.accepts + [CommandGroup]
     protected
       # Modify #attach to accept Command nodes too
       def attach(node) = super(node, check: !node.is_a?(Command))
-    end
-
-    class ArgSpec < Node
-      def self.accepts = [Arg]
-    end
-
-    class Arg < Node
-    end
-
-    class ArgDescr < Node
-      def rs = "-- " + super
     end
 
   end

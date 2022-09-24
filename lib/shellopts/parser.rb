@@ -39,35 +39,46 @@ module ShellOpts
     def parse_error(token, message) = raise ParserError, token, message
 
     def parse_description
+      # Iterates first token of lines. The loop is expected to empty a line so
+      # that the next iteration starts with the first token
       while token = tokens.shift
         stack.unwind(token.charno)
 
+        # Skip blank lines. TODO: Move before #unwind?
+        next if token.kind == :blank
+
+        # Ensure description object on the top of the stack
+        stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
+
         case token.kind
-          when :blank
-            ; # Do nothing
-
           when :section
+            raise NotImplementedError
 
-          when :option
-            stack.push (group = Spec::OptionGroup.new(stack.top, token))
+          when :option # A line starting with an option
+            defn = Spec::Definition.new(stack.top, token)
+            group = Spec::OptionGroup.new(defn, token)
             tokens.unshift token
 
             # First consume option lines
             tokens.consume(:option, nil, token.charno) { |t|
-              option = Spec::Option.new(stack.top, t)
+              option = Spec::Option.new(group, t)
               tokens.consume(:brief, t.lineno, nil) { |brief| Spec::Brief.new(option, brief) }
 
               # Then, for each line, consume other options on that line
               # (multiple options can be declared on one line)
               tokens.consume(:option, t.lineno, nil) { |t|
-                option = Spec::Option.new(stack.top, t)
+                option = Spec::Option.new(group, t)
                 # The brief is associated with the group and not the (last) option
                 tokens.consume(:brief, t.lineno, nil) { |brief| Spec::Brief.new(group, brief) }
               }
             }
 
+            # token is wrong but has the right charno so unwind will work
+            stack.push Spec::Description.new(defn, token)
+
           when :command
-            stack.push (group = Spec::CommandGroup.new(stack.top, token))
+            defn = Spec::Definition.new(stack.top, token)
+            group = Spec::CommandGroup.new(defn, token)
             tokens.unshift token
 
             # First consume command lines
@@ -86,6 +97,9 @@ module ShellOpts
               }
             }
 
+            # token is wrong but has the right charno so unwind will work
+            stack.push Spec::Description.new(defn, token)
+
           when :arg_spec
             spec = Spec::ArgSpec.new(stack.top, token)
             tokens.consume(:arg, token.lineno, nil) { |t| Spec::Arg.new(spec, t) }
@@ -97,14 +111,11 @@ module ShellOpts
             Spec::Brief.new(stack.top, token)
 
           when :code
-            stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
             Spec::Code.new(stack.top, token)
 
           when :text
-            stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
             Spec::Paragraph.new(
                 stack.top, token, [token.value] + tokens.consume(:text, nil, token.charno, &:value))
-
         else
           ;
         end

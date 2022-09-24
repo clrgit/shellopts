@@ -23,59 +23,14 @@ require './lib/shellopts/doc.rb'
 require './lib/shellopts/lexer.rb'
 require './lib/shellopts/parser.rb'
 
-#include ShellOpts::Message
-#include ShellOpts::Verbose
-#include ShellOpts::Debug
-
-#include ShellOpts::Messages
-#p ShellOpts::Messages.is_included?
-
-#SPEC = %(
-# @ An initial brief
-#
-# -- AN ARG DESCR
-#
-# A 
-# multiline
-# description
-#
-# -a @brief option description
-# -b -c @description of -b and -c
-# -d
-#   A description of the -a, -b, -c and -d options
-#   bla.bla.bla
-#   @a brief for both options
-#
-# command! -- CMDARG1 CMDARG2 @brief description of command
-#   @a conflicting brief for the command
-#   A command description
-# 
-#   -c
-#     @brief description of the command option
-#     An option for the command
-#
-#   --with --without @a brief that shouldn't be there
-#     @an option group brief
-#     This is an option group defined on one line
-# All the way out here
-#
-# subcommand! -a -b @a subcommand and not much more
-#
-#)
-# another_command!
-#   -d
-#     @ option -d brief
-#     Option -d description 
-#   -- ARGS HERE
-#   @ brief here
-#   Description here
-#)
 
 #SPEC = %(-a -b)
-
+#
 #SPEC = %(
-# -a
+# -a @brief
 # -b
+#   @brief
+#   Text
 #)
 
 #SPEC = %(
@@ -140,10 +95,10 @@ require './lib/shellopts/parser.rb'
 #   Option group
 #)
 
-#SPEC = %(
-# cmd1! @brief
-# cmd2! @brief
-#)
+SPEC = %(
+  cmd1! @brief
+  cmd2! @brief
+)
 
 #SPEC = %(
 # cmd!  -- AN ARG -- ANOTHER ARG
@@ -154,11 +109,11 @@ require './lib/shellopts/parser.rb'
 #   @brief2
 #)
 
-SPEC = %(
-  Text
-    
-    some_code()
-)
+#SPEC = %(
+# Text
+#   
+#   some_code()
+#)
 
 
 lexer = ShellOpts::Lexer.new("main", SPEC)

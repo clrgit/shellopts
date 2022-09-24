@@ -1,3 +1,32 @@
+
+
+#module ShellOpts
+# module Formatter
+#   class Formatter
+#     def initialize
+#     end
+#   end
+#
+#   class DefaultFormatter < Formatter
+#     def header(definition)
+#       case definition
+#         when Group; definition.children.map(&:rs)
+#         when Section; [section.header]
+#         when Bullet; 
+#       else
+#
+#       end
+#     end
+#   end
+#
+#   DEFAULT_FORMATTER = DefaultFormatter.new
+# end
+#end
+#
+#
+#
+#__END__
+
 require 'terminfo'
 
 module ShellOpts

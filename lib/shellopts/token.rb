@@ -8,10 +8,11 @@ module ShellOpts
     # The tokens are
     #
     # :program
-    #   artificial token that is the first token
+    #   artificial token at line 0, character 0. The lexer create this as the
+    #   first token
     #
     # :section
-    #   all-caps string
+    #   a string in Lexer::SECTIONS or matching /^\*.*\*$/
     #
     # :option
     #   a string starting with '-' or '--'
@@ -41,7 +42,7 @@ module ShellOpts
     #   a blank line
     #   
     KINDS = [
-        :program, :section, :option, :command, :arg_spec, :arg, :arg_descr, :brief,
+        :program, :section, :subsection, :option, :command, :arg_spec, :arg, :arg_descr, :brief,
         :text, :code, :blank
     ]
 

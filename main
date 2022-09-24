@@ -95,10 +95,10 @@ require './lib/shellopts/parser.rb'
 #   Option group
 #)
 
-SPEC = %(
-  cmd1! @brief
-  cmd2! @brief
-)
+#SPEC = %(
+# cmd1! @brief
+# cmd2! @brief
+#)
 
 #SPEC = %(
 # cmd!  -- AN ARG -- ANOTHER ARG
@@ -115,6 +115,20 @@ SPEC = %(
 #   some_code()
 #)
 
+SPEC = %(
+  NAME
+    Name
+
+    *free*
+
+    *description*
+      gryf
+
+      *nesting*
+        Gryffelyf
+
+  Some text
+)
 
 lexer = ShellOpts::Lexer.new("main", SPEC)
 tokens = lexer.lex

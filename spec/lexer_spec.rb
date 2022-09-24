@@ -133,10 +133,20 @@ describe "Lexer" do
     it "pluralize section names" do
       src = %(
         COMMAND
+          indented line
       )
-      expect(make src, fields: :kind).to eq [:section]
-      expect(make src, fields: :source).to eq %w(COMMAND)
-      expect(make src, fields: :value).to eq %w(COMMANDS)
+      expect(make src, fields: :kind).to eq [:section, :text]
+      expect(make(src, fields: :source).first).to eq "COMMAND"
+      expect(make(src, fields: :value).first).to eq "COMMANDS"
+    end
+
+    it "creates subsection tokens" do
+      src = %(
+        *subsection*
+      )
+      expect(make src, fields: :kind).to eq [:subsection]
+      expect(make(src, fields: :source).first).to eq "*subsection*"
+      expect(make(src, fields: :value).first).to eq "subsection"
     end
 
     it "creates code tokens" do

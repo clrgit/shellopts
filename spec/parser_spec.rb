@@ -403,19 +403,61 @@ describe "Parser" do
       end
     end
 
-#   context "sections" do
-#     it "asdf" do
-#       s = %(
-#         NAME
-#           Text
-#       )
-#       check s, %(
-#         section
-#           Text
-#       )
-#     end
-#
-#   end
+    context "sections" do
+      it "applies to main" do
+        s = %(
+          NAME
+            Text
+        )
+        check s, %(
+          NAME
+            Text
+        )
+      end
+
+      it "can't be nested" do
+
+        s = %(
+          NAME
+            Text
+
+            NESTED
+              Nested
+        )
+        expect { parse(s) }.to raise_error ParserError
+      end
+    end
+
+    context "subsections" do
+      it "doesn't apply to main" do
+        s = %(
+          *name*
+            Text
+        )
+        expect { parse(s) }.to raise_error ParserError
+      end
+
+      it "can be nested" do
+        s = %(
+          NAME
+            Name
+
+            *Sub*
+              sub
+
+              *Subsub*
+                subsub
+        )
+        check s, %(
+          NAME
+            Name
+            Sub
+              sub
+              Subsub
+                subsub
+        )
+      end
+    end
   end
 end
 

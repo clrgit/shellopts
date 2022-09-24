@@ -24,7 +24,8 @@ module ShellOpts
 
     # Parse tokens and return stack.top-level Spec::Program object
     def parse
-      stack.push(@program = Spec::Program.new(tokens.shift))
+      @program = Spec::Program.new(tokens.shift)
+      stack.push Spec::Description.new(@program, @program.token)
       parse_description
       program
     end
@@ -39,8 +40,9 @@ module ShellOpts
     def parse_error(token, message) = raise ParserError, token, message
 
     def parse_description
-      # Iterates first token of lines. The loop is expected to empty a line so
-      # that the next iteration starts with the first token
+      # Iterates the first token of each line. The loop is expected to remove
+      # the remaining tokens on the line so so that the next iteration starts
+      # with the first token of the following
       while token = tokens.shift
         stack.unwind(token.charno)
 
@@ -52,9 +54,22 @@ module ShellOpts
 
         case token.kind
           when :section
-            raise NotImplementedError
+            stack.top.parent == @program or parse_error token, "Sections can't be nested"
+            defn = Spec::Definition.new(stack.top, token)
+            if Lexer::SECTION_ALIASES.key? token.value
+              Spec::BuiltinSection.new(defn, token)
+            else
+              Spec::Section.new(defn, token, 1)
+            end
+            stack.push Spec::Description.new(defn, token)
 
-          when :option # A line starting with an option
+          when :subsection
+            stack.top.parent != @program or parse_error token, "Subsections has to be nested" 
+            defn = Spec::Definition.new(stack.top, token)
+            Spec::Section.new(defn, token, nil)
+            stack.push Spec::Description.new(defn, token)
+
+          when :option
             defn = Spec::Definition.new(stack.top, token)
             group = Spec::OptionGroup.new(defn, token)
             tokens.unshift token

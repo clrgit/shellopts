@@ -177,14 +177,6 @@ module ShellOpts
       def rs = nil
     end
 
-    class Program < Description
-      def initialize(token) 
-        constrain token.kind, :program
-        super nil, token
-      end
-      def rs = Node.instance_method(:rs).bind(self).call # override Description's override
-    end
-
     # A List is an enumeration with the single-line text replaced by a bullet
     class List < Node
       attr_reader :bullet # ".", "#", "o", "*", "-"
@@ -213,6 +205,15 @@ module ShellOpts
       end
     end
 
+    class Program < Definition
+      def initialize(token)
+        constrain token.kind, :program
+        super nil, token
+        Spec::ProgramSection.new(self, token)
+      end
+      def rs = Node.instance_method(:rs).bind(self).call # override Description's override
+    end
+
     class Subject < Node
       alias_method :definition, :parent
       forward_to :definition, :description
@@ -227,22 +228,31 @@ module ShellOpts
     end
 
     class Section < Subject
-      attr_reader :level # TODO: Swap with header
+      # TODO: Swap order with header
+      attr_accessor :level # Assigned by the analyzer if nil
       attr_reader :header
 
       def initialize(parent, token, level, header = token.value)
         super(parent, token)
-        constrain level, Integer
+        constrain level, Integer, nil
         constrain header, String
         @level = level
         @header = [header]
       end
+
+#     def rs = "<#{super}: #{self.class.name}>"
     end
 
-    class MainSection < Section
-      def initialize(parent, token, header)
+    class BuiltinSection < Section
+      def initialize(parent, token, header = token.value)
         constrain header, *Lexer::SECTIONS
-        super(parent, token, 0, header)
+        super(parent, token, 1)
+      end
+    end
+
+    class ProgramSection < Section
+      def initialize(parent, token)
+        super(parent, token, 0)
       end
     end
 

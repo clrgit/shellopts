@@ -24,6 +24,8 @@ module ShellOpts
 
     DECL_RE = /^(?:#{OPTION_RE}|#{COMMAND_RE}|#{DESCR_RE} |#{SPEC_RE} |#{BRIEF_RE})/
 
+    SECTION_RE = /^[A-Z ]+$/
+    SUBSECTION_RE = /^\*(.*)\*$/
     SECTIONS = %w(NAME SYNOPSIS DESCRIPTION OPTIONS COMMANDS)
     SECTION_ALIASES = {
       "USAGE" => "SYNOPSIS",
@@ -99,10 +101,16 @@ module ShellOpts
         # Check indent
         line.charno >= initial_indent or lexer_error line.lineno, 1, false, "Illegal indent"
 
-        # Sections
-        if SECTION_ALIASES.key?(line.expr)
-          value = SECTION_ALIASES[line.expr]
+        # Sections. A section is an all-caps line immediately followed by an
+        # indented line
+        if line.expr =~ SECTION_RE && lines.first.charno > line.charno
+          value = SECTION_ALIASES[line.expr] || line.expr
           add_token :section, line.lineno, line.charno, line.expr, value
+
+        # Sub-sections
+        elsif line.expr =~ SUBSECTION_RE
+          value = $1
+          add_token :subsection, line.lineno, line.charno, line.expr, value
 
         # Options, commands, usage, arguments, and briefs. The line is broken
         # into words to be able to handle one-line declarations (options with

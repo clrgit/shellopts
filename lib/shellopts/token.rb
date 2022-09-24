@@ -1,6 +1,8 @@
 
 module ShellOpts
   class Token
+    using Ext::Array::PopWhile
+
     include ::CaseMatcher
 
     # The tokens are
@@ -60,15 +62,19 @@ module ShellOpts
     attr_reader :source
 
     # Token string value. This is usually equal to source
-    attr_reader :value
+    def value = @value ||= (lines ? lines.join("\n") : source)
+
+    # Token lines. Nil except for :code tokens
+    attr_reader :lines
 
     # +lineno+ and +charno+ are zero for the :program token and >= 1 otherwise
-    def initialize(kind, lineno, charno, source, value = source)
+    def initialize(kind, lineno, charno, source, value = source, lines = nil)
       constrain kind, *KINDS
       constrain [lineno, charno], [kind == :program ? Integer : Ordinal] # lol
       constrain source, String
       constrain value, String, nil
-      @kind, @lineno, @charno, @value, @source = kind, lineno, charno, value, source
+      constrain lines, [String], nil
+      @kind, @lineno, @charno, @value, @source, @lines = kind, lineno, charno, value, source, lines
     end
 
     forward_to :value, :to_s, :empty?, :blank?, :=~, :!~
@@ -87,23 +93,6 @@ module ShellOpts
 
     def dump
       puts "#{kind}@#{lineno}:#{charno} #{value.inspect}"
-    end
-  end
-
-  class CodeToken < Token
-    using Ext::Array::PopWhile
-
-    def value()
-      @value ||= lines.join("\n")
-    end
-
-    attr_reader :lines
-
-    def initialize(lineno, charno, source, lines)
-      constrain lines, [String, nil]
-      super(:code, lineno, charno, source, nil)
-      @lines = lines
-      @lines.pop_while(&:nil?)
     end
   end
 end

@@ -112,7 +112,7 @@ module ShellOpts
 
     class Code < Lines
       def initialize(parent, token)
-        constrain token, CodeToken
+        constrain token.kind, :code
         super(parent, token, token.lines)
       end
       def rs = nil

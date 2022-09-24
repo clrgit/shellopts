@@ -59,6 +59,10 @@ module ShellOpts
           when :blank
             ; # Do nothing
 
+          when :section
+            
+
+
           when :option
             dump_stack
             stack.push (group = Spec::OptionGroup.new(stack.top, token))
@@ -108,14 +112,14 @@ module ShellOpts
           when :brief
             Spec::Brief.new(stack.top, token)
 
+          when :code
+            stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
+            Spec::Code.new(stack.top, token)
+
           when :text
             stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
             Spec::Paragraph.new(
                 stack.top, token, [token.value] + tokens.consume(:text, nil, token.charno, &:value))
-
-          when :code
-            stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
-            Spec::Code.new(stack.top, token)
 
         else
           ;

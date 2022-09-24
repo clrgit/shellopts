@@ -75,10 +75,10 @@ module ShellOpts
             indent = lines.first.charno - 1
             code = lines
                 .shift_while { |l| l.blank? || l.charno >= indent }
-                .map { |line| line.source[indent..-1] }
+                .map { |line| line.source[indent..-1] || "" }
             code[0] = code[0] && unescape(code[0])
             source = code.join("\n")
-            add_token :code, line.lineno, line.charno, source, code
+            add_token :code, line.lineno, line.charno, source, nil, code
             next # 'next' ensures that last_nonblank is unchanged
           
           # Ordinary blank line. Charno is set to the charno of the last
@@ -101,7 +101,7 @@ module ShellOpts
         # Sections
         if SECTION_ALIASES.key?(line.expr)
           value = SECTION_ALIASES[line.expr]
-          add_token :section, line.lineno, line.charno, line.expr, value
+          add_token :section, line.lineno, line.charno, line.source, value
 
         # Options, commands, usage, arguments, and briefs. The line is broken
         # into words to be able to handle one-line declarations (options with
@@ -161,12 +161,8 @@ module ShellOpts
     # Unescape line by removing initial '\'
     def unescape(line) = line.sub(/^(\s*)\\/, '\1')
 
-    def add_token(kind, lineno, charno, source, value_or_lines = source)
-      if kind == :code
-        token = CodeToken.new(lineno, charno, source, value_or_lines)
-      else
-        token = Token.new(kind, lineno, charno, source, value_or_lines)
-      end
+    def add_token(kind, lineno, charno, source, value = source, lines = nil)
+      token = Token.new(kind, lineno, charno, source, value, lines)
       @tokens << token
       token
     end

@@ -210,8 +210,6 @@ module ShellOpts
         super(parent, token, check: check, mode: :single)
       end
       def self.accepts = [Brief]
-      def self.pass = true
-      def self.part? = true
     end
 
     class Command < Node
@@ -219,15 +217,10 @@ module ShellOpts
         super(parent, token, check: check, mode: :single)
       end
       def self.accepts = [OptionGroup, ArgSpec, ArgDescr, Brief]
-      def self.pass = true
-      def self.part? = true
     end
 
     class Group < Definition
       def header(formatter) = formatter.header(self)
-#     def <<(element) attach(element) end
-
-      def self.whole? = true
 
       def rs = "group"
     end

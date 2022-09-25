@@ -66,7 +66,7 @@ module ShellOpts
           when :subsection
             stack.top.parent != @program or parse_error token, "Subsections has to be nested" 
             defn = Spec::Definition.new(stack.top, token)
-            Spec::Section.new(defn, token, nil)
+            Spec::SubSection.new(defn, token, nil)
             stack.push Spec::Description.new(defn, token)
 
           when :option

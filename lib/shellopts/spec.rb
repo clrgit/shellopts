@@ -214,6 +214,8 @@ module ShellOpts
       def rs = Node.instance_method(:rs).bind(self).call # override Description's override
     end
 
+    # A subject is something that can be described. It always belongs to a
+    # description that in turn always has a description
     class Subject < Node
       alias_method :definition, :parent
       forward_to :definition, :description
@@ -254,6 +256,9 @@ module ShellOpts
       def initialize(parent, token)
         super(parent, token, 0)
       end
+    end
+
+    class SubSection < Section
     end
 
     class Group < Subject

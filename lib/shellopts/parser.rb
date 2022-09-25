@@ -40,16 +40,16 @@ module ShellOpts
     def parser_error(token, message) = raise ParserError, token, message
 
     # Parse tokens from the tokens queue as long as their indent is bigger than
-    # +limit+
+    # +limit+. +limit>0+ is used when calling #parse_description recursively
     def parse_description(limit = 0)
       # Iterates the first token of each line. The loop is expected to remove
       # the remaining tokens on the line so so that the next iteration starts
       # with the first token of the following
       while tokens.head && tokens.charno > limit && token = tokens.shift
-        puts "Processing token: #{token.kind}:#{token.charno}"
-        print "  Before unwind:    "; stack.dump(show_indent: true)
+#       puts "Processing token: #{token.kind}:#{token.charno}"
+#       print "  Before unwind:    "; stack.dump(show_indent: true)
         stack.unwind(token.charno)
-        print "  After unwind:     "; stack.dump(show_indent: true)
+#       print "  After unwind:     "; stack.dump(show_indent: true)
 
         # Skip blank lines. TODO: Move before #unwind?
         next if token.kind == :blank
@@ -61,13 +61,13 @@ module ShellOpts
 #       end
 
         # Ensure description object on the top of the stack for objects that need it
-        if !stack.top.is_a?(Spec::Description) && stack.top.accept?(Spec::Description)
-          stack.push Spec::Description.new(stack.top, token)
-        end
+#       if !stack.top.is_a?(Spec::Description) #&& stack.top.accept?(Spec::Description)
+#         stack.push Spec::Description.new(stack.top, token)
+#       end
         
-#       stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
+        stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
        
-        print "  After default:    "; stack.dump(show_indent: true)
+#       print "  After default:    "; stack.dump(show_indent: true)
 
         case token.kind
           when :section
@@ -151,41 +151,17 @@ module ShellOpts
 
           when :bullet
             list = Spec::List.new(stack.top, token, token.value) if !stack.top.is_a?(Spec::List)
-            stack.push list
             tokens.unshift token
             tokens.consume(:bullet, nil, token.charno) { |t|
-              puts "  Pushing bullet \"#{t.value} #{tokens.head.value}\""
               stack.push Spec::Bullet.new(list, token)
-              indent {
-                print "  stack: "; stack.dump
-                indent {
-                  parse_description(list.token.charno) if tokens.head
-                }
-                stack.unwind(token.charno)
-                print "  stack: "; stack.dump
-              }
+              parse_description(list.token.charno) if tokens.head
+              stack.unwind(token.charno) # Needed in non-indented bullet lists
             }
-            stack.pop
-
-#           if !stack.top.is_a?(Spec::List)
-#             list = Spec::List.new(stack.top, token, token.value)
-#             stack.push list
-#           else
-#             list = stack.top
-#           end
-              
-#           if !stack.top.is_a?(Spec::Bullet) && !stack.top.is_a?(Spec::List)
-#             list = Spec::List.new(stack.top, token, token.value)
-#             stack.push list
-#           else
-#             list = stack.top
-#           end
-#           stack.push Spec::Bullet.new(list, token)
         else
           ShellOpts.internal_error token, "Unregnized token kind: #{token.kind}"
         end
 
-        print "  After processing: "; stack.dump(show_indent: true)
+#       print "  After processing: "; stack.dump(show_indent: true)
       end
     end
   end

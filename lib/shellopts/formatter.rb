@@ -3,6 +3,176 @@
 raise if !defined? ShellOpts::Spec # The following code doesn't model class relationships
 
 module ShellOpts
+  module Spec
+    module Format; end
+    class Node
+      def dump(format: :short)
+        formatter = 
+            case format
+              when :short; Format::Short::Formatter.new
+              when :rspec; Format::RSpec::Formatter.new
+            else
+              raise ArgumentError
+            end
+        formatter.format(self)
+      end
+    end
+  end
+end
+
+module ShellOpts
+  module Spec
+    module Format::Short
+      include ShellOpts::Spec
+
+      refine Node do
+        def head = token.value
+        def body = nil
+
+        def dump_head
+          if head
+            puts "#{self.class.name}(#{head})"
+          else
+            puts self.class.name
+          end
+        end
+
+        def dump_body
+          if body
+            puts body
+          else
+            children.each { |node| node.dump }
+          end
+        end
+
+        def dump
+          dump_head
+          indent { dump_body }
+        end
+      end
+
+      refine ProgramSection do
+        def head = nil
+        def body = header
+      end
+
+      refine Description do
+        def head = nil
+      end
+
+      refine Bullet do
+        def head = nil
+      end
+
+      refine Paragraph do
+        def head = nil
+        def body = puts text
+      end
+
+      class Formatter
+        using Format::Short
+        def format(obj) = obj.dump
+      end
+    end
+
+    module Format::RSpec
+      include ShellOpts::Spec
+
+      refine Node do
+        def head = token.value
+        def body = nil
+
+        def dump_head
+          if head
+            puts "#{self.class.name}(#{head})"
+          else
+            puts self.class.name
+          end
+        end
+
+        def dump_body
+          if body
+            puts body
+          else
+            children.each { |node| node.dump }
+          end
+        end
+
+        def dump
+          dump_head
+          indent { dump_body }
+        end
+      end
+
+      refine ProgramSection do
+        def head = "HEAD"
+        def body = "BODY"
+      end
+
+      class Formatter
+        using Format::RSpec
+        def format(obj) 
+          obj.dump
+        end
+      end
+    end
+  end
+end
+
+__END__
+
+    module Spec
+      class Short
+        using Refinements::ShortSpec
+        def dump(obj) = obj.dump
+      end
+    end
+  end
+
+  module Formatter
+    module Refinements
+      module RSpecSpec
+        refine Spec::Node do
+          def gryf() puts "GRYF" end
+        end
+      end
+    end
+    module Spec
+      class RSpec
+        using Refinements::ShortSpec
+        def dump(obj) = obj.dump
+      end
+    end
+  end
+end
+
+#module ShellOpts
+# module Formatter
+#   module Refinements
+#     module RSpecSpec
+#       using Refinements::ShortSpec
+#       def dump(ob) = obj.dump
+#     end
+#   end
+#   module Spec
+#     class RSpec
+#       using Refinements::ShortSpec
+#       def dump(ob) = obj.dump
+#     end
+#   end
+# end
+#end
+
+__END__
+
+module ShellOpts
+  module Formatter
+    class Short
+      refine ::ShellOpts::Spec do
+      end
+    end
+  end
+
 # module 
   module Spec
     class Node

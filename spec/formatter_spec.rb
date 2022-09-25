@@ -1,4 +1,5 @@
 
+__END__
 include ShellOpts # FIXME: Dont
 
 #module ShellOpts

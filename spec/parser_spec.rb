@@ -458,6 +458,24 @@ describe "Parser" do
         )
       end
     end
+
+#   context "lists" do
+#     it "applies to main" do
+#       s = %(
+#         Text
+#
+#         o Bullet1
+#         o Bullet2
+#           Some text
+#         o Bullet3
+#
+#         More text
+#       )
+#       check s, %(
+#         Test
+#       )
+#     end
+#   end
   end
 end
 

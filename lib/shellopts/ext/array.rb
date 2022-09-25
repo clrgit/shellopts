@@ -1,6 +1,7 @@
 
 module Ext
   module Array
+    # TODO: Enumerator implementation
     module ShiftWhile
       refine ::Array do
         # The algorithm ensures that the block sees the array as if the current

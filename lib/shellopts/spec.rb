@@ -5,13 +5,11 @@ module ShellOpts
       attr_reader :children # Array of child Node objects
       attr_reader :token
 
-      def initialize(parent, token, check: true, mode: nil)
+      def initialize(parent, token, check: true)
         constrain parent, Node, nil
         constrain token, Token
-        constrain mode, :single, :multi, nil
         @token = token
         @children = []
-        @mode = mode || parent&.mode || :multi
         parent&.send(:attach, self)
       end
 
@@ -35,18 +33,6 @@ module ShellOpts
       # #attach to check the type of the node
       def self.accepts = []
       def accepts = self.class.accepts
-
-      # Mode of processing: :multi - elements are nested using indentation,
-      # :single - elements are all on the same line. The mode can be specified
-      # explicity but is otherwise inherited from the parent node. Default is
-      # :multi
-      attr_reader :mode
-
-      def self.whole? = false
-      def group? = self.class.whole?
-
-      def self.part? = false
-      def part? = self.class.part?
 
       # If true, tokens that are not compatible with the current node are
       # passed on to the parent node (after the current node has been popped
@@ -129,7 +115,7 @@ module ShellOpts
     class Option < Node
       def initialize(parent, token, check: false)
         constrain parent, OptionGroup, Command
-        super(parent, token, check: check, mode: :single)
+        super(parent, token, check: check)
       end
       def to_s = token.value
       def self.accepts = [Brief]
@@ -138,7 +124,7 @@ module ShellOpts
     class Command < Node
       def initialize(parent, token, check: false)
         constrain parent, CommandGroup
-        super(parent, token, check: check, mode: :single)
+        super(parent, token, check: check)
       end
       def to_s = token.value
       def self.accepts = [Option, ArgSpec, ArgDescr, Brief]

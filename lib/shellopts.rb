@@ -40,6 +40,8 @@ module ShellOpts
 
   # Internal errors. These are caused by bugs in the ShellOpts library
   class InternalError < ShellOptsError; end
+
+  def self.internal_error(token, message) raise InternalError, token, message end
 end
 
 require 'indented_io'
@@ -59,6 +61,7 @@ require_relative 'shellopts/lexer.rb'
 require_relative 'shellopts/line.rb' 
 require_relative 'shellopts/spec.rb'
 require_relative 'shellopts/parser.rb'
+
 __END__
 require 'indented_io'
 require 'constrain'

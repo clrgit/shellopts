@@ -37,7 +37,7 @@ module ShellOpts
     # Stack of Spec nodes (Stack object)
     attr_reader :stack
 
-    def parse_error(token, message) = raise ParserError, token, message
+    def parser_error(token, message) = raise ParserError, token, message
 
     def parse_description
       # Iterates the first token of each line. The loop is expected to remove
@@ -54,7 +54,7 @@ module ShellOpts
 
         case token.kind
           when :section
-            stack.top.parent == @program or parse_error token, "Sections can't be nested"
+            stack.top.parent == @program or parser_error token, "Sections can't be nested"
             defn = Spec::Definition.new(stack.top, token)
             if Lexer::SECTION_ALIASES.key? token.value
               Spec::BuiltinSection.new(defn, token)
@@ -64,7 +64,7 @@ module ShellOpts
             stack.push Spec::Description.new(defn, token)
 
           when :subsection
-            stack.top.parent != @program or parse_error token, "Subsections has to be nested" 
+            stack.top.parent != @program or parser_error token, "Subsections has to be nested" 
             defn = Spec::Definition.new(stack.top, token)
             Spec::SubSection.new(defn, token, nil)
             stack.push Spec::Description.new(defn, token)
@@ -131,8 +131,13 @@ module ShellOpts
           when :text
             Spec::Paragraph.new(
                 stack.top, token, [token.value] + tokens.consume(:text, nil, token.charno, &:value))
+
+          when :bullet
+            list = Spec::List.new(stack.top, token, token.value) if !stack.top.is_a?(Spec::List)
+            stack.push Spec::Description.new(list, token)
+
         else
-          ;
+          ShellOpts.internal_error token, "Unregnized token kind: #{token.kind}"
         end
       end
     end
@@ -237,12 +242,12 @@ __END__
 
           when :brief
             node.is_a?(Grammar::Command) || node.is_a?(Grammar::Option) or 
-                raise parse_error, token, "Unexpected brief definition"
+                raise parser_error, token, "Unexpected brief definition"
             node.doc.brief.nil? or raise ParserError, "Duplicate brief in definition of #{node.name}"
             node.doc.brief = Spec::Brief.new(token)
 
           when :arg_spec
-            node.is_a?(Grammar::Command) or raise parse_error, token, "Unexpected argument specification"
+            node.is_a?(Grammar::Command) or raise parser_error, token, "Unexpected argument specification"
             spec = Grammar::ArgSpec.new(node, token)
             @tokens.shift_while { |t| t.kind == :arg and parse_arg(spec, t) }
 
@@ -250,7 +255,7 @@ __END__
             raise InternalError, ":arg tokens should be processed by :spec"
 
           when :arg_descr
-            node.is_a?(Grammar::Command) or raise parse_error, token, "Unexected argument description"
+            node.is_a?(Grammar::Command) or raise parser_error, token, "Unexected argument description"
             node.doc.arg_descr = Spec::Lines.new curr_spec, token, consume(:arg_descr, &:value)
 
           when :text
@@ -258,7 +263,7 @@ __END__
             Spec::Lines.new(curr_spec, token, lines)
 
           when :option
-            node.is_a?(Grammar::Command) or raise parse_error, token, "Unexpected option definition"
+            node.is_a?(Grammar::Command) or raise parser_error, token, "Unexpected option definition"
             if !(option_group = curr_spec.is_a?(Spec::OptionGroup))
               @specs.push Spec::OptionGroup.new(curr_spec, token)
               option_group = curr_spec
@@ -382,7 +387,7 @@ __END__
 #             cmds = cmds[0..0]
 #             for ident in parent_uid.split(".").map(&:to_sym)
 #               cmds.push cmds.top.commands.find { |c| c.ident == ident } or
-#                   parse_error token, "Unknown command: #{ident.sub(/!/, "")}"
+#                   parser_error token, "Unknown command: #{ident.sub(/!/, "")}"
 #             end
 #             parent = cmds.top
               parent = cmds.top
@@ -462,7 +467,7 @@ __END__
 
           when :brief
             parent = nodes.top.is_a?(Grammar::Paragraph) ? nodes.top.parent : nodes.top
-            parent.brief.nil? or parse_error token, "Duplicate brief"
+            parent.brief.nil? or parser_error token, "Duplicate brief"
             Grammar::Brief.parse(parent, token)
 
           when :blank
@@ -684,7 +689,7 @@ __END__
   #             cmds = cmds[0..0]
   #             for ident in parent_uid.split(".").map(&:to_sym)
   #               cmds.push cmds.top.commands.find { |c| c.ident == ident } or
-  #                   parse_error token, "Unknown command: #{ident.sub(/!/, "")}"
+  #                   parser_error token, "Unknown command: #{ident.sub(/!/, "")}"
   #             end
   #             parent = cmds.top
                 parent = cmds.top
@@ -764,7 +769,7 @@ __END__
 
             when :brief
               parent = nodes.top.is_a?(Grammar::Paragraph) ? nodes.top.parent : nodes.top
-              parent.brief.nil? or parse_error token, "Duplicate brief"
+              parent.brief.nil? or parser_error token, "Duplicate brief"
               Grammar::Brief.parse(parent, token)
 
             when :blank
@@ -786,7 +791,7 @@ __END__
       end
 
   protected
-    def parse_error(token, message) raise ParserError, token, message end
+    def parser_error(token, message) raise ParserError, token, message end
   end
 end
 

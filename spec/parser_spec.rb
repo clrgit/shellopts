@@ -107,6 +107,17 @@ describe "Parser" do
             -c
         )
       end
+      it "takes a description" do
+        s = %(
+          -a
+            Description
+        )
+        check s, %(
+          group
+            -a
+            Description
+        )
+      end
     end
 
     context "commands" do
@@ -459,23 +470,39 @@ describe "Parser" do
       end
     end
 
-#   context "lists" do
-#     it "applies to main" do
-#       s = %(
-#         Text
-#
-#         o Bullet1
-#         o Bullet2
-#           Some text
-#         o Bullet3
-#
-#         More text
-#       )
-#       check s, %(
-#         Test
-#       )
-#     end
-#   end
+    context "lists" do
+      it "applies to main" do
+        s = %(
+          o Bullet1
+          o Bullet2
+        )
+        check s, %(
+          o
+            Bullet1
+          o 
+            Bullet2
+        )
+      end
+      it "can contain descriptions" do
+        s = %(
+          o Bullet1
+            Some text
+          o Bullet2
+            --option
+              Option description
+        )
+        check s, %(
+          o
+            Bullet1 Some text
+          o 
+            Bullet2
+            group
+              --option
+              Option description
+        )
+        
+      end
+    end
   end
 end
 

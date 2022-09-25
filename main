@@ -115,20 +115,36 @@ require './lib/shellopts/parser.rb'
 #   some_code()
 #)
 
+#SPEC = %(
+# NAME
+#   Name
+#
+#   *free*
+#
+#   *description*
+#     gryf
+#
+#     *nesting*
+#       Gryffelyf
+#
+# Some text
+#)
+
 SPEC = %(
-  NAME
-    Name
+  Text
 
-    *free*
+  o Bullet1
+  o Bullet2
+    Some text
+    * Another bullet
+    Back
+      - Dash bullet
+        # Hash bullet
+  o Bullet3
 
-    *description*
-      gryf
-
-      *nesting*
-        Gryffelyf
-
-  Some text
+  More text
 )
+
 
 lexer = ShellOpts::Lexer.new("main", SPEC)
 tokens = lexer.lex

@@ -33,6 +33,9 @@ module ShellOpts
       "COMMAND" => "COMMANDS"
     }.merge SECTIONS.map { |n| [n, n] }.to_h
 
+    BULLETS = %w(# o * -) # '-' has to come last, included in a RE later
+    BULLET_RE = /^([#{BULLETS.join}])(\s+)(\S.*)$/ # Captures bullet, spaces, and remaining text
+
     using Ext::Array::ShiftWhile
     using Ext::Array::PopWhile
 
@@ -111,6 +114,17 @@ module ShellOpts
         elsif line.expr =~ SUBSECTION_RE
           value = $1
           add_token :subsection, line.lineno, line.charno, line.expr, value
+
+        # Bullets. A bullet is a bullet marker (see BULLETS) followed by at
+        # least one word. If the bullet line is followed by a non-blank line
+        # then that line should either line up with the word or be a bullet
+        # line itself
+        elsif line.expr =~ BULLET_RE
+          bullet = $1
+          space = $2
+          text = $3
+          add_token :bullet, line.lineno, line.charno, bullet
+          add_token :text, line.lineno, line.charno + bullet.size + space.size, text
 
         # Options, commands, usage, arguments, and briefs. The line is broken
         # into words to be able to handle one-line declarations (options with

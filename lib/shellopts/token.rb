@@ -43,7 +43,7 @@ module ShellOpts
     #   
     KINDS = [
         :program, :section, :subsection, :option, :command, :arg_spec, :arg, :arg_descr, :brief,
-        :text, :code, :blank
+        :text, :code, :bullet, :blank
     ]
 
     # Kind of token

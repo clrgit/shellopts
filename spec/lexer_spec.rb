@@ -237,7 +237,7 @@ describe "Lexer" do
         # A bullet
         Text
       )
-      expect(make src, fields: :kind).to eq [:option, :text, :text]
+      expect(make src, fields: :kind).to eq [:option, :bullet, :text, :text]
       
     end
 

@@ -46,7 +46,7 @@ module ShellOpts
         if check && !accepts.any? { |klass| node.is_a? klass } 
           raise Constrain::MatchError.new(nil, nil, message: "Can't attach a #{node.class} to #{self.class}")
         end
-#       constrain accepts.any? { |klass| node.is_a? klass } if check
+        constrain accepts.any? { |klass| node.is_a? klass } if check
         @children << node
         node.instance_variable_set(:@parent, self)
       end
@@ -56,6 +56,8 @@ module ShellOpts
         constrain children.size, 1
         children.first
       end
+
+      def rs = "#{token.value}"
 
       def dump_header
         "#{self.class.to_s.sub(/.*::/, "")}: #{token.location}, children: #{children.size}"
@@ -164,10 +166,12 @@ module ShellOpts
     end
 
     # A List is an enumeration with the single-line text replaced by a bullet
+    #
+    # TODO: Change brief marker to '$' and use '@' as a bullet
     class List < Node
       attr_reader :bullet # ".", "#", "o", "*", "-"
 
-      def initialize(parent, token, bullet)
+      def initialize(parent, token, bullet = token.value)
         super(parent, token)
         constrain bullet, ".", "#", "o", "*", "-"
         @bullet = bullet
@@ -250,8 +254,6 @@ module ShellOpts
     class Group < Subject
       def header = children.map(&:to_s)
 
-#     def header(formatter) = formatter.header(self)
-
       def rs = "group"
     end
 
@@ -271,13 +273,4 @@ module ShellOpts
 
   end
 end
-
-
-
-
-
-
-
-
-
 

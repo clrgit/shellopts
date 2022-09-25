@@ -55,6 +55,7 @@ require_relative 'shellopts/ext/array.rb'
 require_relative 'shellopts/ext/stack.rb'
 require_relative 'shellopts/ext/queue.rb'
 require_relative 'shellopts/ext/case.rb'
+require_relative 'shellopts/ext/stringio.rb'
 
 require_relative 'shellopts/token.rb'
 require_relative 'shellopts/lexer.rb'

@@ -9,19 +9,19 @@ module ShellOpts
       @elements = elements.dup
     end
 
-    def empty? = @elements.empty
-    def size = @elements.size
+    def empty? = elements.empty
+    def size = elements.size
 
     def shift = @elements.shift
     def unshift(token) = @elements.unshift(token)
     
-    def head = @elements.first
+    def head = elements.first
     def kind = head&.kind
     def charno = head&.charno
     def lineno = head&.lineno
 
-    def map(&block) = @elements.map(&block)
-    def each(&block) = @elements.each(&block)
+    def map(&block) = elements.map(&block)
+    def each(&block) = elements.each(&block)
     def shift_while(&block) = @elements.shift_while(&block) 
 
     def consume(kinds, lineno, charno, &block)
@@ -52,4 +52,25 @@ module ShellOpts
       }.inspect
     end
   end
+
+# class SubQueue
+#   attr_reader :selector
+#   def elements = super.take_while { |t| selector.call(t) }
+#
+#   def initialize(queue, &selector)
+#     @selector = block
+#   end
+# end
 end
+
+
+
+
+
+
+
+
+
+
+
+

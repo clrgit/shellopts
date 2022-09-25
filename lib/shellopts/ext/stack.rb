@@ -16,8 +16,12 @@ module ShellOpts
 #     indent { self.dump }
     end
 
-    def dump
-      p map { |t| t.class.name }
+    def dump(show_indent: false)
+      if show_indent
+        puts "[#{map { |t| t.class.name + ":#{t.token.charno}" }.join(", ")}]"
+      else
+        puts "[#{map { |t| t.class.name }.join(", ")}]"
+      end
     end
   end
 end

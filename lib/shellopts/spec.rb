@@ -13,6 +13,8 @@ module ShellOpts
         parent&.send(:attach, self)
       end
 
+      def accept?(klass) = self.class.accepts.include?(klass) 
+
       def dump
         puts dump_header
         indent { children.each(&:dump) }
@@ -44,7 +46,8 @@ module ShellOpts
       # #detach method
       def attach(node, check: true)
         if check && !accepts.any? { |klass| node.is_a? klass } 
-          raise Constrain::MatchError.new(nil, nil, message: "Can't attach a #{node.class} to #{self.class}")
+          raise Constrain::MatchError.new(
+              nil, nil, message: "Can't attach a #{node.class.name} to a #{self.class.name}")
         end
         constrain accepts.any? { |klass| node.is_a? klass } if check
         @children << node
@@ -62,6 +65,11 @@ module ShellOpts
       def dump_header
         "#{self.class.to_s.sub(/.*::/, "")}: #{token.location}, children: #{children.size}"
       end
+    end
+
+    # A special node that is used by the parser to set indentation level and
+    # being a filler on the stack
+    class Empty < Node
     end
 
     # A Brief object act as a paragraph
@@ -170,6 +178,8 @@ module ShellOpts
     # TODO: Change brief marker to '$' and use '@' as a bullet
     class List < Node
       attr_reader :bullet # ".", "#", "o", "*", "-"
+      alias_method :bullets, :children
+      def descriptions = bullets.map(&:description)
 
       def initialize(parent, token, bullet = token.value)
         super(parent, token)
@@ -177,11 +187,11 @@ module ShellOpts
         @bullet = bullet
       end
 
-      def self.accepts = [Description]
+      def self.accepts = [Bullet]
     end
 
     class Definition < Node
-      def subject = children[0]
+      def subject = children[0] # Can be nil
       def description = children[1] # Can be nil TODO: Maybe default to EmptyDescription?
 
       # The header of the definition as an array of strings
@@ -190,7 +200,7 @@ module ShellOpts
       def self.accepts = [Subject, Description]
 
       def dn(device = $stdout) # dn - dump node
-        subject.dn(device)
+        device.puts header
         device.indent { |dev| description&.dn(dev) }
       end
     end
@@ -201,6 +211,15 @@ module ShellOpts
         super nil, token
         Spec::ProgramSection.new(self, token)
       end
+    end
+
+    class Bullet < Definition
+      def subject = nil
+      def description = children[0]
+
+      def header = [parent.bullet]
+
+      def self.accepts = [Description]
     end
 
     # A subject is something that can be described. It always belongs to a

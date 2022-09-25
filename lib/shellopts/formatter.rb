@@ -1,24 +1,43 @@
 
+
+raise if !defined? ShellOpts::Spec # The following code doesn't model class relationships
+
 module ShellOpts
+# module 
   module Spec
     class Node
+      using Ext::StringIO::Redirect
+
       def fmt_name = token.value
 
       def short_fmt_name = fmt_name
-      def short_fmt(device = $stdout)
+
+      def short_fmt_head
         if short_fmt_name
-          device.puts "#{self.class.name}(#{fmt_name})"
-          device.indent { |dev| children.each { |node| node.short_fmt(dev) } }
+          puts "#{self.class.name}(#{fmt_name})"
         else
-          children.each { |node| node.short_fmt(dev) }
+          puts self.class.name
         end
       end
 
-      def dump2(device = $stdout, format: :short)
+      def short_fmt_body
+        children.each { |node| node.short_fmt }
+      end
+
+      def short_fmt
+        short_fmt_head
+        indent { short_fmt_body }
+      end
+
+      def render(format: short)
+        StringIO.render { dump(format: format) }
+      end
+
+      def dump2(format: :short)
         case format
-          when :short; short_fmt(device)
-          else
-            raise ArgumentError
+          when :short; short_fmt
+        else
+          raise ArgumentError
         end
       end
 
@@ -31,6 +50,27 @@ module ShellOpts
 #         children.each { |node| node.rspec_fmt_node(device) }
 #       end
 #     end
+    end
+
+    class Section
+    end
+
+    class ProgramSection
+      def fmt_name = nil
+      def short_fmt_body = puts header
+    end
+
+    class Description
+      def fmt_name = nil
+    end
+
+    class List
+      def fmt_name = nil
+    end
+
+    class Paragraph
+      def fmt_name = nil
+      def short_fmt_body = puts text
     end
   end
 end

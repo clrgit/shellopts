@@ -72,6 +72,7 @@ module ShellOpts
 
       # Process lines
       while line = lines.shift
+#       puts "LEX #{line.lineno}:#{line.charno} #{line.inspect}"
         if line.blank?
           # Code block. A code block is preceeded by a blank line and indented
           # beyond the last non-blank token's indentation (just the parent?).
@@ -123,6 +124,7 @@ module ShellOpts
           bullet = $1
           space = $2
           text = $3
+#         puts "BULLET #{line.lineno}:#{line.charno} #{bullet.inspect}, #{space.inspect}, #{text.inspect}"
           add_token :bullet, line.lineno, line.charno, bullet
           add_token :text, line.lineno, line.charno + bullet.size + space.size, text
 

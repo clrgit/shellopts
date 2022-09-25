@@ -10,6 +10,7 @@ include ForwardTo
 require 'constrain'
 include Constrain
 
+
 require './lib/shellopts/ext/case.rb'
 require './lib/shellopts/ext/class.rb'
 
@@ -130,19 +131,29 @@ require './lib/shellopts/parser.rb'
 # Some text
 #)
 
+#SPEC = %(
+# Text
+#
+# o Bullet1
+# o Bullet2
+#   Some text
+#   * Another bullet
+#   Back
+#     - Dash bullet
+#       # Hash bullet
+# o Bullet3
+#
+# More text
+#)
+
 SPEC = %(
   Text
-
-  o Bullet1
-  o Bullet2
-    Some text
-    * Another bullet
-    Back
-      - Dash bullet
-        # Hash bullet
-  o Bullet3
-
+    o Bullet1
+      # sub1
+      # sub2
+    o Bullet2
   More text
+  even more text
 )
 
 lexer = ShellOpts::Lexer.new("main", SPEC)

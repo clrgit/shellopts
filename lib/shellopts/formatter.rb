@@ -1,4 +1,84 @@
 
+module ShellOpts
+  module Spec
+    class Node
+      def fmt_name = token.value
+
+      def short_fmt_name = fmt_name
+      def short_fmt(device = $stdout)
+        if short_fmt_name
+          device.puts "#{self.class.name}(#{fmt_name})"
+          device.indent { |dev| children.each { |node| node.short_fmt(dev) } }
+        else
+          children.each { |node| node.short_fmt(dev) }
+        end
+      end
+
+      def dump2(device = $stdout, format: :short)
+        case format
+          when :short; short_fmt(device)
+          else
+            raise ArgumentError
+        end
+      end
+
+#     def rspec_fmt_name = fmt_name
+#     def rspec_fmt_node(device = $stdout)
+#       if rspec_fmt_name
+#         device.puts rspec_fmt_name
+#         device.indent { |dev| children.each { |node| node.rspec_fmt_node(dev) } }
+#       else
+#         children.each { |node| node.rspec_fmt_node(device) }
+#       end
+#     end
+    end
+  end
+end
+
+__END__
+
+
+module Formatter
+  DEFAULT_FORMAT = :short
+
+  class Formatter
+    attr_reader :device
+    def initialize(device = $stdout) = @device = device
+  end
+
+  class HierarchicalFormatter < Formatter
+    def name(node) = abstract_method
+
+    def head(node) = puts name(node)
+    def body(node)
+      if name(node)
+        head(node)
+        device.indent { |dev| children.each { |node| node.body(dev) } }
+      else
+        children.each { |node| node.body(dev) } }
+      end
+    end
+  end
+
+  class ShortFormatter < HierarchicalFormatter
+  end
+
+  module RSpecFormatter
+    def self.name(node)
+      node.fmt_name
+    end
+
+    def self.node
+    end
+
+    def dump(node, device = $stdout)
+      node.rspec_fmt_node(device)
+    end
+  end
+end
+
+
+
 
 #module ShellOpts
 # module Formatter
@@ -25,7 +105,7 @@
 #
 #
 #
-#__END__
+__END__
 
 require 'terminfo'
 

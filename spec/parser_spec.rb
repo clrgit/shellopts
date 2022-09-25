@@ -500,7 +500,6 @@ describe "Parser" do
               --option
               Option description
         )
-        
       end
     end
   end

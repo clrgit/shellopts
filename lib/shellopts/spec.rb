@@ -201,7 +201,6 @@ module ShellOpts
         super nil, token
         Spec::ProgramSection.new(self, token)
       end
-      def rs = Node.instance_method(:rs).bind(self).call # override Description's override
     end
 
     # A subject is something that can be described. It always belongs to a

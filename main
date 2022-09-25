@@ -146,15 +146,32 @@ require './lib/shellopts/parser.rb'
 # More text
 #)
 
-SPEC = %(
-  Text
-  o Bullet1
-    # sub1
-    # sub2
-  o Bullet2
-  More text
-  even more text
-)
+#SPEC = %(
+# Text
+# o Bullet1
+#   # sub1
+#   # sub2
+# o Bullet2
+# More text
+# even more text
+#)
+
+SPEC = "-a"
+
+#SPEC = %(
+# -a
+#   Description
+#)
+#SPEC = %(        
+# cmd!
+#   ++ ARG
+#)
+
+#SPEC = %(
+# cmd1!
+# cmd2!
+#   -- AN ARG
+#)
 
 lexer = ShellOpts::Lexer.new("main", SPEC)
 tokens = lexer.lex
@@ -164,6 +181,8 @@ parser = ShellOpts::Parser.new(tokens)
 program = parser.parse
 
 program.dump(format: :short)
+puts
+program.dump(format: :rspec)
 
 #ShellOpts::Spec::Formatter.format(program, format: :rspec)
 #formatter.format

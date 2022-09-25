@@ -15,11 +15,6 @@ module ShellOpts
 
       def accept?(klass) = self.class.accepts.include?(klass) 
 
-#     def dump
-#       puts dump_header
-#       indent { children.each(&:dump) }
-#     end
-
       def rs = token.value
       def dn(device = $stdout) # dn - dump node
         if rs
@@ -59,12 +54,6 @@ module ShellOpts
         constrain children.size, 1
         children.first
       end
-
-      def rs = "#{token.value}"
-
-#     def dump_header
-#       "#{self.class.to_s.sub(/.*::/, "")}: #{token.location}, children: #{children.size}"
-#     end
     end
 
     # A special node that is used by the parser to set indentation level and
@@ -77,11 +66,6 @@ module ShellOpts
       def text() @token.value end
 
       def rs = "@#{text}"
-
-#     def dump
-#       super
-#       indent { puts text.inspect }
-#     end
     end
 
     # Lines are not wrapped
@@ -158,11 +142,6 @@ module ShellOpts
         constrain text, String, [String], nil
         @text = Array(text).flatten.compact.join(" ")
       end
-
-#     def dump
-#       super
-#       indent { puts text.inspect }
-#     end
 
       def rs = text
     end

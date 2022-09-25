@@ -38,10 +38,10 @@ describe "Parser" do
     dump parser.parse
   end
 
+  using Ext::StringIO::Redirect
+
   def dump(node)
-    io = StringIO.new
-    node.dn(io)
-    io.string
+    StringIO.redirect(:stdout) { node.dump(format: :rspec) }
   end
 
   # Parse 's' and check that the result matches 'r'. The parsed result has the

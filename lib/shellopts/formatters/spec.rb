@@ -80,33 +80,95 @@ module ShellOpts
 
       refine Node do
         def head = token.value
-        def body = nil
 
-        def dump_head
-          if head
-            puts "#{self.class.name}(#{head})"
-          else
-            puts self.class.name
-          end
-        end
+        def dump_head = puts head 
 
         def dump_body
-          if body
-            puts body
-          else
-            children.each { |node| node.dump }
-          end
+          children.each { |node| 
+            node.dump }
         end
 
         def dump
-          dump_head
-          indent { dump_body }
+          if head
+            dump_head
+            indent { dump_body }
+          else
+            dump_body
+          end
+        end
+      end
+
+      refine Brief do
+        def head = "@#{text}"
+      end
+
+      refine Lines do
+        def head = lines.inspect
+      end
+
+      refine Line do
+        def head = line
+      end
+
+      refine Code do
+        def head = "()"
+        def dump_body
+          puts lines
         end
       end
 
       refine ProgramSection do
-        def head = "HEAD"
-        def body = "BODY"
+        def dump; end
+      end
+
+#     refine ArgSpec do
+#       def head = "++"
+#       def dump_body
+#         children.each { |node| node.dump }
+#       end
+#     end
+
+      refine ArgDescr do
+        def head = "-- #{super}"
+      end
+
+      refine Paragraph do
+        def head = text
+      end
+#
+      refine Description do
+        def head = nil
+      end
+
+      refine Definition do
+        def head = nil
+#       def dump
+#         puts header
+#         indent { description.dump }
+#       end
+      end
+
+      refine Group do
+        def head = "group"
+        def dump_head 
+          puts "group"
+        end
+#       def dump() puts "HEAD" end
+      end
+
+#
+#
+      refine Program do
+        def head = "main"
+      end
+
+      refine List do
+        def head = nil
+      end
+
+      refine Bullet do
+        def head = header
+        def dump_head() puts head end
       end
 
       class Formatter

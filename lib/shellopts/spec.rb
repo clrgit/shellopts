@@ -26,8 +26,8 @@ module ShellOpts
       end
 
 #   protected
-      # List of classes that this class accepts as children. It is used in
-      # #attach to check the type of the node
+      # List of classes those objects are accepted as children of this node. It
+      # is used in #attach to check the type of the node
       def self.accepts = []
       def accepts = self.class.accepts
 
@@ -166,7 +166,7 @@ module ShellOpts
         @bullet = bullet
       end
 
-      def self.accepts = [Bullet]
+      def self.accepts = [ListItem]
     end
 
     class Definition < Node
@@ -192,13 +192,12 @@ module ShellOpts
       end
     end
 
-    class Bullet < Definition
-      def subject = nil
-      def description = children[0]
+    class ListItem < Definition
+      alias_method :list, :parent
 
-      def header = [parent.bullet]
+      def header = [list.bullet]
 
-      def self.accepts = [Description]
+      def self.accepts = [Bullet, Description]
     end
 
     # A subject is something that can be described. It always belongs to a
@@ -214,6 +213,13 @@ module ShellOpts
         constrain parent, Definition
         super
       end
+    end
+
+    class Bullet < Subject
+      attr_reader :list_item, :parent
+      def list = list_item.list
+
+      def header = [list.bullet]
     end
 
     class Section < Subject

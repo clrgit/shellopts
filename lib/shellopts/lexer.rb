@@ -116,10 +116,10 @@ module ShellOpts
           value = $1
           add_token :subsection, line.lineno, line.charno, line.expr, value
 
-        # Bullets. A bullet is a bullet marker (see BULLETS) followed by at
-        # least one word. If the bullet line is followed by a non-blank line
-        # then that line should either line up with the word or be a bullet
-        # line itself
+        # List items. A list item is a bullet marker (see BULLETS) followed by
+        # at least one word. If the bullet line is followed by a non-blank line
+        # then that line should either line up with the starting word of the
+        # current line or be a bullet line itself
         elsif line.expr =~ BULLET_RE
           bullet = $1
           space = $2

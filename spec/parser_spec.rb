@@ -501,6 +501,16 @@ describe "Parser" do
               Option description
         )
       end
+      it "fails if bullet type is changed within a list" do
+        s = %(
+          o Ring-bullet
+          * Star-bullet
+        )
+        lexer = Lexer.new("main", s)
+        tokens = lexer.lex
+        parser = Parser.new(tokens)
+        expect { parser.parse }.to raise_error ParserError
+      end
     end
   end
 end

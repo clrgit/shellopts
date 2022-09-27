@@ -146,14 +146,17 @@ module ShellOpts
             Spec::Code.new(stack.top, token)
 
           when :text
-            Spec::Paragraph.new(
+            stack.push Spec::Paragraph.new(
                 stack.top, token, [token.value] + tokens.consume(:text, nil, token.charno, &:value))
 
           when :bullet
             list = Spec::List.new(stack.top, token, token.value) if !stack.top.is_a?(Spec::List)
             tokens.unshift token
             tokens.consume(:bullet, nil, token.charno) { |t|
-              stack.push Spec::Bullet.new(list, token)
+              t.value == list.bullet or 
+                  parser_error t, "Can't change bullet type to '#{t.value} in list of '#{list.bullet}' bullets"
+              stack.push Spec::ListItem.new(list, t)
+              Spec::Bullet.new(stack.top, token)
               parse_description(list.token.charno) if tokens.head
               stack.unwind(token.charno) # Needed in non-indented bullet lists
             }

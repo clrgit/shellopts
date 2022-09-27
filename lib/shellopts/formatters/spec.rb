@@ -11,8 +11,8 @@ module ShellOpts
     class Node
       # Main format switcher for Spec objects. It instantiates a formatter
       # object from a class corresponding to the :format argument and let it
-      # handle the output. The formatter class refines Spec, augmenting it with
-      # methods to do the actual output
+      # handle the output. The formatter class refines Spec, augmenting its
+      # classes with methods to do the actual output
       def dump(format: :short)
         formatter = 
             case format

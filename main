@@ -2,27 +2,7 @@
 
 $LOAD_PATH.unshift "#{Dir.getwd}/lib"
 
-#require 'shellopts'
-
-require 'forward_to'
-include ForwardTo
-
-require 'constrain'
-include Constrain
-
-
-require './lib/shellopts/ext/case.rb'
-require './lib/shellopts/ext/class.rb'
-
-require './lib/shellopts.rb'
-require './lib/shellopts/ext/array.rb'
-require './lib/shellopts/line.rb'
-require './lib/shellopts/token.rb'
-require './lib/shellopts/spec.rb'
-require './lib/shellopts/grammar.rb'
-require './lib/shellopts/doc.rb'
-require './lib/shellopts/lexer.rb'
-require './lib/shellopts/parser.rb'
+require 'shellopts'
 
 
 #SPEC = %(-a -b)
@@ -202,6 +182,7 @@ SPEC = %(
   o Bullet1
   o Bullet2
     Some text
+    -- ARG
     --option
       Option description
     some 
@@ -221,6 +202,10 @@ puts
 program.dump(format: :short)
 puts
 program.dump(format: :rspec)
+
+puts
+#puts ShellOpts::Spec::Node.descendants(this: true)
+ShellOpts::Spec::Node.dump_hierarchy
 
 #ShellOpts::Spec::Formatter.format(program, format: :rspec)
 #formatter.format

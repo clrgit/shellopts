@@ -3,8 +3,6 @@ module ShellOpts
   class Token
     using Ext::Array::PopWhile
 
-    include ::CaseMatcher
-
     # The tokens are
     #
     # :program
@@ -71,7 +69,9 @@ module ShellOpts
     # +lineno+ and +charno+ are zero for the :program token and >= 1 otherwise
     def initialize(kind, lineno, charno, source, value = source, lines = nil)
       constrain kind, *KINDS
-      constrain [lineno, charno], [kind == :program ? Integer : Ordinal] # lol
+      constrain lineno, Integer
+      constrain charno, Integer
+      constrain lineno > 0 && charno > 0 || kind == :program
       constrain source, String
       constrain value, String, nil
       constrain lines, [String], nil

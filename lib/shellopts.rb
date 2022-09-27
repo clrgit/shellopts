@@ -45,23 +45,27 @@ module ShellOpts
 end
 
 require 'indented_io'
+
 require 'constrain'
 include Constrain
+
 require_relative 'shellopts/ext/forward_to.rb'
 include ForwardTo
 
-# To be able to test it while running main
 require_relative 'shellopts/ext/array.rb'
-require_relative 'shellopts/ext/stack.rb'
+require_relative 'shellopts/ext/class.rb'
 require_relative 'shellopts/ext/queue.rb'
-require_relative 'shellopts/ext/case.rb'
+require_relative 'shellopts/ext/stack.rb'
 require_relative 'shellopts/ext/stringio.rb'
 
+require_relative 'shellopts/line.rb'
 require_relative 'shellopts/token.rb'
-require_relative 'shellopts/lexer.rb'
-require_relative 'shellopts/line.rb' 
 require_relative 'shellopts/spec.rb'
+require_relative 'shellopts/grammar.rb'
+
+require_relative 'shellopts/lexer.rb'
 require_relative 'shellopts/parser.rb'
+
 require_relative 'shellopts/formatters/spec.rb'
 
 __END__

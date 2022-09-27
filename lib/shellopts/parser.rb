@@ -54,17 +54,7 @@ module ShellOpts
         # Skip blank lines. TODO: Move before #unwind?
         next if token.kind == :blank
 
-#       # Process list (can't take the default description)
-#       if token.kind == :bullet
-#           stack.push Spec::List.new(stack.top, token, token.value) if !stack.top.is_a?(Spec::List)
-#           stack.push Spec::Bullet.new(stack.top, token)
-#       end
-
-        # Ensure description object on the top of the stack for objects that need it
-#       if !stack.top.is_a?(Spec::Description) #&& stack.top.accept?(Spec::Description)
-#         stack.push Spec::Description.new(stack.top, token)
-#       end
-        
+        # Ensure a description object on the top of the stack
         stack.push Spec::Description.new(stack.top, token) if !stack.top.is_a?(Spec::Description)
        
 #       print "  After default:    "; stack.dump(show_indent: true)
@@ -74,7 +64,10 @@ module ShellOpts
             stack.top.parent == @program or parser_error token, "Sections can't be nested"
             defn = Spec::Definition.new(stack.top, token)
             if Lexer::SECTION_ALIASES.key? token.value
-              Spec::BuiltinSection.new(defn, token)
+              section = Spec::BuiltinSection.new(defn, token)
+              if section.name == "SYNOPSIS"
+                tokens.consume(:blank, nil, nil)
+              end
             else
               Spec::Section.new(defn, token, 1)
             end
@@ -146,6 +139,12 @@ module ShellOpts
             Spec::Code.new(stack.top, token)
 
           when :text
+            # Paragraphs are pushed onto the stack even though they're can't
+            # contain other objects, this prevents #unwind from popping the
+            # enclosing description when the paragraph is followed by a node
+            # with the same indent
+            #
+            # TODO: This may also be a problem in other cases
             stack.push Spec::Paragraph.new(
                 stack.top, token, [token.value] + tokens.consume(:text, nil, token.charno, &:value))
 

@@ -3,11 +3,11 @@ module ShellOpts
     module Format::Short
       include ShellOpts::Spec
 
-      # Classes where #head is defined as nil
-      DEFAULT_HEAD_CLASSES = [ProgramSection, Description, ListItem, Paragraph]
+      # Classes where #head is defined as nil, otherwise it defaults to +token.value+
+      NIL_HEAD_CLASSES = [ProgramSection, Description, ListItem, Paragraph]
 
       refine Node do
-        def head = DEFAULT_HEAD_CLASSES.any? { |c| self.is_a?(c) } ? nil : token.value
+        def head = NIL_HEAD_CLASSES.any? { |c| self.is_a?(c) } ? nil : token.value
         def body = nil
 
         def dump_head

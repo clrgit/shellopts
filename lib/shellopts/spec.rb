@@ -1,4 +1,15 @@
 module ShellOpts
+
+  # The Spec module models the document structure
+  #
+  # A document consists of nested definitions. A definition composed of a
+  # subject and a definition of that subject that can contain other
+  # definitions. Subjects are commands, options, sections, and list items
+  #
+  #
+  # The top-level node is a Program definition with a ProgramSection as subject
+  # and the rest of the documentatin as its description
+  #
   module Spec
     class Node
       attr_reader :parent
@@ -14,16 +25,6 @@ module ShellOpts
       end
 
       def accept?(klass) = self.class.accepts.include?(klass) 
-
-      def rs = token.value
-      def dn(device = $stdout) # dn - dump node
-        if rs
-          device.puts rs
-          device.indent { |dev| children.each { |node| node.dn(dev) } }
-        else
-          children.each { |node| node.dn(device) }
-        end
-      end
 
 #   protected
       # List of classes those objects are accepted as children of this node. It
@@ -64,8 +65,6 @@ module ShellOpts
     # A Brief object act as a paragraph
     class Brief < Node
       def text() @token.value end
-
-      def rs = "@#{text}"
     end
 
     # Lines are not wrapped
@@ -76,8 +75,6 @@ module ShellOpts
         super(parent, token)
         @lines = lines
       end
-
-      def rs = @lines.inspect
     end
 
     class Line < Lines
@@ -88,21 +85,12 @@ module ShellOpts
       end
 
       def to_s = lines.first
-
-      def rs = line
     end
 
     class Code < Lines
       def initialize(parent, token)
         constrain token.kind, :code
         super(parent, token, token.lines)
-      end
-      def rs = nil
-      def dn(device = $stdout)
-        device.puts "()"
-        device.indent { |dev|
-          dev.puts lines
-        }
       end
     end
 
@@ -132,7 +120,6 @@ module ShellOpts
     end
 
     class ArgDescr < Node
-      def rs = "-- " + super
     end
 
     class Paragraph < Node
@@ -142,14 +129,11 @@ module ShellOpts
         constrain text, String, [String], nil
         @text = Array(text).flatten.compact.join(" ")
       end
-
-      def rs = text
     end
 
     class Description < Node
       alias_method :elements, :children
       def self.accepts = [Node] # Anything can go into a description. FIXME
-      def rs = nil
     end
 
     # A List is an enumeration with the single-line text replaced by a bullet
@@ -177,11 +161,6 @@ module ShellOpts
       def header = subject.header
 
       def self.accepts = [Subject, Description]
-
-      def dn(device = $stdout) # dn - dump node
-        device.puts header
-        device.indent { |dev| description&.dn(dev) }
-      end
     end
 
     class Program < Definition
@@ -223,9 +202,9 @@ module ShellOpts
     end
 
     class Section < Subject
-      # TODO: Swap order with header
       attr_accessor :level # Assigned by the analyzer if nil
       attr_reader :header
+      alias_method :name, :header
 
       def initialize(parent, token, level, header = token.value)
         super(parent, token)
@@ -234,12 +213,10 @@ module ShellOpts
         @level = level
         @header = [header]
       end
-
-#     def rs = "<#{super}: #{self.class.name}>"
     end
 
     class BuiltinSection < Section
-      def initialize(parent, token, header = token.value)
+      def initialize(parent, token, header = Lexer::SECTION_ALIASES[token.value])
         constrain header, *Lexer::SECTIONS
         super(parent, token, 1)
       end
@@ -256,8 +233,6 @@ module ShellOpts
 
     class Group < Subject
       def header = children.map(&:to_s)
-
-      def rs = "group"
     end
 
     class OptionGroup < Group
@@ -273,7 +248,6 @@ module ShellOpts
       # Modify #attach to accept Command nodes too
       def attach(node) = super(node, check: !node.is_a?(Command))
     end
-
   end
 end
 

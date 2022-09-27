@@ -3,11 +3,11 @@ module ShellOpts
     module Format::RSpec
       include ShellOpts::Spec
 
-      # Classes where #head is defined as 'token.value' 
-      DEFAULT_HEAD_CLASSES = [Option, Command, ArgSpec, Arg, Section, Bullet]
+      # Classes where #head is defined as +token.value+, otherwise it defaults to nil
+      VALUE_HEAD_CLASSES = [Option, Command, ArgSpec, Arg, Section, Bullet]
 
       refine Node do
-        def head = DEFAULT_HEAD_CLASSES.any? { |c| self.is_a?(c) } ? token.value : nil
+        def head = VALUE_HEAD_CLASSES.any? { |c| self.is_a?(c) } ? token.value : nil
 
         def dump_body = children.each { |node| node.dump }
 

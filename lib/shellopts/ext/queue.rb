@@ -9,58 +9,41 @@ module ShellOpts
       @elements = elements.dup
     end
 
-    def empty? = elements.empty
-    def size = elements.size
+    forward_to :@elements, :empty?, :size, :shift, :unshift, :map, :each, :shift_while
 
-    def shift = @elements.shift
-    def unshift(token) = @elements.unshift(token)
-    
     def head = elements.first
     def kind = head&.kind
     def charno = head&.charno
     def lineno = head&.lineno
 
-    def map(&block) = elements.map(&block)
-    def each(&block) = elements.each(&block)
-    def shift_while(&block) = @elements.shift_while(&block) 
-
-    def consume(kinds, lineno, charno, &block)
+    def consume(kinds, lineno, op = :==, charno, &block)
       kinds = Array(kinds).flatten
       l = lambda { |t|
-        kinds.include?(t.kind) && t.lineno == (lineno || t.lineno) && t.charno == (charno || t.charno)
+        kinds.include?(t.kind) && t.lineno == (lineno || t.lineno) && t.charno.send(op, charno || t.charno)
       }
       r = []
       if block_given?
         while self.head && l.call(self.head)
-          r << yield(self.shift)
+          r << yield(elements.shift)
         end
       else
-        r = self.shift_while(&l)
+        r = elements.shift_while(&l)
       end
       r
     end
-
+    
     def dump(*methods)
       methods = Array(methods).flatten
       methods = [:kind] if methods.empty?
-      puts map { |t| 
+      puts "[" + map { |t| 
         if methods.size > 1
           "(" + methods.map { |m| t.send(m) }.join(", ") + ")"
         else
           t.send(methods.first)
         end
-      }.inspect
+      }.join(", ") + "]"
     end
   end
-
-# class SubQueue
-#   attr_reader :selector
-#   def elements = super.take_while { |t| selector.call(t) }
-#
-#   def initialize(queue, &selector)
-#     @selector = block
-#   end
-# end
 end
 
 

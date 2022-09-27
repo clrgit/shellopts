@@ -6,9 +6,10 @@ module ShellOpts
 end
 
 module ShellOpts
-  # The parser extends Grammar objects with a parse method that is called with
-  # the parent object and the current token as argument
-
+  # The implementation of the parser sits in a spot between a recursive descent
+  # parser and a state transition based parser with a stack. Maybe rewrite as a
+  # full recursive descent parser because the stack handling gets hairy here
+  # and there
   class Parser
     using Ext::Array::ShiftWhile
     using Ext::Array::PopWhile
@@ -39,12 +40,14 @@ module ShellOpts
 
     def parser_error(token, message) = raise ParserError, token, message
 
-    # Parse tokens from the tokens queue as long as their indent is bigger than
+    # Parse tokens from the tokens queue as long as their charno is bigger than
     # +limit+. +limit>0+ is used when calling #parse_description recursively
+    #
+    # If a block is given, 
     def parse_description(limit = 0)
-      # Iterates the first token of each line. The loop is expected to remove
-      # the remaining tokens on the line so so that the next iteration starts
-      # with the first token of the following
+      # Iterates the first token of each line. The body of the loop is expected
+      # to remove the remaining tokens on the line so so that the next
+      # iteration starts with the first token of the following line
       while tokens.head && tokens.charno > limit && token = tokens.shift
 #       puts "Processing token: #{token.kind}:#{token.charno}"
 #       print "  Before unwind:    "; stack.dump(show_indent: true)
@@ -63,21 +66,47 @@ module ShellOpts
           when :section
             stack.top.parent == @program or parser_error token, "Sections can't be nested"
             defn = Spec::Definition.new(stack.top, token)
+
             if Lexer::SECTION_ALIASES.key? token.value
               section = Spec::BuiltinSection.new(defn, token)
               if section.name == "SYNOPSIS"
-                tokens.consume(:blank, nil, nil)
+                t = tokens.head
+                lines = tokens.consume(:text, nil, :>=, t.charno, &:value)
+                if !lines.empty?
+                  descr = Spec::Description.new(defn, token)
+                  stack.push descr
+                  Spec::Lines.new(descr, t, lines) if !lines.empty?
+                end
+                next # Synopsis consume everything
               end
             else
-              Spec::Section.new(defn, token, 1)
+              section = Spec::Section.new(defn, token, nil)
             end
             stack.push Spec::Description.new(defn, token)
+
+            # Find next non-blank token
+            tokens.consume(:blank, nil, nil)
+            next_token = tokens.head or return
+            break if next_token.kind == :section
+
+            # If a same-indent section, then duplicate top to prevent #unwind
+            # from popping the description
+            stack.push stack.top if next_token.charno == token.charno
 
           when :subsection
             stack.top.parent != @program or parser_error token, "Subsections has to be nested" 
             defn = Spec::Definition.new(stack.top, token)
             Spec::SubSection.new(defn, token, nil)
             stack.push Spec::Description.new(defn, token)
+
+            # Find next non-blank token
+            tokens.consume(:blank, nil, nil)
+            next_token = tokens.head or return
+            break if next_token.kind == :section
+
+            # If a same-indent section, then duplicate top to prevent #unwind
+            # from popping the description
+            stack.push stack.top if next_token.charno == token.charno
 
           when :option
             defn = Spec::Definition.new(stack.top, token)
@@ -98,7 +127,8 @@ module ShellOpts
               }
             }
 
-            # token is wrong but has the right charno so unwind will work
+            # token is wrong because if refers to the subject and not the
+            # description but has the right charno so unwind will work
             stack.push Spec::Description.new(defn, token)
 
           when :command
@@ -122,7 +152,8 @@ module ShellOpts
               }
             }
 
-            # token is wrong but has the right charno so unwind will work
+            # token is wrong because if refers to the subject and not the
+            # description but has the right charno so unwind will work
             stack.push Spec::Description.new(defn, token)
 
           when :arg_spec

@@ -4,208 +4,50 @@ $LOAD_PATH.unshift "#{Dir.getwd}/lib"
 
 require 'shellopts'
 
-
-#SPEC = %(-a -b)
-#
 #SPEC = %(
-# -a @brief
-# -b
-#   @brief
+# NAME
 #   Text
 #)
 
-#SPEC = %(
-# -a -b @brief
-# 
-# -c @brief
-# -d
-#   @brief
-#
-# -e -f @brief
-# -g @brief2
-# -h
-#   @brief3
-#
-#   Here is some text
-#   for the option 
-#   group
-#
-# Here is some more text
-# spread over 
-# multiple lines
-#
-# --random-option
-#
-# And yet some more
-#)
-
-
-
-#SPEC = %(
-# -a
-# -b
-#
-# -c
-#)
-
-#SPEC = %(
-# -a @brief
-#)
-
-#SPEC = %(
-# -a @brief
-# -b 
-#   @brief
-#)
-
-#SPEC = %(
-# cmd! -a @brief
-# -b 
-#   @brief
-#)
-
-# Problem
-#   command --opt --opt arg arg @brief
-#   --opt @brief
-#   --opt
-#     @brief
-
-# -a
-# -b
-# -c
-#   Option group
-#)
-
-#SPEC = %(
-# cmd1! @brief
-# cmd2! @brief
-#)
-
-#SPEC = %(
-# cmd!  -- AN ARG -- ANOTHER ARG
-#)
-#SPEC = %(
-# -a -b @brief1
-# -c
-#   @brief2
-#)
-
-#SPEC = %(
-# Text
-#   
-#   some_code()
-#)
-
-#SPEC = %(
-# NAME
-#   Name
-#
-#   *free*
-#
-#   *description*
-#     gryf
-#
-#     *nesting*
-#       Gryffelyf
-#
-# Some text
-#)
-
-#SPEC = %(
-# Text
-#
-# o Bullet1
-# o Bullet2
-#   Some text
-#   * Another bullet
-#   Back
-#     - Dash bullet
-#       # Hash bullet
-# o Bullet3
-#
-# More text
-#)
-
-#SPEC = %(
-# Text
-# o Bullet1
-#   # sub1
-#   # sub2
-# o Bullet2
-# More text
-# even more text
-#)
-
-#SPEC = "-a"
-
-#SPEC = %(
-# -a
-#   Description
-#)
-#SPEC = %(        
-# cmd!
-#   ++ ARG
-#)
-
-#SPEC = %(
-# cmd1!
-# cmd2!
-#   -- AN ARG
-#)
-
-#SPEC = %(
-# -a
-#)
-
-#SPEC = %(
-# o Bullet1
-# o Bullet2
-#)
-
-#SPEC = %(
-# -a
-#   Description
-#)
-#program.dump(format: :short)
-
-
-
-#SPEC = %(
-# Text
-# --option
-#   Option description
-# Text
-#)
-
-
 SPEC = %(
-  o Bullet1
-  o Bullet2
-    Some text
-    -- ARG
-    --option
-      Option description
-    some 
-  text
+  SYNOPSIS
+    Synopsis
+    are on 
+    seperate lines
+
+  DESCRIPTION
+    Paragraphs
+    spans over 
+    multiple lines
 )
 
 lexer = ShellOpts::Lexer.new("main", SPEC)
 tokens = lexer.lex
-#pp tokens
+pp tokens
 #puts
 parser = ShellOpts::Parser.new(tokens)
 program = parser.parse
+program.dump(format: :debug)
 
-puts "--------------------------------"
-puts SPEC
-puts
-program.dump(format: :short)
-puts
-program.dump(format: :rspec)
 
-puts
+
+
+
+
+
+
+
+
+#puts "--------------------------------"
+#puts SPEC
+#puts
+#program.dump(format: :short)
+#puts
+#program.dump(format: :rspec)
+
+#puts
 #puts ShellOpts::Spec::Node.descendants(this: true)
-ShellOpts::Spec::Node.dump_hierarchy
+#ShellOpts::Spec::Node.dump_hierarchy
 
 #ShellOpts::Spec::Formatter.format(program, format: :rspec)
 #formatter.format

@@ -60,7 +60,7 @@ module ShellOpts
 
       # Skip initial comments and blank lines and compute indent level. All
       # lines starting with '#' is considered a comment here so a spec can't
-      # start with an '#' list
+      # start with an '#' list item
       lines.shift_while { |line| line.text == "" || line.text.start_with?("#") }
       initial_indent = lines.first&.charno
 
@@ -72,7 +72,6 @@ module ShellOpts
 
       # Process lines
       while line = lines.shift
-#       puts "LEX #{line.lineno}:#{line.charno} #{line.inspect}"
         if line.blank?
           # Code block. A code block is preceeded by a blank line and indented
           # beyond the last non-blank token's indentation (just the parent?).
@@ -99,15 +98,15 @@ module ShellOpts
           
         # Ignore full-line comments. Full-line comments are lines with '#' as
         # the first non-space character and with an indent less than the
-        # initial indent. This avoids conflicts with '#' as a bullet marker
+        # initial indent so that it avoids conflicts with '#' as a bullet marker
         next if line.charno < initial_indent && line.text.start_with?("#")
 
         # Check indent
-        line.charno >= initial_indent or lexer_error line.lineno, 1, false, "Illegal indent"
+        line.charno >= initial_indent or lexer_error line.lineno, 1, "Illegal indent"
 
         # Sections. A section is an all-caps line immediately followed by an
-        # indented line
-        if line.expr =~ SECTION_RE && lines.first.charno > line.charno
+        # indented line or a blank line
+        if line.expr =~ SECTION_RE && (lines.first.charno > line.charno || lines.first.blank?)
           value = SECTION_ALIASES[line.expr] || line.expr
           add_token :section, line.lineno, line.charno, line.expr, value
 

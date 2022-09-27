@@ -78,7 +78,7 @@ module ShellOpts
       @kind, @lineno, @charno, @value, @source, @lines = kind, lineno, charno, value, source, lines
     end
 
-    forward_to :value, :to_s, :empty?, :blank?, :=~, :!~
+    forward_to :value, :to_s, :empty?, :=~, :!~
 
     # Emit a "<lineno>:<charno>" string
     def location(start_lineno = 1, start_charno = 1) 
@@ -88,8 +88,8 @@ module ShellOpts
 #   def indented?(other) = charno < other.charno
 #   def outdented?(other) = charno > other.charno
 
-    def inspect() 
-      "<#{self.class.to_s.sub(/.*::/, "")} #{location} #{kind.inspect} #{value.inspect}>"
+    def inspect
+      "<#{self.class.name} #{location} #{kind.inspect} #{value.inspect}>"
     end
 
     def dump

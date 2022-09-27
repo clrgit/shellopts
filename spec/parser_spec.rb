@@ -426,8 +426,32 @@ describe "Parser" do
         )
       end
 
-      it "can't be nested" do
+      it "threat synopsis like a list of lines" do
+        s = %(
+          SYNOPSIS
+            a list
+            of lines
+        )
+        check s, %(
+          SYNOPSIS
+            a list
+            of lines
+        )
+      end
 
+      it "can have unindented content if followed by a blank" do
+        s = %(
+          NAME
+
+          Text
+        )
+        check s, %(
+          NAME
+            Text
+        )
+      end
+
+      it "can't be nested" do
         s = %(
           NAME
             Text
@@ -436,6 +460,24 @@ describe "Parser" do
               Nested
         )
         expect { parse(s) }.to raise_error ParserError
+      end
+
+      it "unindented sections are not nested" do
+        s = %(
+          NAME
+
+          name
+
+          OTHER
+
+          other
+        )
+        check s, %(
+          NAME
+            name
+          OTHER
+            other
+        )
       end
     end
 
@@ -446,6 +488,24 @@ describe "Parser" do
             Text
         )
         expect { parse(s) }.to raise_error ParserError
+      end
+
+      it "can have unindented context" do
+        s = %(
+          *name*
+
+          Text
+
+          *other*
+
+          Other
+        )
+        check s, %(
+          *name*
+            Text
+          *other*
+            Other
+        )
       end
 
       it "can be nested" do
@@ -466,6 +526,23 @@ describe "Parser" do
               sub
               Subsub
                 subsub
+        )
+      end
+
+      it "can nest section inside non-indented sections" do
+        s = %(
+          *name*
+          
+          Name
+
+            *sub*
+              Sub
+        )
+        check s, %(
+          *name*
+            Name
+            *sub*
+              Sub
         )
       end
     end

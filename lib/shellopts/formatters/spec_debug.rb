@@ -4,7 +4,7 @@ module ShellOpts
       include ShellOpts::Spec
 
       # Classes where #head is defined as nil, otherwise it defaults to +token.value+
-      NIL_HEAD_CLASSES = [ProgramSection, Description, ListItem, Paragraph]
+      NIL_HEAD_CLASSES = [ProgramSection, Description, ListItem, Paragraph, Lines]
 
       refine Node do
         def head = NIL_HEAD_CLASSES.any? { |c| self.is_a?(c) } ? nil : token.value
@@ -38,6 +38,10 @@ module ShellOpts
 
       refine Paragraph do
         def body = puts text
+      end
+
+      refine Lines do
+        def body = puts lines
       end
 
       class Formatter

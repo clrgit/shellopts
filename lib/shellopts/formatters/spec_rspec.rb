@@ -51,6 +51,10 @@ module ShellOpts
         end
       end
 
+      refine Lines do
+        def dump_body = puts lines
+      end
+
       class Formatter
         using Format::RSpec
         def format(obj) 

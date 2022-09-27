@@ -194,6 +194,7 @@ module ShellOpts
       end
     end
 
+    # TODO: Invisible bullet
     class Bullet < Subject
       attr_reader :list_item, :parent
       def list = list_item.list
@@ -204,7 +205,7 @@ module ShellOpts
     class Section < Subject
       attr_accessor :level # Assigned by the analyzer if nil
       attr_reader :header
-      alias_method :name, :header
+      def name = header.first
 
       def initialize(parent, token, level, header = token.value)
         super(parent, token)

@@ -13,10 +13,10 @@ module ShellOpts
       # object from a class corresponding to the :format argument and let it
       # handle the output. The formatter class refines Spec, augmenting its
       # classes with methods to do the actual output
-      def dump(format: :short)
+      def dump(format: :debug)
         formatter = 
             case format
-              when :short; Format::Short::Formatter.new
+              when :debug; Format::Short::Formatter.new
               when :rspec; Format::RSpec::Formatter.new
             else
               raise ArgumentError

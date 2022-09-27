@@ -121,13 +121,23 @@ describe "Lexer" do
       expect(make src, fields: :source).to eq %w(-a Explanation)
     end
 
-    it "creates section tokens" do
+    it "creates section tokens when followed by indented text" do
       src = %(
         COMMANDS
           cmd!
       )
       expect(make src, fields: :kind).to eq [:section, :command]
       expect(make src, fields: :source).to eq %w(COMMANDS cmd!)
+    end
+
+    it "creates section tokens when followed by a blank line" do
+      src = %(
+        COMMANDS
+
+        cmd!
+      )
+      expect(make src, fields: :kind).to eq [:section, :blank, :command]
+      expect(make src, fields: :source).to eq ["COMMANDS", "", "cmd!"]
     end
 
     it "pluralize section names" do

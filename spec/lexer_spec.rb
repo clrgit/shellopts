@@ -167,7 +167,12 @@ describe "Lexer" do
       )
       expect(make src, fields: :kind).to eq [:text, :code]
       expect(make src, fields: :value).to eq ["Text", "this_is_code()"]
+
+      # code's charno is indented
+      charnos = make src, fields: :value
+      expect(charnos[1]).to be > charnos[0]
     end
+
 
     it "preserves indentation in code blocks" do
       src = %(

@@ -75,16 +75,17 @@ module ShellOpts
         if line.blank?
           # Code block. A code block is preceeded by a blank line and indented
           # beyond the last non-blank token's indentation (just the parent?).
-          # It should also not look like declaration of an option or a command
+          # It should also not look like a declaration of an option or a command
           # - the first line in the block can be escaped with a \ to solve that
           if lines.first && lines.first.charno > last_nonblank.charno && lines.first !~ DECL_RE
-            indent = lines.first.charno - 1
-            code = lines.shift_while { |l| l.blank? || l.charno >= indent }
+            lineno = lines.first.lineno
+            charno = lines.first.charno
+            code = lines.shift_while { |l| l.blank? || l.charno >= charno }
             code.pop_while(&:blank?)
-            code.map! { |line| line.source[indent..-1] || "" }
+            code.map! { |line| line.source[charno-1..-1] || "" }
             code[0] = code[0] && unescape(code[0])
             source = code.join("\n")
-            add_token :code, line.lineno, line.charno, source, nil, code
+            add_token :code, lineno, charno, source, nil, code
             next # 'next' ensures that last_nonblank is unchanged
           
           # Ordinary blank line. Charno is set to the charno of the last
@@ -110,7 +111,7 @@ module ShellOpts
           value = SECTION_ALIASES[line.expr] || line.expr
           add_token :section, line.lineno, line.charno, line.expr, value
 
-        # Sub-sections
+        # Sub-section names are lines starting and ending with a '*'
         elsif line.expr =~ SUBSECTION_RE
           value = $1
           add_token :subsection, line.lineno, line.charno, line.expr, value

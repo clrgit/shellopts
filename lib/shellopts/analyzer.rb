@@ -1,4 +1,62 @@
 
+module ShellOpts
+  class Spec::Node
+    def traverse(*klasses, &block) = do_traverse(Array(klasses).flatten, &block)
+  protected
+    def do_traverse(klasses, &block)
+      yield(self) if klasses.empty? || klasses.any? { |klass| self.is_a?(klass) }
+      children.each { |node| node.traverse(klasses, &block) }
+    end
+  end
+
+  class Analyzer
+    attr_reader :spec
+    attr_reader :idr # Initialized by #analyze
+
+    def initialize(spec)
+      @spec = spec
+    end
+
+    def analyze
+    
+    end
+
+  protected
+    def spec_classes
+      @spec_classes ||= Spec::Node.descendants(this: true)
+    end
+
+    def check
+    end
+
+    def check_repeated_briefs
+      brief_containers = @spec_classes.select { |c| c.accepts.include?(Spec::Brief) }
+      spec.traverse(brief_containers) { |node|
+        count = node.children.select { |child| child.is_a? Brief }.size
+        raise if count > 1
+      }
+    end
+
+    def check_nested_sections
+    end
+
+    def check_top_level_subsections
+    end
+
+    def generate_idr
+    end
+  end
+end
+
+
+
+
+
+
+
+
+
+__END__
 # IDEA: Create an option-soup from the Grammar, and let the interpreter remove
 # options from it as they are processed. Duplicate options are removed when
 # commands are processed as they disamguates options. We need to mark duplicate

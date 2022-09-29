@@ -54,12 +54,12 @@ include ForwardTo
 
 require_relative 'shellopts/ext/array.rb'
 require_relative 'shellopts/ext/class.rb'
-require_relative 'shellopts/ext/queue.rb'
 require_relative 'shellopts/ext/stack.rb'
 require_relative 'shellopts/ext/stringio.rb'
 
 require_relative 'shellopts/line.rb'
 require_relative 'shellopts/token.rb'
+require_relative 'shellopts/token_queue.rb'
 require_relative 'shellopts/spec.rb'
 require_relative 'shellopts/grammar.rb'
 

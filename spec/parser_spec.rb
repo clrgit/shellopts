@@ -47,35 +47,40 @@ describe "Parser" do
   # Parse 's' and check that the result matches 'r'. The parsed result has the
   # initial "main" removed to save some repeated typing
   def check(s, r)
+    parse(s).sub(/^main\s*\n/, "")
     expect(undent parse(s).sub(/^main\s*\n/, "")).to eq undent r
   end
 
   describe "#parse" do
     context "options" do
-      it "creates an option group around an option" do
+      it "creates an option group and subgroup around an option" do
         s = "-a"
         check s, %(
           group
-            -a
+            subgroup
+              -a
         )
       end
-      it "creates an option group around single-line list of options" do
+      it "creates a subgroup around single-line list of options" do
         s = "-a -b"
         check s, %(
           group
-            -a
-            -b
+            subgroup
+              -a
+              -b
         )
       end
-      it "creates an option group around a multi-line list of options" do
+      it "creates a group around a multi-line list of options" do
         s = %(
           -a
           -b
         )
         check s, %(
           group
-            -a
-            -b
+            subgroup
+              -a
+            subgroup
+              -b
         )
       end
       it "can mix single-line and multi-line lists" do
@@ -86,10 +91,13 @@ describe "Parser" do
         )
         check s, %(
           group
-            -a
-            -b
-            -c
-            -d
+            subgroup
+              -a
+              -b
+            subgroup
+              -c
+            subgroup
+              -d
         )
       end
       it "creates an option group around each continous list of options" do
@@ -101,10 +109,13 @@ describe "Parser" do
         )
         check s, %(
           group
-            -a
-            -b
+            subgroup
+              -a
+            subgroup
+              -b
           group
-            -c
+            subgroup
+              -c
         )
       end
       it "takes a description" do
@@ -114,24 +125,22 @@ describe "Parser" do
         )
         check s, %(
           group
-            -a
+            subgroup
+              -a
             Description
         )
       end
     end
 
     context "commands" do
-      it "creates a command group around a command" do
+      it "creates a command group and subgroup around a command" do
         s = %(
           cmd1!
-
-          cmd2!
         )
         check s, %(
           group
-            cmd1!
-          group
-            cmd2!
+            subgroup
+              cmd1!
         )
       end
       it "creates a command group around a multi-line list of commands" do
@@ -143,10 +152,13 @@ describe "Parser" do
         )
         check s, %(
           group
-            cmd1!
-            cmd2!
+            subgroup
+              cmd1!
+            subgroup
+              cmd2!
           group
-            cmd3!
+            subgroup
+              cmd3!
         )
       end
     end
@@ -163,7 +175,8 @@ describe "Parser" do
         s = "cmd! ++ ARG"
         check s, %(
           group
-            cmd!
+            subgroup
+              cmd!
               ++
                 ARG
         )
@@ -175,7 +188,8 @@ describe "Parser" do
         )
         check s, %(
           group
-            cmd!
+            subgroup
+              cmd!
             ++ 
               ARG
         )
@@ -211,13 +225,14 @@ describe "Parser" do
           -- AN ARG
         )
       end
-      it "applies to a command" do
+      it "applies to a command subgroup" do
         s = %(
           cmd! -- AN ARG
         )
         check s, %(
           group
-            cmd!
+            subgroup
+              cmd!
               -- AN ARG
         )
       end
@@ -230,8 +245,10 @@ describe "Parser" do
         )
         check s, %(
           group
-            cmd1!
-            cmd2!
+            subgroup
+              cmd1!
+            subgroup
+              cmd2!
             -- AN ARG
         )
       end
@@ -264,7 +281,8 @@ describe "Parser" do
         )
         check s, %(
           group
-            -a
+            subgroup
+              -a
               @brief
         )
       end
@@ -275,7 +293,8 @@ describe "Parser" do
         )
         check s, %(
           group
-            -a
+            subgroup
+              -a
             @brief
         )
       end
@@ -285,9 +304,10 @@ describe "Parser" do
         )
         check s, %(
           group
-            -a
-            -b
-            @brief
+            subgroup
+              -a
+              -b
+              @brief
         )
       end
       it "applies to a mix of single- and multi-line options" do
@@ -298,10 +318,12 @@ describe "Parser" do
         )
         check s, %(
           group
-            -a
-            -b
-            @brief1
-            -c
+            subgroup
+              -a
+              -b
+              @brief1
+            subgroup
+              -c
             @brief2
         )
       end
@@ -311,7 +333,8 @@ describe "Parser" do
         )
         check s, %(
           group
-            cmd!
+            subgroup
+              cmd!
               @brief
         )
       end
@@ -323,7 +346,8 @@ describe "Parser" do
         )
         check s, %(
           group
-            cmd!
+            subgroup
+              cmd!
             @brief
         )
       end
@@ -339,11 +363,13 @@ describe "Parser" do
         )
         check s, %(
           group
-            -a
+            subgroup
+              -a
             @brief1
             @brief2
           group
-            cmd!
+            subgroup
+              cmd!
             @brief3
             @brief4
         )
@@ -390,12 +416,15 @@ describe "Parser" do
         )
         check s, %(
           group
-            -a
-            -b
+            subgroup
+              -a
+              -b
             Single-line options
           group
-            -c
-            -d
+            subgroup
+              -c
+            subgroup
+              -d
             Multi-line options
           Free text
           More free text
@@ -408,7 +437,8 @@ describe "Parser" do
         )
         check s, %(
           group
-            cmd!
+            subgroup
+              cmd!
             A text
         )
       end
@@ -490,21 +520,37 @@ describe "Parser" do
         expect { parse(s) }.to raise_error ParserError
       end
 
-      it "can have unindented context" do
+      it "applies to non-indented sections" do
         s = %(
-          *name*
+          SECTION
 
-          Text
-
-          *other*
-
-          Other
+          *sub*
+            text
         )
         check s, %(
-          *name*
+          SECTION
+            *sub*
+              text
+        )
+      end
+
+      it "can have unindented context" do
+        s = %(
+          SECTION
+            *name*
+
             Text
-          *other*
+
+            *other*
+
             Other
+        )
+        check s, %(
+          SECTION
+            *name*
+              Text
+            *other*
+              Other
         )
       end
 
@@ -522,27 +568,29 @@ describe "Parser" do
         check s, %(
           NAME
             Name
-            Sub
+            *Sub*
               sub
-              Subsub
+              *Subsub*
                 subsub
         )
       end
 
       it "can nest section inside non-indented sections" do
         s = %(
+          SECTION
+
           *name*
           
           Name
-
             *sub*
               Sub
         )
         check s, %(
-          *name*
-            Name
-            *sub*
-              Sub
+          SECTION
+            *name*
+              Name
+              *sub*
+                Sub
         )
       end
     end
@@ -574,7 +622,8 @@ describe "Parser" do
           o 
             Bullet2
             group
-              --option
+              subgroup
+                --option
               Option description
         )
       end

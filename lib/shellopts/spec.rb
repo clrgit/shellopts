@@ -57,6 +57,49 @@ module ShellOpts
       end
     end
 
+    class Definition < Node
+      def subject = children[0] # Can be nil
+      def description = children[1] # Can be nil TODO: Maybe default to EmptyDescription?
+
+      # The header of the definition as an array of strings
+      def header = subject.header
+
+      def self.accepts = [Subject, Description]
+    end
+
+    class Program < Definition
+      def initialize(token)
+        constrain token.kind, :program
+        super nil, token
+        Spec::ProgramSection.new(self, token)
+      end
+    end
+
+    # A subject is something that can be described. It always belongs to a
+    # description that in turn always has a description
+    class Subject < Node
+      alias_method :definition, :parent
+      forward_to :definition, :description
+
+      # Returns the subject header as an array of strings
+      def header = abstract_method
+
+      def initialize(parent, token)
+        constrain parent, Definition
+        super
+      end
+    end
+
+    class Description < Node
+      alias_method :definition, :parent
+      alias_method :elements, :children
+      def self.accepts = [Node] # Anything can go into a description. FIXME
+    end
+
+    class EmptyDescription < Description
+      def initialize(parent) super(parent, parent.token) end
+    end
+
     # A special node that is used by the parser to set indentation level and
     # being a filler on the stack
     class Empty < Node
@@ -94,24 +137,6 @@ module ShellOpts
       end
     end
 
-    class Option < Node
-      def initialize(parent, token, check: false)
-        constrain parent, OptionGroup, Command
-        super(parent, token, check: check)
-      end
-      def to_s = token.value
-      def self.accepts = [Brief]
-    end
-
-    class Command < Node
-      def initialize(parent, token, check: false)
-        constrain parent, CommandGroup
-        super(parent, token, check: check)
-      end
-      def to_s = token.value
-      def self.accepts = [Option, ArgSpec, ArgDescr, Brief]
-    end
-
     class ArgSpec < Node
       def self.accepts = [Arg]
     end
@@ -131,11 +156,6 @@ module ShellOpts
       end
     end
 
-    class Description < Node
-      alias_method :elements, :children
-      def self.accepts = [Node] # Anything can go into a description. FIXME
-    end
-
     # A List is an enumeration with the single-line text replaced by a bullet
     #
     # TODO: Change brief marker to '$' and use '@' as a bullet
@@ -153,22 +173,15 @@ module ShellOpts
       def self.accepts = [ListItem]
     end
 
-    class Definition < Node
-      def subject = children[0] # Can be nil
-      def description = children[1] # Can be nil TODO: Maybe default to EmptyDescription?
+    # TODO: Invisible bullet
+    
+    # The Bullet class is only necessary because ListItem is a Definition and
+    # hence needs a subject
+    class Bullet < Subject
+      attr_reader :list_item, :parent
+      def list = list_item.list
 
-      # The header of the definition as an array of strings
-      def header = subject.header
-
-      def self.accepts = [Subject, Description]
-    end
-
-    class Program < Definition
-      def initialize(token)
-        constrain token.kind, :program
-        super nil, token
-        Spec::ProgramSection.new(self, token)
-      end
+      def header = [list.bullet]
     end
 
     class ListItem < Definition
@@ -177,29 +190,6 @@ module ShellOpts
       def header = [list.bullet]
 
       def self.accepts = [Bullet, Description]
-    end
-
-    # A subject is something that can be described. It always belongs to a
-    # description that in turn always has a description
-    class Subject < Node
-      alias_method :definition, :parent
-      forward_to :definition, :description
-
-      # Returns the subject header as an array of strings
-      def header = abstract_method
-
-      def initialize(parent, token)
-        constrain parent, Definition
-        super
-      end
-    end
-
-    # TODO: Invisible bullet
-    class Bullet < Subject
-      attr_reader :list_item, :parent
-      def list = list_item.list
-
-      def header = [list.bullet]
     end
 
     class Section < Subject
@@ -237,17 +227,38 @@ module ShellOpts
     end
 
     class OptionGroup < Group
-      def self.accepts = Option.accepts
-    protected
-      # Modify #attach to accept Option nodes too
-      def attach(node) = super(node, check: !node.is_a?(Option))
+      # Does not include Brief because it belongs in the description
+      def self.accepts = [OptionSubGroup] 
+    end
+
+    class OptionSubGroup < Node
+      def self.accepts = [Option, Brief]
+    end
+
+    class Option < Node
+      def initialize(parent, token, check: false)
+        constrain parent, OptionSubGroup, Command
+        super(parent, token, check: check)
+      end
+      def to_s = token.value
+      def self.accepts = [Brief]
     end
 
     class CommandGroup < Group
-      def self.accepts = Command.accepts + [CommandGroup]
-    protected
-      # Modify #attach to accept Command nodes too
-      def attach(node) = super(node, check: !node.is_a?(Command))
+      def self.accepts = [CommandSubGroup]
+    end
+
+    class CommandSubGroup < Node
+      def self.accepts = Command.accepts + [Command]
+    end
+
+    class Command < Node
+      def initialize(parent, token, check: false)
+        constrain parent, CommandSubGroup
+        super(parent, token, check: check)
+      end
+      def self.accepts = [Option, ArgSpec, ArgDescr, Brief]
+      def to_s = token.value
     end
   end
 end

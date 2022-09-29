@@ -4,6 +4,30 @@ $LOAD_PATH.unshift "#{Dir.getwd}/lib"
 
 require 'shellopts'
 
+spec = %(
+  SECTION
+
+  *name*
+)
+
+lexer = ShellOpts::Lexer.new("main", spec)
+tokens = lexer.lex
+pp tokens
+
+puts
+parser = ShellOpts::Parser.new(tokens)
+program = parser.parse
+
+puts
+program.dump(format: :rspec)
+puts
+program.dump(format: :debug)
+
+__END__
+
+
+
+
 #SPEC = %(
 # NAME
 #   Text

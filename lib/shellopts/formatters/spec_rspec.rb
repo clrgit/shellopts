@@ -28,12 +28,24 @@ module ShellOpts
         end
       end
 
+      refine SubSection do
+        def head = "*#{name}*"
+      end
+
       refine Paragraph do
         def head = text
       end
 
       refine Group do
         def head = "group"
+      end
+
+      refine OptionSubGroup do
+        def head = "subgroup"
+      end
+
+      refine CommandSubGroup do
+        def head = "subgroup"
       end
 
       refine ArgDescr do

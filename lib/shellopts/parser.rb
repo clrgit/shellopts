@@ -26,10 +26,248 @@ module ShellOpts
     # Parse tokens and return stack.top-level Spec::Program object
     def parse
       @program = Spec::Program.new(tokens.shift)
-      stack.push Spec::Description.new(@program, @program.token)
-      parse_description
+      parse_description(@program)
       program
     end
+
+  protected
+    # Queue of tokens (TokenQueue object)
+    attr_reader :tokens
+
+    # First token of queue
+    def token = tokens.head
+
+    # Stack of Spec nodes (Stack object)
+    attr_reader :stack
+
+    def parser_error(token, message) = raise ParserError, token, message
+
+    PARSER_MAP = {
+      section: :parse_section,
+      subsection: :parse_subsection,
+      blank: :parse_blanks,
+      text: :parse_text,
+      code: :parse_code,
+      option: :parse_option,
+      command: :parse_command,
+      brief: :parse_brief,
+      arg_spec: :parse_arg_spec,
+      arg_descr: :parse_arg_descr,
+      bullet: :parse_list
+      
+    }
+
+    def trace(method, *args)
+      return if !$trace
+      print "#{method}("
+      print args.map { |arg|
+        if arg.is_a?(Spec::Node)
+          arg.class.name
+        else
+          arg.inspect
+        end
+      }.join(", ")
+      puts ")  #{token.inspect}"
+    end
+
+    def parse_section(parent)
+      trace :parse_section, parent
+      constrain parent, Spec::Description
+
+      parent.definition.is_a?(Spec::Program) or parser_error token, "Sections can't be nested"
+      
+      defn = Spec::Definition.new(parent, token)
+
+      if Lexer::SECTION_ALIASES.key? token.value
+        section = Spec::BuiltinSection.new(defn, tokens.shift)
+        if section.name == "SYNOPSIS"
+          descr = Spec::Description.new(defn, token)
+          parse_lines(descr)
+          return # The SYNOPSIS section consume all lines
+        end
+      else
+        section = Spec::Section.new(defn, tokens.shift, nil)
+      end
+
+      parse_description(defn, breakon: [:section])
+    end
+
+    def parse_subsection(parent)
+      trace :parse_subsection, parent
+      !parent.definition.is_a?(Spec::Program) or parser_error token, "Subsections can't be on the top level"
+      defn = Spec::Definition.new(parent, token)
+      section = Spec::SubSection.new(defn, tokens.shift, nil)
+      tokens.consume(:blank, nil, token.charno)
+      parse_description(defn, breakon: [:section, :subsection])
+    end
+
+    def parse_description(parent, breakon: nil)
+      trace :parse_description, parent, breakon
+      constrain breakon, Symbol, [Symbol], nil
+
+      if breakon
+        breakon = Array(breakon).flatten
+        l = lambda { |token|
+          token && (
+            token.charno > parent.token.charno ||
+            token.charno == parent.token.charno && !breakon.include?(token.kind)
+          )
+        }
+      else
+        l = lambda { |token| 
+          token && token.charno > parent.token.charno 
+        }
+      end
+
+      tokens.consume(:blank, nil, nil)
+      if l.call(token)
+        descr = Spec::Description.new(parent, token)
+        while l.call(token)
+          if PARSER_MAP.key?(token.kind)
+            self.send(PARSER_MAP[token.kind], descr)
+          else
+            raise NotImplementedError, "Missing handler for token kind '#{token.kind}'"
+          end
+        end
+      else
+        Spec::EmptyDescription.new(parent)
+      end
+    end
+
+    def parse_blanks(parent)
+      trace :parse_blanks, parent
+      tokens.consume(:blank, nil, nil)
+    end
+
+    def parse_text(parent)
+      trace :parse_text, parent
+      t = token
+      lines = tokens.consume(:text, nil, t.charno, &:value)
+      Spec::Paragraph.new(parent, t, lines)
+    end
+
+    def parse_lines(parent, blanks: false)
+      trace :parse_lines, parent, blanks
+      t = token
+      kinds = [:text] + (blanks ? [:blank] : [])
+      lines = tokens.consume(kinds, nil, :>=, t.charno, &:value)
+      Spec::Lines.new(parent, t, lines) if !lines.empty?
+    end
+
+    def parse_code(parent)
+      trace :parse_code, parent
+      Spec::Code.new(parent, tokens.shift)
+    end
+
+    def parse_brief(parent)
+      trace :parse_brief, parent
+      Spec::Brief.new(parent, tokens.shift)
+    end
+
+    def parse_option(parent)
+      trace :parse_option, parent
+      defn = Spec::Definition.new(parent, token)
+      parse_option_group(defn)
+      parse_description(defn)
+    end
+
+    def parse_option_group(parent)
+      trace :parse_option_group, parent
+      group = Spec::OptionGroup.new(parent, parent.token)
+      head = token
+      tokens.consume(:option, nil, token.charno) { |option|
+        subgroup = Spec::OptionSubGroup.new(group, option)
+        tokens.unshift option
+        tokens.consume(:option, option.lineno, nil) { |t| Spec::Option.new(subgroup, t) }
+        tokens.consume(:brief, option.lineno, nil) { |brief| Spec::Brief.new(subgroup, brief) }
+      }
+    end
+
+    def parse_command(parent)
+      trace :parse_command, parent
+      defn = Spec::Definition.new(parent, token)
+      parse_command_group(defn)
+      parse_description(defn)
+    end
+
+    def parse_command_group(parent)
+      trace :parse_command_group, parent
+      group = Spec::CommandGroup.new(parent, parent.token)
+      head = token
+      tokens.consume(:command, nil, token.charno) { |command|
+        subgroup = Spec::CommandSubGroup.new(group, command)
+        tokens.unshift command
+        tokens.consume(:command, command.lineno, nil) { |cmd| Spec::Command.new(subgroup, cmd) }
+        tokens.consume([:arg_descr, :arg_spec, :brief], command.lineno, nil) { |t|
+          tokens.unshift t
+          self.send(PARSER_MAP[t.kind], subgroup)
+        }
+      }
+    end
+
+    def parse_arg_spec(parent)
+      trace :parse_arg_spec, parent
+      spec = Spec::ArgSpec.new(parent, tokens.shift)
+      tokens.consume(:arg, token.lineno, nil) { |t| Spec::Arg.new(spec, t) }
+    end
+
+    def parse_arg_descr(parent)
+      trace :parse_arg_descr, parent
+      Spec::ArgDescr.new(parent, tokens.shift)
+    end
+
+    def parse_list(parent)
+      trace :parse_list, parent
+      list = Spec::List.new(parent, token)
+      tokens.consume(:bullet, nil, token.charno) { |t|
+        t.value == list.bullet or 
+            parser_error t, "Can't change bullet type to '#{t.value} in list of '#{list.bullet}' bullets"
+        list_item = Spec::ListItem.new(list, t)
+        Spec::Bullet.new(list_item, t)
+        parse_description(list_item)
+      }
+
+    end
+  end
+end
+
+__END__
+          when :bullet
+            list = Spec::List.new(stack.top, token, token.value) if !stack.top.is_a?(Spec::List)
+            tokens.unshift token
+            tokens.consume(:bullet, nil, token.charno) { |t|
+              t.value == list.bullet or 
+                  parser_error t, "Can't change bullet type to '#{t.value} in list of '#{list.bullet}' bullets"
+              stack.push Spec::ListItem.new(list, t)
+              Spec::Bullet.new(stack.top, token)
+              parse_description(list.token.charno) if tokens.head
+              stack.unwind(token.charno) # Needed in non-indented bullet lists
+            }
+
+
+          when :option
+            defn = Spec::Definition.new(stack.top, token)
+            group = Spec::OptionGroup.new(defn, token)
+            tokens.unshift token
+
+            # First consume option lines
+            tokens.consume(:option, nil, token.charno) { |t|
+              option = Spec::Option.new(group, t)
+              tokens.consume(:brief, t.lineno, nil) { |brief| Spec::Brief.new(option, brief) }
+
+              # Then, for each line, consume other options on that line
+              # (multiple options can be declared on one line)
+              tokens.consume(:option, t.lineno, nil) { |t|
+                option = Spec::Option.new(group, t)
+                # The brief is associated with the group and not the (last) option
+                tokens.consume(:brief, t.lineno, nil) { |brief| Spec::Brief.new(group, brief) }
+              }
+            }
+
+            # token is wrong because if refers to the subject and not the
+            # description but has the right charno so unwind will work
+            stack.push Spec::Description.new(defn, token)
+
 
   protected
     # Queue of tokens (TokenQueue object)

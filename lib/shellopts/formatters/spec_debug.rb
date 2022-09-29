@@ -4,7 +4,16 @@ module ShellOpts
       include ShellOpts::Spec
 
       # Classes where #head is defined as nil, otherwise it defaults to +token.value+
-      NIL_HEAD_CLASSES = [ProgramSection, Description, ListItem, Paragraph, Lines]
+      NIL_HEAD_CLASSES = [
+        ProgramSection, Definition, Description, Section, ListItem, Paragraph, Lines,
+        OptionGroup, OptionSubGroup, CommandGroup, CommandSubGroup
+      ]
+
+      # TODO Maybe...
+      #
+      #   VALUE_HEAD_CLASSES = [...]
+      #   VALUE_BODY_CLASSES = [...]
+      # 
 
       refine Node do
         def head = NIL_HEAD_CLASSES.any? { |c| self.is_a?(c) } ? nil : token.value
@@ -32,7 +41,7 @@ module ShellOpts
         end
       end
 
-      refine ProgramSection do
+      refine Section do
         def body = header
       end
 

@@ -18,8 +18,16 @@ module ShellOpts
 
     def consume(kinds, lineno, op = :==, charno, &block)
       kinds = Array(kinds).flatten
+
+      constrain kinds, [Symbol]
+      constrain lineno, Integer, nil
+      constrain op, :==, :>=
+      constrain charno, Integer, nil
+
       l = lambda { |t|
-        kinds.include?(t.kind) && t.lineno == (lineno || t.lineno) && t.charno.send(op, charno || t.charno)
+        kinds.include?(t.kind) && 
+        t.lineno == (lineno || t.lineno) && 
+        t.charno.send(op, charno || t.charno)
       }
       r = []
       if block_given?
@@ -31,7 +39,7 @@ module ShellOpts
       end
       r
     end
-    
+
     def dump(*methods)
       methods = Array(methods).flatten
       methods = [:kind] if methods.empty?

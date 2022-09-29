@@ -14,9 +14,9 @@ module ShellOpts
     DESCR_STOP_RE = /^(?:#{SPEC_RE}|#{DESCR_RE}|#{BRIEF_RE})/
     SPEC_STOP_RE = /^(?:#{SPEC_RE}|#{DESCR_RE}|#{BRIEF_RE})/
 
-    # Match argument spec words. The words should begin with at least two
+    # Match argument spec words. A word should begin with at least two
     # uppercase letters. This makes it possible to say +opts.FILE_ARGUMENT+
-    # because it can't conflict with a single letter uppercase option and long
+    # because it can't conflict with a single letter uppercase options and long
     # options are always downcased internally (TODO). Rather primitive for now
     ARG_RE = /^[A-Z0-9_-]{2,}$/
 
@@ -33,7 +33,7 @@ module ShellOpts
       "COMMAND" => "COMMANDS"
     }.merge SECTIONS.map { |n| [n, n] }.to_h
 
-    BULLETS = %w(# o * -) # '-' has to come last, included in a RE later
+    BULLETS = %w(# o * - .) # '-' has to come last, included in a RE later
     BULLET_RE = /^([#{BULLETS.join}])(\s+)(\S.*)$/ # Captures bullet, spaces, and remaining text
 
     using Ext::Array::ShiftWhile
@@ -124,7 +124,6 @@ module ShellOpts
           bullet = $1
           space = $2
           text = $3
-#         puts "BULLET #{line.lineno}:#{line.charno} #{bullet.inspect}, #{space.inspect}, #{text.inspect}"
           add_token :bullet, line.lineno, line.charno, bullet
           add_token :text, line.lineno, line.charno + bullet.size + space.size, text
 

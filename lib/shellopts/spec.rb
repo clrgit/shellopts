@@ -32,12 +32,6 @@ module ShellOpts
       def self.accepts = []
       def accepts = self.class.accepts
 
-      # If true, tokens that are not compatible with the current node are
-      # passed on to the parent node (after the current node has been popped
-      # off the stack)
-      def self.pass = false
-      def pass = self.class.pass
-
       # Attach a node to self and set node's parent. There is currently no
       # #detach method
       def attach(node, check: true)
@@ -173,8 +167,6 @@ module ShellOpts
       def self.accepts = [ListItem]
     end
 
-    # TODO: Invisible bullet
-    
     # The Bullet class is only necessary because ListItem is a Definition and
     # hence needs a subject
     class Bullet < Subject

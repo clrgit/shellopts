@@ -85,9 +85,6 @@ module ShellOpts
       "#{start_lineno + lineno - 1}:#{start_charno + charno - 1}" 
     end
 
-#   def indented?(other) = charno < other.charno
-#   def outdented?(other) = charno > other.charno
-
     def inspect
       "<#{self.class.name} #{location} #{kind.inspect} #{value.inspect}>"
     end

@@ -1,4 +1,5 @@
 
+# TODO: Rename/move file
 module ShellOpts
   class TokenQueue
     using Ext::Array::ShiftWhile
@@ -12,9 +13,7 @@ module ShellOpts
     forward_to :@elements, :empty?, :size, :shift, :unshift, :map, :each, :shift_while
 
     def head = elements.first
-    def kind = head&.kind
-    def charno = head&.charno
-    def lineno = head&.lineno
+    def rest = elements[1..-1]
 
     def consume(kinds, lineno, op = :==, charno, &block)
       kinds = Array(kinds).flatten

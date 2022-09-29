@@ -2,34 +2,6 @@
 include ShellOpts
 
 describe "Parser" do
-# def prog(source)
-#   oneline = source.index("\n").nil?
-#   tokens = Lexer.lex("main", source, oneline)
-#   ast = Parser.parse tokens
-
-#   puts "Tokens"
-#   indent { tokens.each(&:dump) }
-#   puts 
-#   puts "Ast"
-#   indent { ast.dump_ast }
-#   puts
-
-#   grammar = Analyzer.analyze(ast)
-
-#   puts "Grammar"
-#   indent { grammar.dump_grammar }
-#   puts
-#   puts "Doc"
-#   indent { grammar.dump_doc }
-#   puts
-
-#   grammar
-# end
-# def struct(source)
-#   prog(source).render_structure
-# end
-
-
   # Parse 's' and return a dump of the parse tree
   def parse(s) 
     lexer = Lexer.new("main", s)

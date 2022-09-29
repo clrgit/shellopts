@@ -2,6 +2,7 @@
 module Ext
   module StringIO
     module Redirect
+      # Refining the singleton class causes methods to be defined as class methods
       refine ::StringIO.singleton_class do
 
         # :call-seq:

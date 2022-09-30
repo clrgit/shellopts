@@ -220,7 +220,8 @@ module ShellOpts
     class OptionGroup < Group
       def brief = description.find(Brief)
 
-      # Does not include Brief because it belongs in the description
+      # Does not include Brief because it can't be attached directly to a
+      # OptionGroup but belongs in the description
       def self.accepts = [OptionSubGroup] 
     end
 
@@ -249,8 +250,8 @@ module ShellOpts
       def arg_descr = description.find(ArgDescr)
       def commands = select(Command)
 
-      # Does not include ArgSpec, ArgDescr, or Brief because they belongs
-      # in the description
+      # Does not include Option, ArgSpec, ArgDescr, or Brief because they
+      # belongs in the description
       def self.accepts = [Command]
     end
 

@@ -52,10 +52,12 @@ module ShellOpts
     end
 
   protected
+    # List of classes derived from Spec::Node (incl. Spec::Node)
     def spec_classes
       @spec_classes ||= Spec::Node.descendants(this: true)
     end
 
+    # Return list of Spec classes that accepts objects of the given class
     def accepts(klass)
       spec_classes.select { |klasses| klasses.accepts.any? { |k| k >= klass } }
     end

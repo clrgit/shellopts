@@ -3,6 +3,17 @@ module ShellOpts
   class Spec::Node
     def traverse(*klasses, &block) = do_traverse(Array(klasses).flatten, &block)
 
+
+    def project(*klasses, &block)
+      ...
+      yield(parent, self)
+      ...
+    end
+
+    def traverse_w_stack(*klasses, stack, &block)
+      do_traverse_w_stack(Array(klasses).flatten, stack, &block)
+    end
+
     def select(*klasses, &block) = do_select(Array(klasses).flatten, &block)
 
     def find(*klasses, &block) = do_find(Array(klasses).flatten, &block)
@@ -10,7 +21,18 @@ module ShellOpts
   protected
     def do_traverse(klasses, &block)
       yield(self) if klasses.empty? || klasses.any? { |klass| self.is_a?(klass) }
-      children.each { |node| node.traverse(klasses, &block) }
+      children.each { |node| node.do_traverse(klasses, &block) }
+    end
+
+    def do_traverse_w_stack(klasses, stack, &block)
+      if klasses.empty? || klasses.any? { |klass| self.is_a?(klass) }
+        yield(self, stack)
+        stack.push self
+        children.each { |node| node.do_traverse_w_stack(klasses, stack, &block) }
+        stack.pop
+      else
+        children.each { |node| node.do_traverse_w_stack(klasses, stack, &block) }
+      end
     end
 
     def do_select(klasses, &block)
@@ -45,6 +67,7 @@ module ShellOpts
     def analyze
       analyze_briefs
       analyze_arg_descrs
+      analyze_commands
     end
 
     def analyzer_error(token, message) 
@@ -77,6 +100,16 @@ module ShellOpts
     end
 
     def analyze_commands
+      stack = [spec] # Because the top-level spec node is a Program object
+
+      spec.traverse_w_stack([Spec::Program, Spec::Command], stack) { |node, stack|
+        node.supercommand = stack.last
+        stack.last.subcommands << node if stack.last
+      }
+
+
+
+
       # TODO Nest commands hierarchically 
       # TODO Resolve dotted commands
       # TODO Detect duplicate commands

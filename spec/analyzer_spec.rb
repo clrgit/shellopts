@@ -2,18 +2,26 @@
 include ShellOpts
 
 describe "ShellOpts" do
+  def spec
+    @spec
+  end
+
   # Parse 's' and return a dump of the parse tree
   def compile(s) 
     lexer = Lexer.new("main", s)
     tokens = lexer.lex
     parser = Parser.new(tokens)
-    spec = parser.parse
+    @spec = parser.parse
     analyzer = Analyzer.new(spec)
     analyzer.analyze
   end
 
   describe "Analyzer" do
     describe "#analyze" do
+      it "does something"
+    end
+
+    describe "#analyze_briefs" do
       it "rejects duplicate briefs" do
         s = %(
           cmd!
@@ -28,8 +36,10 @@ describe "ShellOpts" do
         )
         expect { compile s }.to raise_error AnalyzerError
       end
+    end
 
-      it "reject duplicate arg_descrs" do
+    describe "#analyze_arg_descrs" do
+      it "rejects duplicate arg_descrs" do
         s = %(
           cmd!
             -- ARG
@@ -43,7 +53,21 @@ describe "ShellOpts" do
         )
         expect { compile s }.to raise_error AnalyzerError
       end
+    end
 
+    describe "#analyze_commands" do
+      it "finds the hierarchy of commands" do
+        s = %(
+          cmd1!
+            cmd11!
+            cmd12!
+              cmd 121!
+          cmd2!
+        )
+        compile s
+
+        p spec.subcommands
+      end
     end
   end
 end

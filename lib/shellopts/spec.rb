@@ -61,9 +61,12 @@ module ShellOpts
     end
 
     class Program < Definition
+      attr_reader :subcommands
+
       def initialize(token)
         constrain token.kind, :program
         super nil, token
+        @subcommands = []
         Spec::ProgramSection.new(self, token)
       end
     end
@@ -262,9 +265,14 @@ module ShellOpts
       def brief = find(Brief) || command_group.brief
       def arg_descr = find(ArgDescr) || command_group.arg_descr
 
+      attr_accessor :supercommand # Initialized by the analyzer
+      attr_reader :subcommands # Initialized by the analyzer
+
       def initialize(parent, token, check: false)
         constrain parent, CommandGroup
         super(parent, token, check: check)
+        @supercommand = nil
+        @subcommands = []
       end
 
       def to_s = token.value

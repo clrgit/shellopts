@@ -2,10 +2,32 @@
 module ShellOpts
   class Spec::Node
     def traverse(*klasses, &block) = do_traverse(Array(klasses).flatten, &block)
+
+    def select(*klasses, &block) = do_select(Array(klasses).flatten, &block)
+
+    def find(*klasses, &block) = do_find(Array(klasses).flatten, &block)
+
   protected
     def do_traverse(klasses, &block)
       yield(self) if klasses.empty? || klasses.any? { |klass| self.is_a?(klass) }
       children.each { |node| node.traverse(klasses, &block) }
+    end
+
+    def do_select(klasses, &block)
+      if block_given?
+        do_select.map { |node| yield(node) }
+      else
+        children.select { |node| klasses.any? { |klass| node.is_a?(klass) } }
+      end
+    end
+
+    def do_find(klasses, &block)
+      node = children.find { |node| klasses.any? { |klass| node.is_a?(klass) } }
+      if block_given?
+        yield node
+      else
+        node
+      end
     end
   end
 
@@ -17,8 +39,16 @@ module ShellOpts
       @spec = spec
     end
 
+    def validate
+    end
+
     def analyze
-    
+      analyze_briefs
+      analyze_arg_descrs
+    end
+
+    def analyzer_error(token, message) 
+      raise AnalyzerError.new(token), message 
     end
 
   protected
@@ -26,21 +56,31 @@ module ShellOpts
       @spec_classes ||= Spec::Node.descendants(this: true)
     end
 
-    def check
+    def accepts(klass)
+      spec_classes.select { |klasses| klasses.accepts.any? { |k| k >= klass } }
     end
 
-    def check_repeated_briefs
-      brief_containers = @spec_classes.select { |c| c.accepts.include?(Spec::Brief) }
+    def analyze_briefs
+      brief_containers = accepts(Spec::Brief)
       spec.traverse(brief_containers) { |node|
-        count = node.children.select { |child| child.is_a? Brief }.size
-        raise if count > 1
+        node.select(Spec::Brief).size <= 1 or analyzer_error node.token, "Multiple briefs"
       }
     end
 
-    def check_nested_sections
+    def analyze_arg_descrs
+      arg_descr_containers = accepts(Spec::ArgDescr)
+      spec.traverse(arg_descr_containers) { |node|
+        node.select(Spec::ArgDescr).size <= 1 or analyzer_error node.token, "Multiple argument descriptions"
+      }
     end
 
-    def check_top_level_subsections
+    def analyze_commands
+      # TODO Nest commands hierarchically 
+      # TODO Resolve dotted commands
+      # TODO Detect duplicate commands
+       
+#     command_containers = accepts(Spec::Command)
+#     spec.traverse(command
     end
 
     def generate_idr

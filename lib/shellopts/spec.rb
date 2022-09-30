@@ -6,7 +6,6 @@ module ShellOpts
   # subject and a definition of that subject that can contain other
   # definitions. Subjects are commands, options, sections, and list items
   #
-  #
   # The top-level node is a Program definition with a ProgramSection as subject
   # and the rest of the documentatin as its description
   #
@@ -219,38 +218,54 @@ module ShellOpts
     end
 
     class OptionGroup < Group
+      def brief = description.find(Brief)
+
       # Does not include Brief because it belongs in the description
       def self.accepts = [OptionSubGroup] 
     end
 
     class OptionSubGroup < Node
+      alias_method :option_group, :parent
+      def brief = find(Brief) || option_group.brief
       def self.accepts = [Option, Brief]
     end
 
     class Option < Node
+      alias_method :option_subgroup, :parent
+      def option_group = option_subgroup.option_group
+      def brief = find(Brief) || option_subgroup.brief
+
       def initialize(parent, token, check: false)
         constrain parent, OptionSubGroup, Command
         super(parent, token, check: check)
       end
+
       def to_s = token.value
       def self.accepts = [Brief]
     end
 
     class CommandGroup < Group
-      def self.accepts = [CommandSubGroup]
-    end
+      def brief = description.find(Brief)
+      def arg_descr = description.find(ArgDescr)
+      def commands = select(Command)
 
-    class CommandSubGroup < Node
-      def self.accepts = Command.accepts + [Command]
+      # Does not include ArgSpec, ArgDescr, or Brief because they belongs
+      # in the description
+      def self.accepts = [Command]
     end
 
     class Command < Node
+      alias_method :command_group, :parent
+      def brief = find(Brief) || command_group.brief
+      def arg_descr = find(ArgDescr) || command_group.arg_descr
+
       def initialize(parent, token, check: false)
-        constrain parent, CommandSubGroup
+        constrain parent, CommandGroup
         super(parent, token, check: check)
       end
-      def self.accepts = [Option, ArgSpec, ArgDescr, Brief]
+
       def to_s = token.value
+      def self.accepts = [Option, ArgSpec, ArgDescr, Brief]
     end
   end
 end

@@ -6,7 +6,7 @@ module ShellOpts
       # Classes where #head is defined as nil, otherwise it defaults to +token.value+
       NIL_HEAD_CLASSES = [
         ProgramSection, Definition, Description, Section, ListItem, Paragraph, Lines,
-        OptionGroup, OptionSubGroup, CommandGroup, CommandSubGroup
+        OptionGroup, OptionSubGroup, CommandGroup
       ]
 
       # TODO Maybe...

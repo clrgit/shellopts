@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-MODULES="lexer parser"
+MODULES="lexer parser analyzer"
 
 FILES=$(
     for module in $MODULES; do

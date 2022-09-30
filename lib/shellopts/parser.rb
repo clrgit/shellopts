@@ -167,12 +167,14 @@ module ShellOpts
       group = Spec::CommandGroup.new(parent, parent.token)
       head = token
       tokens.consume(:command, nil, token.charno) { |command|
-        subgroup = Spec::CommandSubGroup.new(group, command)
-        tokens.unshift command
-        tokens.consume(:command, command.lineno, nil) { |cmd| Spec::Command.new(subgroup, cmd) }
-        tokens.consume([:arg_descr, :arg_spec, :brief], command.lineno, nil) { |t|
-          tokens.unshift t
-          parse_node(subgroup)
+        cmd = Spec::Command.new(group, command)
+        tokens.consume([:option, :arg_descr, :arg_spec, :brief], command.lineno, nil) { |t|
+          if t.kind == :option # Special handling because these options have no descriptions
+            Spec::Option.new(cmd, t)
+          else
+            tokens.unshift t
+            parse_node(cmd)
+          end
         }
       }
     end

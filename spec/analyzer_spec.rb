@@ -2,54 +2,55 @@
 include ShellOpts
 
 describe "ShellOpts" do
-  def compile(source)
-    oneline = source.index("\n").nil?
-    tokens = Lexer.lex("main", source, oneline)
-    ast = Parser.parse tokens
-    grammar = Analyzer.analyze(ast)
+  # Parse 's' and return a dump of the parse tree
+  def compile(s) 
+    lexer = Lexer.new("main", s)
+    tokens = lexer.lex
+    parser = Parser.new(tokens)
+    spec = parser.parse
+    analyzer = Analyzer.new(spec)
+    analyzer.analyze
   end
-
-  # :call-seq:
-  #   names(grammar)
-  #   names(source)
-  #
-  def names(arg) 
-    grammar = arg.is_a?(Grammar::Node) ? arg : compile(arg)
-    grammar.children.map { |child|
-      case child
-        when Grammar::OptionGroup; child.options.first.name
-        when Grammar::GrammarNode; child.name
-        else child.token.source
-      end
-    }
-  end
-
-  describe "Grammar" do
-    describe "Command" do
-#     describe "#compute_command_hashes" do
-#       it "Handles duplicate subcommands" do
-#         src = %(
-#           cmd1!
-#             cmd!
-#           cmd2!
-#             cmd!
-#         )
-#         expect { compile(src) }.not_to raise_error
-#       end
-#       it "Handles duplicate subcommands with undeclared parents" do
-#         src = %(
-#           cmd1.cmd!
-#           cmd2.cmd!
-#         )
-#         expect { compile(src) }.not_to raise_error
-#       end
-#     end
-    end
-  end
-
 
   describe "Analyzer" do
     describe "#analyze" do
+      it "rejects duplicate briefs" do
+        s = %(
+          cmd!
+            @brief1
+        )
+        expect { compile s }.not_to raise_error
+
+        s = %(
+          cmd!
+            @brief1
+            @brief2
+        )
+        expect { compile s }.to raise_error AnalyzerError
+      end
+
+      it "reject duplicate arg_descrs" do
+        s = %(
+          cmd!
+            -- ARG
+        )
+        expect { compile s }.not_to raise_error
+
+        s = %(
+          cmd!
+            -- ARG1
+            -- ARG2
+        )
+        expect { compile s }.to raise_error AnalyzerError
+      end
+
+    end
+  end
+end
+
+
+__END__
+
       it "rejects duplicate options" do
         expect { compile("-a -a") }.to raise_error AnalyzerError
       end
@@ -117,3 +118,44 @@ describe "ShellOpts" do
     end
   end
 end
+
+__END__
+  # :call-seq:
+  #   names(grammar)
+  #   names(source)
+  #
+  def names(arg) 
+    grammar = arg.is_a?(Grammar::Node) ? arg : compile(arg)
+    grammar.children.map { |child|
+      case child
+        when Grammar::OptionGroup; child.options.first.name
+        when Grammar::GrammarNode; child.name
+        else child.token.source
+      end
+    }
+  end
+
+  describe "Grammar" do
+    describe "Command" do
+#     describe "#compute_command_hashes" do
+#       it "Handles duplicate subcommands" do
+#         src = %(
+#           cmd1!
+#             cmd!
+#           cmd2!
+#             cmd!
+#         )
+#         expect { compile(src) }.not_to raise_error
+#       end
+#       it "Handles duplicate subcommands with undeclared parents" do
+#         src = %(
+#           cmd1.cmd!
+#           cmd2.cmd!
+#         )
+#         expect { compile(src) }.not_to raise_error
+#       end
+#     end
+    end
+  end
+
+

@@ -5,9 +5,7 @@ $LOAD_PATH.unshift "#{Dir.getwd}/lib"
 require 'shellopts'
 
 spec = %(
-  SECTION
-
-  *name*
+  cmd! -a
 )
 
 lexer = ShellOpts::Lexer.new("main", spec)

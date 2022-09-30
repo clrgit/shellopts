@@ -102,6 +102,16 @@ describe "Parser" do
             Description
         )
       end
+      it "applies to commands" do
+        s = %(
+          cmd! -a
+        )
+        check s, %(
+          group
+            cmd!
+              -a
+        )
+      end
     end
 
     context "commands" do
@@ -111,8 +121,7 @@ describe "Parser" do
         )
         check s, %(
           group
-            subgroup
-              cmd1!
+            cmd1!
         )
       end
       it "creates a command group around a multi-line list of commands" do
@@ -124,13 +133,10 @@ describe "Parser" do
         )
         check s, %(
           group
-            subgroup
-              cmd1!
-            subgroup
-              cmd2!
+            cmd1!
+            cmd2!
           group
-            subgroup
-              cmd3!
+            cmd3!
         )
       end
     end
@@ -147,8 +153,7 @@ describe "Parser" do
         s = "cmd! ++ ARG"
         check s, %(
           group
-            subgroup
-              cmd!
+            cmd!
               ++
                 ARG
         )
@@ -160,8 +165,7 @@ describe "Parser" do
         )
         check s, %(
           group
-            subgroup
-              cmd!
+            cmd!
             ++ 
               ARG
         )
@@ -197,14 +201,13 @@ describe "Parser" do
           -- AN ARG
         )
       end
-      it "applies to a command subgroup" do
+      it "applies to a command" do
         s = %(
           cmd! -- AN ARG
         )
         check s, %(
           group
-            subgroup
-              cmd!
+            cmd!
               -- AN ARG
         )
       end
@@ -217,10 +220,8 @@ describe "Parser" do
         )
         check s, %(
           group
-            subgroup
-              cmd1!
-            subgroup
-              cmd2!
+            cmd1!
+            cmd2!
             -- AN ARG
         )
       end
@@ -305,8 +306,7 @@ describe "Parser" do
         )
         check s, %(
           group
-            subgroup
-              cmd!
+            cmd!
               @brief
         )
       end
@@ -318,8 +318,7 @@ describe "Parser" do
         )
         check s, %(
           group
-            subgroup
-              cmd!
+            cmd!
             @brief
         )
       end
@@ -340,8 +339,7 @@ describe "Parser" do
             @brief1
             @brief2
           group
-            subgroup
-              cmd!
+            cmd!
             @brief3
             @brief4
         )
@@ -409,8 +407,7 @@ describe "Parser" do
         )
         check s, %(
           group
-            subgroup
-              cmd!
+            cmd!
             A text
         )
       end

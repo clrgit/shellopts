@@ -169,7 +169,7 @@ module ShellOpts
       tokens.consume(:command, nil, token.charno) { |command|
         cmd = Spec::Command.new(group, command)
         tokens.consume([:option, :arg_descr, :arg_spec, :brief], command.lineno, nil) { |t|
-          if t.kind == :option # Special handling because these options have no descriptions
+          if t.kind == :option # Special handling because these options does not belong to a group
             Spec::Option.new(cmd, t)
           else
             tokens.unshift t

@@ -231,10 +231,12 @@ module ShellOpts
       def self.accepts = [Option, Brief]
     end
 
+    # An option can be attached to a OptionSubGroup or a Command.
+    # #option_subgroup and #option_group returns nil in the last case
     class Option < Node
-      alias_method :option_subgroup, :parent
-      def option_group = option_subgroup.option_group
-      def brief = find(Brief) || option_subgroup.brief
+      def option_subgroup = parent.is_a?(OptionSubGroup) ? parent : nil
+      def option_group = option_subgroup&.option_group
+      def brief = find(Brief) || option_subgroup&.brief
 
       def initialize(parent, token, check: false)
         constrain parent, OptionSubGroup, Command

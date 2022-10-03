@@ -2,6 +2,25 @@
 
 #require 'indented_io'
 
+
+# :call-seq:
+#   traverse(select_lambda, traverse_lambda)
+#   traverse(select, true)    # Always traverse children nodes (the default)
+#   traverse(select, false)   # Only traverse children if node is not selected
+#   traverse(select, nil)     # Expect the lambda to return a tuple of booleans
+#
+#     Execute block for each item or return en enumerator if block is missing
+#
+#   edges(select, traverse)
+#   project(select, traverse, &block) # block takes a [parent, child] tuple
+#
+#   transform(select, traverse, &block) # block takes a [value, child] tuple
+#
+#   reduce(select, traverse) # block takes an array of values of the children
+#
+
+
+
 module Tree
   class Filter
     attr_reader :select

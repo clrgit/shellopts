@@ -2,88 +2,52 @@
 
 #require 'indented_io'
 
-
-# :call-seq:
-#   traverse(select_lambda, traverse_lambda)
-#   traverse(select, true)    # Always traverse children nodes (the default)
-#   traverse(select, false)   # Only traverse children if node is not selected
-#   traverse(select, nil)     # Expect the lambda to return a tuple of booleans
-#
-#     Execute block for each item or return en enumerator if block is missing
-#
-#   edges(select, traverse)
-#   project(select, traverse, &block) # block takes a [parent, child] tuple
-#
-#   transform(select, traverse, &block) # block takes a [value, child] tuple
-#
-#   reduce(select, traverse) # block takes an array of values of the children
-#
-
-
-
 module Tree
   class Filter
-    attr_reader :select
-    attr_reader :traverse
-    attr_reader :both
-
-    # +select_expr+ and +traverse_expr+ can be a Proc, Symbol, true, false, or
-    # nil. True, false, and nil have special meanings:
+    # Create a node filter. The filter is initialized by a select expression
+    # that decides if the node should be given to the block (or submitted to
+    # the enumerator) and a traverse expression that decides if the children
+    # nodes should be traversed recursively
+    #
+    # The expressions can be a Proc, Symbol, or a Class. In addition, the
+    # +select+ can also be true, and +traverse+ can be true, false, or nil.
+    # True, false, and nil have special meanings:
     #
     #   when +select+ is
-    #     true    Select always. The default
-    #     false   Never select (rather meaningless)
-    #     nil     Select only if block returns truthy 
+    #     true    Select always. This is the default
     #
     #   when +traverse+ is
-    #     true    Traverse always. The default
-    #     false   Traverse only if select didn't match. Execute block but ignore
-    #             its value
-    #     nil     Traverse only if block returns truthy
+    #     true    Traverse always. This is the default
+    #     false   Traverse only if select didn't match
+    #     nil     Expects +select+ to return a two-tuple of booleans. Can't be
+    #             used when +select+ is true
     #
     def initialize(select_expr = true, traverse_expr = true, &block)
-      @match_method = :match_each
-      if select_expr.nil? && traverse_expr.nil?
-        if block_given?
-          @both = block
-          @match_method = :match_both
-        else
-          select_expr = traverse_expr = true
-        end
-      elsif select_expr.nil?
-        block_given? or raise ArgumentError
-        @select = block
-        if traverse_expr == false
-          @match_method = :match_stop
-        else
-          @traverse = mk_lambda(traverse_expr)
-        end
-      elsif traverse_expr.nil?
-        block_given? or raise ArgumentError
-        @select = mk_lambda(select_expr)
-        @traverse = block
-      else
-        !block_given? or raise ArgumentError
-        @select= mk_lambda(select_expr)
-        if traverse_expr == false
-          @match_method = :match_stop
-        else
-          @traverse = mk_lambda(traverse_expr)
-        end
-      end
+      constrain select_expr, Proc, true
+      constrain traverse_expr, Proc, true, false, nil
+      @matcher = 
+          case select_expr
+            when true
+              case traverse_expr
+                when proc; lambda { |node| [true, traverse_expr.call(node)] }
+                when true; lambda { |_| [true, true] }
+                when false; lambda { |_| [true, false] } # effectively same as #children.each
+                when nil; raise argumenterror
+              end
+            when Proc
+              case traverse_expr
+                when proc; lambda { |node| [select_expr.call(node), traverse_expr.call(node)] }
+                when true; lambda { |node| [select_expr.call(node), true] }
+                when false; lambda { |node| select = select_expr.call(node); [select, !select] }
+                when nil; lambda { |node| select_expr.call(node) }
+              end
+          end
     end
 
-    # Match +node+ against the filter and a [select, traverse] tuple of bools
-    def match(node) = self.send(@match_method, node)
+    # Match +node+ against the filter and return a [select, traverse] tuple of bools
+    def match(node) = @matcher.call(node)
 
   protected
-    def match_each(node) = [@select.call(node), @traverse.call(@node)]
-    def match_both(node) = @both.call(node)
-    def match_stop(node) 
-      match = @select.call(node)
-      [match, !match]
-    end
-
     def mk_lambda(arg)
       case arg
         when Proc
@@ -91,7 +55,7 @@ module Tree
         when Symbol
           lambda { |node| node.send(arg) }
         when Array
-          arg.all? { |a| a.is_a? Class }
+          arg.all? { |a| a.is_a? Class } or raise ArgumentError, "Array elements should be classes"
           lambda { |node| arg.any? { |a| node.is_a? a } }
         when true, false
           lambda { |node| arg }
@@ -102,19 +66,40 @@ module Tree
   end
 
   class AbstractTree
-    def node = abstract_method
+    # Parent node
     attr_reader :parent
+
+    # List of child nodes
     attr_reader :children
 
+    # An abstract method that gives access to the user-defined node (derived
+    # from Tree). It is used to make the algorithms work on both regular trees
+    # and projected trees
+    def node = abstract_method
+
+    # Create a new node and attach it to the parent
     def initialize(parent)
       @parent = parent
       @children = []
       @parent.children << self if @parent
     end
 
+    # True if the node doesn't contain any children
     def empty?() children.empty? end
+
+    # The number of nodes in the tree. Note that this can be an expensive
+    # operation since every node that to be visited
     def size() descendants.to_a.size end
 
+    # Implementation of standard iterator
+    def each(&block) = block_given? ? visit(&block) : preorder(this: true)
+
+    # Implementation of standard map method
+    def map(&block) = raise NotImplementedError
+
+    # Create a Tree::Filter object. Can also take an existing filter as
+    # argument in which case the filter will just be returned. This is for the
+    # developers convenience
     def self.filter(*args, &block)
       if args.first.is_a?(Filter)
         args.size == 1 && !block_given? or raise ArgumentError
@@ -124,39 +109,54 @@ module Tree
       end
     end
 
-    # If +prev+ is different from +false+, #preorder will return an enumerator
-    # of [previous-match, current-match] tuples with the previous-match set to
-    # the value of +prev+ on the first match
-    #
+    # Pre-order iteration of nodes. Return an enumerator of selected nodes
     def preorder(*filter, this: true, &block)
-      filter = self.class.filter(*filter, &block)
-      Enumerator.new { |enum| do_preorder(enum, filter, this) }
+      filter = self.class.filter(*filter)
+      block_given? ? do_visit(filter, this, &block) : do_preorder(filter, this)
     end
 
-    # Enumerator of descendant nodes
-    def descendants(*filter) = preorder(*filter, this: false)
+    # Post-order iteration of nodes. Return an enumerator of seleted nodes
+    def postorder(*filter, this: true) = raise NotImplementedError
 
-    def edges(*filter, this: true, &block)
-      filter = self.class.filter(*filter, &block)
-      Enumerator.new { |enum| do_egdes(enum filter, this) }
+    # Enumerator of descendant nodes matching filter. Same as #preorder with
+    # :this set to false
+    def descendants(*filter) = preorder(filter, this: false)
+
+    # Execute block on each selected node. The block takes a single node
+    # argument if it is unary and a [parent, node] tuple if it is binary
+    def visit(*filter, this: true, &block)
+      block_given? or raise ArgumentErorr, "Block is required"
+      filter = self.class.filter(*filter)
+      case block.arity
+        when 1; do_visit_unary(filter, this, &block)
+        when 2; do_visit_binary(filter, this, &block)
+      else
+        raise ArgumentError, "Block should take one or two arguments"
+      end
     end
 
-    # Enumerator of matching subtrees. Does not descend into the subtrees
-    def subtrees(select_filter = true, prev: false, &block)
-      preorder(select_filter, false, this: false, &block)
-    end
-
-    def visit(*filter, this: true, &block) = preorder(*filter, this: this).each(&block)
-
-    def translate(*filter, this: true, initial: nil, &block)
+    # +block+ takes a [value, child] tuple
+    #
+    # #transform is matematically a map function but we need to reserve the
+    # 'map' name for the #map method, so it is named #transform instead
+    def transform(*filter, this: true, initial: nil, &block)
+      block_given? or raise ArgumentErorr, "Block is required"
       filter = self.class.filter(*filter)
       do_translate(filter, this, initial, &block)
     end
 
+    # Creates a projection of the tree with only the nodes selected by
+    # +select+. The #parent, #children in the projected tree refers to the
+    # nodes in the new tree and not the old tree. The ProjectedTree#node method
+    # can be used to access the original node
     def project(*filter, this: true) 
-      translate(*filter, this: this) { |curr, node| ProjectedTree.new(curr, node) }
+      transform(*filter, this: this) { |curr, node| ProjectedTree.new(curr, node) }
     end
 
+    # +block+ takes a tuple of [node, child-values]
+    def reduce = NotImplemetedError
+
+    # Find first node that matches the filter and that returns truthy from the block
     def find(*filter, &block) = descendants(*filter).first(&block)
 
   protected

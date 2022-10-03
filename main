@@ -10,16 +10,19 @@ spec = %(
 
 lexer = ShellOpts::Lexer.new("main", spec)
 tokens = lexer.lex
-pp tokens
+#pp tokens
 
 puts
 parser = ShellOpts::Parser.new(tokens)
 program = parser.parse
 
-puts
-program.dump(format: :rspec)
-puts
-program.dump(format: :debug)
+analyzer = ShellOpts::Analyzer.new(program)
+analyzer.analyze
+
+#puts
+#program.dump(format: :rspec)
+#puts
+#program.dump(format: :debug)
 
 __END__
 

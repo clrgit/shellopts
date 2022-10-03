@@ -1,58 +1,5 @@
 
 module ShellOpts
-  class Spec::Node
-    def traverse(*klasses, &block) = do_traverse(Array(klasses).flatten, &block)
-
-
-    def project(*klasses, &block)
-      ...
-      yield(parent, self)
-      ...
-    end
-
-    def traverse_w_stack(*klasses, stack, &block)
-      do_traverse_w_stack(Array(klasses).flatten, stack, &block)
-    end
-
-    def select(*klasses, &block) = do_select(Array(klasses).flatten, &block)
-
-    def find(*klasses, &block) = do_find(Array(klasses).flatten, &block)
-
-  protected
-    def do_traverse(klasses, &block)
-      yield(self) if klasses.empty? || klasses.any? { |klass| self.is_a?(klass) }
-      children.each { |node| node.do_traverse(klasses, &block) }
-    end
-
-    def do_traverse_w_stack(klasses, stack, &block)
-      if klasses.empty? || klasses.any? { |klass| self.is_a?(klass) }
-        yield(self, stack)
-        stack.push self
-        children.each { |node| node.do_traverse_w_stack(klasses, stack, &block) }
-        stack.pop
-      else
-        children.each { |node| node.do_traverse_w_stack(klasses, stack, &block) }
-      end
-    end
-
-    def do_select(klasses, &block)
-      if block_given?
-        do_select.map { |node| yield(node) }
-      else
-        children.select { |node| klasses.any? { |klass| node.is_a?(klass) } }
-      end
-    end
-
-    def do_find(klasses, &block)
-      node = children.find { |node| klasses.any? { |klass| node.is_a?(klass) } }
-      if block_given?
-        yield node
-      else
-        node
-      end
-    end
-  end
-
   class Analyzer
     attr_reader :spec
     attr_reader :idr # Initialized by #analyze
@@ -87,25 +34,32 @@ module ShellOpts
 
     def analyze_briefs
       brief_containers = accepts(Spec::Brief)
-      spec.traverse(brief_containers) { |node|
-        node.select(Spec::Brief).size <= 1 or analyzer_error node.token, "Multiple briefs"
+      not_brief_container = lambda { |node| !brief_containers.any? { |k| node.is_a? k } }
+      spec.visit(brief_containers, false) { |node|
+        p spec.preorder([Spec::Brief], not_brief_container).to_a
+        p spec.preorder([Spec::Brief], not_brief_container).to_a.size
+        spec.preorder([Spec::Brief], not_brief_container).to_a.size <= 1 or 
+            analyzer_error node.token, "Multiple brief declarations"
       }
     end
 
     def analyze_arg_descrs
-      arg_descr_containers = accepts(Spec::ArgDescr)
-      spec.traverse(arg_descr_containers) { |node|
-        node.select(Spec::ArgDescr).size <= 1 or analyzer_error node.token, "Multiple argument descriptions"
-      }
+#     arg_descr_containers = accepts(Spec::ArgDescr)
+#     spec.traverse(arg_descr_containers) { |node|
+#       node.select_children(Spec::ArgDescr).size <= 1 or analyzer_error node.token, "Multiple argument descriptions"
+#     }
     end
 
     def analyze_commands
-      stack = [spec] # Because the top-level spec node is a Program object
-
-      spec.traverse_w_stack([Spec::Program, Spec::Command], stack) { |node, stack|
-        node.supercommand = stack.last
-        stack.last.subcommands << node if stack.last
-      }
+#     p 1
+#     spec.project(Spec::CommandGroup) { |parent, node|
+#       if parent
+#         node.supercommand = parent
+#         parent.subcommands << node
+#       end
+#
+#     }
+#
 
 
 

@@ -16,6 +16,11 @@ describe "ShellOpts" do
     analyzer.analyze
   end
 
+  def dump_command(node)
+    puts node.name
+    indent { node.subcommands.each { |subcommand| dump_command(subcommand) } }
+  end
+
   describe "Analyzer" do
     describe "#analyze" do
       it "does something"
@@ -65,8 +70,7 @@ describe "ShellOpts" do
           cmd2!
         )
         compile s
-
-        p spec.subcommands
+        dump_command(spec)
       end
     end
   end

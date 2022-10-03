@@ -10,7 +10,7 @@ module ShellOpts
   # and the rest of the documentatin as its description
   #
   module Spec
-    class Node
+    class Node < Tree::Tree
       attr_reader :parent
       attr_reader :children # Array of child Node objects
       attr_reader :token
@@ -61,6 +61,7 @@ module ShellOpts
     end
 
     class Program < Definition
+      def name = token.value
       attr_reader :subcommands
 
       def initialize(token)
@@ -237,6 +238,7 @@ module ShellOpts
     # An option can be attached to a OptionSubGroup or a Command.
     # #option_subgroup and #option_group returns nil in the last case
     class Option < Node
+      def name = token.value.sub(/^-+/, "")
       def option_subgroup = parent.is_a?(OptionSubGroup) ? parent : nil
       def option_group = option_subgroup&.option_group
       def brief = find(Brief) || option_subgroup&.brief
@@ -261,6 +263,7 @@ module ShellOpts
     end
 
     class Command < Node
+      def name = token.value.sub(/^(?:.*\.)?(.*)!$/, '\1')
       alias_method :command_group, :parent
       def brief = find(Brief) || command_group.brief
       def arg_descr = find(ArgDescr) || command_group.arg_descr

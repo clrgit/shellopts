@@ -6,6 +6,16 @@ describe "Tree" do
       super(parent)
       @name = name
     end
+
+    def sig = name + (empty? ? "" : "(#{children.map(&:sig).join(',')})")
+  end
+
+  class Tree::ProjectedTree
+    def sig = name + (empty? ? "" : "(#{children.map(&:sig).join(',')})")
+  end
+
+  class Tree::Forrest
+    def sig = "(#{children.map(&:sig).join(',')})"
   end
 
   # root
@@ -46,48 +56,66 @@ describe "Tree" do
     end
   end
 
-  describe "#subtrees" do
-    it "returns the matching subtrees" do
-      expect(root.subtrees.map(&:name)).to eq %w(a d)
-      expect(a.subtrees.map(&:name)).to eq %w(b c)
-      expect(e.subtrees.map(&:name)).to eq []
-      expect(root.subtrees(is_vowel).map(&:name)).to eq %w(a e)
-      expect(root.subtrees(is_vowel).map { |node| node.subtrees.to_a }.flatten.map(&:name)).to eq %w(b c)
-    end
-  end
-
   describe "#visit" do
+    let(:acc) { [] }
+    let(:block) { lambda { |node| acc << node.name } }
+
     it "executes block on matching nodes" do
-      a = []
-      root.visit { |node| a << node.name }
-      expect(a).to eq %w(root a b c d e)
+      root.visit(&block)
+      expect(acc).to eq %w(root a b c d e)
+    end
+    context "when :this is false" do
+      it "excludes the root element" do
+        root.visit(this: false, &block)
+        expect(acc).to eq %w(a b c d e)
+      end
+    end
+    context "with a filter" do
+      it "only visits selected nodes" do
+        root.visit(is_vowel, &block)
+        expect(acc).to eq %w(a e)
+      end
     end
   end
 
-  describe "#translate" do
-    it "creates a new tree-like object" do
-      t = root.translate(initial: {}) { |curr, node| curr[node.name] = {} }
-      expect(t).to eq "a" => { "b" => {}, "c" => {} }, "d" => { "e" => {} }
+  describe "#accumulate" do
+    it "computes a value top-down" do
+      v = root.accumulate({}) { |acc, node| acc[node.name] = {} }
+      expect(v).to eq "root"=>{"a"=>{"b"=>{}, "c"=>{}}, "d"=>{"e"=>{}}}
+    end
+  end
+
+  describe "#aggregate" do
+    it "computes a value bottom-up" do
+      i = 0
+      v = root.aggregate { |node, values|
+        i += 1
+        s = "#{i}:#{node.name}"
+        s += ",#{values.join(',')}" if !values.empty?
+        s
+      }
+      expect(v).to eq "6:root,3:a,1:b,2:c,5:d,4:e"
     end
   end
 
   describe "#project" do
+    def root_selector = lambda { |node| [root, a, c, e].include? node }
+    def selector = lambda { |node| [a, c, e].include? node }
+
     it "creates a projection of the tree" do
-      not_c = lambda { |node| node.name != "c" }
-      t = root.project(not_c)
-      expect(t.preorder.map(&:name)).to eq %w(root a b d e)
+      v = root.project(root_selector)
+      expect(v.sig).to eq "root(a(c),e)"
+    end
+    it "returns nil if the top node doesn't match" do
+      v = root.project(selector)
+      expect(v).to eq nil
+    end
+    context "when :this is false" do
+      it "returns a forrest" do
+        v = root.project(selector, this: false)
+        expect(v.sig).to eq "(a(c),e)"
+      end
     end
   end
-
-
-# describe "#traverse" do
-#   context "without arguments" do
-#     it "enumerates all nodes" do
-#       expect(root.traverse.map(&:name)).to eq %w(root a b c d e)
-#       expect(d.traverse.map(&:name)).to eq %(d e)
-#       expect(e.traverse.map(&:name)).to eq []
-#     end
-#   end
-# end
-
 end
+

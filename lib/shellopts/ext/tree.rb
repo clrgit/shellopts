@@ -41,6 +41,14 @@
 #   o Application trees should be split into tree-nodes (with tree algoritms)
 #     and data-nodes (with the data of the node)
 #
+#   o Consider filters a poor-man's project
+#   o Make it possible to chain (or nest) filters
+#   o A tree-adaptor that take two methods so that 
+#       parent = self.send(parent_method)
+#       children = self.send(children_method)
+#     Eg.
+#       tree = Tree::Adaptor(program, :supercommand, :subcommands)
+#
   
 module Tree
   class Filter
@@ -67,8 +75,8 @@ module Tree
     # evaluated
     #
     def initialize(select_expr = true, traverse_expr = true, &block)
-      constrain select_expr, Proc, Symbol, [Class], true
-      constrain traverse_expr, Proc, Symbol, [Class], true, false, nil
+      constrain select_expr, Proc, Symbol, Class, [Class], true
+      constrain traverse_expr, Proc, Symbol, Class, [Class], true, false, nil
       select = mk_lambda(select_expr)
       traverse = mk_lambda(traverse_expr)
       @matcher = 
@@ -77,7 +85,7 @@ module Tree
               case traverse
                 when Proc; lambda { |node| [select.call(node), traverse.call(node)] }
                 when true; lambda { |node| [select.call(node), true] }
-                when false; lambda { |node| select = select.call(node); [select, !select] }
+                when false; lambda { |node| r = select.call(node); [r, !r] }
                 when nil; lambda { |node| select.call(node) }
               end
             when true
@@ -93,21 +101,34 @@ module Tree
     # Match +node+ against the filter and return a [select, traverse] tuple of booleans
     def match(node) = @matcher.call(node)
 
-  protected
     # Create a proc if arg is a Symbol or an Array of classes. Pass through
     # Proc objects, true, false, and nil
-    def mk_lambda(arg)
+    def mk_lambda(arg) = self.class.mk_lambda(arg)
+    def self.mk_lambda(arg)
       case arg
         when Proc, true, false, nil
           arg
         when Symbol
           lambda { |node| node.send(arg) }
+        when Class
+          lambda { |node| node.is_a? arg }
         when Array
           arg.all? { |a| a.is_a? Class } or raise ArgumentError, "Array elements should be classes"
           lambda { |node| arg.any? { |a| node.is_a? a } }
       else
         raise ArgumentError
       end
+    end
+  end
+
+  class Pairs < Enumerator
+    def group
+      h = {}
+      each { |first, last|
+#       puts "#{first&.token&.value}->#{last&.token&.value}"
+        (h[first] ||= []) << last
+      }
+      h.each
     end
   end
 
@@ -141,17 +162,37 @@ module Tree
     # Implementation of Enumerable#inject method
     def inject(default = nil, &block) = preorder.inject(default, &block)
 
-    # Like #each but with filters
-    def filter(*filter, this: true, &block) = raise NotImplementedError
+    # Like #each but with filters. Same as #preorder except is can take a block
+    def filter(*filter, this: true, &block) 
+      filter = self.class.filter(*filter)
+      if block_given?
+        do_filter(nil, filter, this, &block)
+      else
+        Enumerator.new { |enum| do_filter(enum, filter, this) }
+      end
+    end
 
-    # Like #filter but enumerates [previous-matching-node, node] tuples. This
-    # can be used to build projected trees. See also #accumulate
+    # Like #filter but enumerates [previous-matching-node, matching-node]
+    # tuples. This can be used to build projected trees. See also #accumulate
     def edges(*filter, this: true, &block)
       filter = self.class.filter(*filter)
       if block_given?
         do_edges(nil, filter, this, &block)
       else
-        Enumerator.new { |enum| do_edges(enum, filter, this) }
+        Pairs.new { |enum| do_edges(enum, filter, this) }
+      end
+    end
+
+    # Return pairs of nodes where the first node is selected by the filter
+    # and the second node is a descendant of the first node that satisfies the
+    # condition. The second node doesn't have to be matched by the filter
+    def pairs(*filter, cond_expr, this: true, &block)
+      filter = self.class.filter(*filter)
+      cond = Filter.mk_lambda(cond_expr)
+      if block_given?
+        do_pairs(nil, filter, this, cond, &block)
+      else
+        Pairs.new { |enum| do_pairs(enum, filter, this, cond) }
       end
     end
 
@@ -221,14 +262,40 @@ module Tree
         end
         last_match = self
       end
-      children.each { |child| child.do_edges(enum, filter, true, last_match) } if traverse || !this
+      children.each { |child| child.do_edges(enum, filter, true, last_match, &block) } if traverse || !this
+    end
+
+    def do_pairs(enum, filter, this, cond, last_selected = nil, &block)
+      select, traverse = filter.match(self)
+      last_selected = self if this && select
+      children.each { |child| 
+        if last_selected && cond.call(child)
+          if block_given?
+            yield(last_selected, child)
+          else
+            enum << [last_selected, child]
+          end
+        else
+          child.do_pairs(enum, filter, true, cond, last_selected, &block) 
+        end
+      } if traverse || !this
+    end
+
+    def do_filter(enum, filter, this, &block)
+      select, traverse = filter.match(self)
+      if this && select
+        if block_given?
+          yield self
+        else
+          enum << self
+        end
+      end
+      children.each { |child| child.do_filter(enum, filter, true, &block) } if traverse || !this
     end
 
     def do_preorder(enum, filter, this)
-      if this
-        select, traverse = filter.match(self)
-        enum << self if select
-      end
+      select, traverse = filter.match(self)
+      enum << self if this && select
       children.each { |child| child.do_preorder(enum, filter, true) } if traverse || !this
     end
 
@@ -258,6 +325,7 @@ module Tree
   # A regular tree. Users of this library should derived their base node class
   # from Tree
   #
-  class Tree < AbstractTree; end
+  class Tree < AbstractTree
+  end
 end
 

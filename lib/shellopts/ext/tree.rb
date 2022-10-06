@@ -49,9 +49,9 @@ module Tree
     # the enumerator) and a traverse expression that decides if the children
     # nodes should be traversed recursively
     #
-    # The expressions can be a Proc, Symbol, or a Class. In addition, the
-    # +select+ can also be true, and +traverse+ can be true, false, or nil.
-    # True, false, and nil have special meanings:
+    # The expressions can be a Proc, Symbol, or an array of classes. In
+    # addition, the +select+ can also be true, and +traverse+ can be true,
+    # false, or nil. True, false, and nil have special meanings:
     #
     #   when +select+ is
     #     true    Select always. This is the default
@@ -67,42 +67,44 @@ module Tree
     # evaluated
     #
     def initialize(select_expr = true, traverse_expr = true, &block)
-      constrain select_expr, Proc, true
-      constrain traverse_expr, Proc, true, false, nil
+      constrain select_expr, Proc, Symbol, [Class], true
+      constrain traverse_expr, Proc, Symbol, [Class], true, false, nil
+      select = mk_lambda(select_expr)
+      traverse = mk_lambda(traverse_expr)
       @matcher = 
-          case select_expr
+          case select
+            when Proc
+              case traverse
+                when Proc; lambda { |node| [select.call(node), traverse.call(node)] }
+                when true; lambda { |node| [select.call(node), true] }
+                when false; lambda { |node| select = select.call(node); [select, !select] }
+                when nil; lambda { |node| select.call(node) }
+              end
             when true
-              case traverse_expr
-                when Proc; lambda { |node| [true, traverse_expr.call(node)] }
+              case traverse
+                when Proc; lambda { |node| [true, traverse.call(node)] }
                 when true; lambda { |_| [true, true] }
                 when false; lambda { |_| [true, false] } # effectively same as #children.each
                 when nil; raise ArgumentError
               end
-            when Proc
-              case traverse_expr
-                when Proc; lambda { |node| [select_expr.call(node), traverse_expr.call(node)] }
-                when true; lambda { |node| [select_expr.call(node), true] }
-                when false; lambda { |node| select = select_expr.call(node); [select, !select] }
-                when nil; lambda { |node| select_expr.call(node) }
-              end
           end
     end
 
-    # Match +node+ against the filter and return a [select, traverse] tuple of bools
+    # Match +node+ against the filter and return a [select, traverse] tuple of booleans
     def match(node) = @matcher.call(node)
 
   protected
+    # Create a proc if arg is a Symbol or an Array of classes. Pass through
+    # Proc objects, true, false, and nil
     def mk_lambda(arg)
       case arg
-        when Proc
+        when Proc, true, false, nil
           arg
         when Symbol
           lambda { |node| node.send(arg) }
         when Array
           arg.all? { |a| a.is_a? Class } or raise ArgumentError, "Array elements should be classes"
           lambda { |node| arg.any? { |a| node.is_a? a } }
-        when true, false
-          lambda { |_| arg }
       else
         raise ArgumentError
       end
@@ -142,9 +144,16 @@ module Tree
     # Like #each but with filters
     def filter(*filter, this: true, &block) = raise NotImplementedError
 
-    # Like #filter but block is called with a [previous-matching-node, node]
-    # tuple. This can be used to build projected trees. See also #accumulate
-    def pairs(*filter, this: true, &block) = raise NotImplementedError
+    # Like #filter but enumerates [previous-matching-node, node] tuples. This
+    # can be used to build projected trees. See also #accumulate
+    def edges(*filter, this: true, &block)
+      filter = self.class.filter(*filter)
+      if block_given?
+        do_edges(nil, filter, this, &block)
+      else
+        Enumerator.new { |enum| do_edges(enum, filter, this) }
+      end
+    end
 
     # Pre-order enumerator of selected nodes
     def preorder(*filter, this: true)
@@ -190,8 +199,7 @@ module Tree
     def find(*filter, &block) = descendants(*filter).first(&block)
 
     # Create a Tree::Filter object. Can also take an existing filter as
-    # argument in which case the filter will just be returned. This is for the
-    # developers convenience
+    # argument in which case the given filter will just be passed through
     def self.filter(*args)
       if args.first.is_a?(Filter)
         args.size == 1 or raise ArgumentError
@@ -202,6 +210,20 @@ module Tree
     end
 
   protected
+    # +enum+ is unused (and unchecked) if a block is given
+    def do_edges(enum, filter, this, last_match = nil, &block)
+      select, traverse = filter.match(self)
+      if this && select
+        if block_given?
+          yield(last_match, self)
+        else
+          enum << [last_match, self]
+        end
+        last_match = self
+      end
+      children.each { |child| child.do_edges(enum, filter, true, last_match) } if traverse || !this
+    end
+
     def do_preorder(enum, filter, this)
       if this
         select, traverse = filter.match(self)

@@ -26,6 +26,28 @@ describe "Tree" do
 
   let(:is_vowel) { lambda { |node| %w(a e i o u).include? node.name } }
 
+  describe "#edges" do
+    context "without arguments" do
+      it "returns connected pairs of nodes" do
+        pairs = a.edges.map { |from, to| "#{from&.name || 'nil'}->#{to.name}" }
+        expect(pairs).to eq %w(nil->a a->b a->c)
+      end
+    end
+    context "when this is false" do
+      it "excludes the root element" do
+        pairs = a.edges(this: false).map { |from, to| "#{from&.name || 'nil'}->#{to.name}" }
+        expect(pairs).to eq %w(nil->b nil->c)
+      end
+    end
+    context "with a filter" do
+      it "returns pairs of matching nodes" do
+        l = lambda { |node| %w(root c e).include? node.name }
+        pairs = root.edges(l).map { |from, to| "#{from&.name || 'nil'}->#{to.name}" }
+        expect(pairs).to eq %w(nil->root root->c root->e)
+      end
+    end
+  end
+
   describe "#preorder" do
     context "without arguments" do
       it "enumerates all nodes" do

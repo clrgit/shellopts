@@ -10,14 +10,6 @@ describe "Tree" do
     def sig = name + (empty? ? "" : "(#{children.map(&:sig).join(',')})")
   end
 
-  class Tree::ProjectedTree
-    def sig = name + (empty? ? "" : "(#{children.map(&:sig).join(',')})")
-  end
-
-  class Tree::Forrest
-    def sig = "(#{children.map(&:sig).join(',')})"
-  end
-
   # root
   #   a
   #     b
@@ -95,26 +87,6 @@ describe "Tree" do
         s
       }
       expect(v).to eq "6:root,3:a,1:b,2:c,5:d,4:e"
-    end
-  end
-
-  describe "#project" do
-    def root_selector = lambda { |node| [root, a, c, e].include? node }
-    def selector = lambda { |node| [a, c, e].include? node }
-
-    it "creates a projection of the tree" do
-      v = root.project(root_selector)
-      expect(v.sig).to eq "root(a(c),e)"
-    end
-    it "returns nil if the top node doesn't match" do
-      v = root.project(selector)
-      expect(v).to eq nil
-    end
-    context "when :this is false" do
-      it "returns a forrest" do
-        v = root.project(selector, this: false)
-        expect(v.sig).to eq "(a(c),e)"
-      end
     end
   end
 end

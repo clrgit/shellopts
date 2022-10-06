@@ -102,19 +102,11 @@ module Tree
           arg.all? { |a| a.is_a? Class } or raise ArgumentError, "Array elements should be classes"
           lambda { |node| arg.any? { |a| node.is_a? a } }
         when true, false
-          lambda { |node| arg }
+          lambda { |_| arg }
       else
         raise ArgumentError
       end
     end
-  end
-
-  class SelectFilter < Filter
-    def initialize(select_expr)
-      @matcher = mk_lambda(select_expr)
-    end
-
-    def match(node) = @matcher.call(node)
   end
 
   class AbstractTree
@@ -123,12 +115,6 @@ module Tree
 
     # List of child nodes
     attr_reader :children
-
-    # An abstract method that gives access to the user-defined node (derived
-    # from Tree). It is used to make the algorithms work on both regular trees
-    # and projected trees. It is not defined on forrest objects (but on the
-    # contained trees)
-    def node = abstract_method
 
     # Create a new node and attach it to the parent
     def initialize(parent)
@@ -157,7 +143,7 @@ module Tree
     def filter(*filter, this: true, &block) = raise NotImplementedError
 
     # Like #filter but block is called with a [previous-matching-node, node]
-    # tuple. This can be used to build projected trees
+    # tuple. This can be used to build projected trees. See also #accumulate
     def pairs(*filter, this: true, &block) = raise NotImplementedError
 
     # Pre-order enumerator of selected nodes
@@ -173,14 +159,6 @@ module Tree
     # :this set to false
     def descendants(*filter) = preorder(filter, this: false)
 
-    # Execute block on selected nodes and traverse children if block returns
-    # truthy. The block may have side-effects
-#   def traverse(select = true, this: true, &block)
-#     filter = self.class.select_filter(select)
-#     do_traverse(filter, this, &block)
-#     preorder(select, block, this: this).each
-#   end
-
     # Execute block on selected nodes. Effectively the same as
     # 'preorder(...).each(&block)' but faster as it doesn't create an
     # Enumerator
@@ -193,7 +171,8 @@ module Tree
     # Traverse the tree top-down while accumulating information in an accumulator
     # object. The block takes a [accumulator, node] tuple and is responsible
     # for adding itself to the accumulator. The return value from the block is
-    # then used as the accumulator for the child nodes
+    # then used as the accumulator for the child nodes. Returns the original
+    # accumulator. See also #inject
     def accumulate(*filter, accumulator, this: true, &block)
       filter = self.class.filter(*filter)
       block_given? or raise ArgumentError, "Block is required"
@@ -201,32 +180,10 @@ module Tree
       accumulator
     end
 
-    # tree.filter(Term).map_reduce { |node, values| } # node can be nil
-    # tree.filter(Term).map_reduce(scoped: true) { ... }
-    #
     # Traverse the tree bottom-up while aggregating information
     def aggregate(*filter, this: true, &block)
       filter = self.class.filter(*filter)
       do_aggregate(filter, this, &block)
-    end
-
-    # Creates a projection of the tree with only the nodes selected by the
-    # filter
-    #
-    # If :this is true, it returns a projected tree or nil if self doesn't
-    # match. If :this is false, it returns a (possibly empty) forrest object
-    #
-    # TODO: Maybe the wrong name - compare to 'select/project' in relational
-    # databases
-    def project(*filter, this: true)
-      filter = self.class.filter(*filter)
-      select, traverse = filter.match(node)
-      return nil if this && !select
-      initial = this ? ProjectedTree.new(nil, self) : Forrest.new
-      do_accumulate(filter, false, initial) { |parent, node|
-        ProjectedTree.new(parent, node)
-      }
-      initial
     end
 
     # Find first node that matches the filter and that returns truthy from the block
@@ -244,34 +201,24 @@ module Tree
       end
     end
 
-    # Create a Tree::SelectFilter. Pass-through filter object if given as argument
-    def self.select_filter(select_expr, &block)
-      if args.first.is_a?(Filter)
-        args.size == 1 or raise ArgumentError
-        args.first
-      else
-        SelectFilter.new(select_expr) 
-      end
-    end
-
   protected
     def do_preorder(enum, filter, this)
       if this
-        select, traverse = filter.match(node)
-        enum << node if select
+        select, traverse = filter.match(self)
+        enum << self if select
       end
       children.each { |child| child.do_preorder(enum, filter, true) } if traverse || !this
     end
 
     def do_visit(filter, this, &block)
-      select, traverse = filter.match(node)
-      yield(node) if this && select
+      select, traverse = filter.match(self)
+      yield(self) if this && select
       children.each { |child| child.do_visit(filter, true, &block) } if traverse || !this
     end
 
     def do_accumulate(filter, this, acc, &block)
-      select, traverse = filter.match(node)
-      acc = yield(acc, node) if this && select
+      select, traverse = filter.match(self)
+      acc = yield(acc, self) if this && select
       children.each { |child| child.do_accumulate(filter, true, acc, &block) } if traverse || !this
     end
 
@@ -279,7 +226,7 @@ module Tree
       select, traverse = filter.match(self)
       values = traverse ? children.map { |child| child.do_aggregate(filter, true, &block) } : []
       if select
-        yield(node, values) #if select
+        yield(self, values) #if select
       else
         values
       end
@@ -289,96 +236,6 @@ module Tree
   # A regular tree. Users of this library should derived their base node class
   # from Tree
   #
-  class Tree < AbstractTree
-    def node = self
-  end
-
-  # The #parent and #children methods in the projected tree refers
-  # to the nodes in the new tree and not the old tree. The ProjectedTree#node
-  # method can be used to access the original node
-  #
-  # Projected trees acts like cached selections of nodes and can be used to
-  # avoid repeated searches down through the hierarchy of nodes
-  #
-  class ProjectedTree < AbstractTree
-    attr_reader :node
-
-    def initialize(parent, node)
-      super(parent)
-      @node = node
-    end
-
-    def method_missing(method, *args, &block) = node.send(method, *args, &block)
-  end
-
-  # A Forrest is a special kind of Tree where the top node can't be accessed,
-  # effectively turning it into a container of trees (aka. "forrest"). It is
-  # derived from AbstractTree but its methods has no working :this argument -
-  # the methods fail if it is not +false+
-  #
-  # The value of :this is checked dynamically to allow AbstractTree to use
-  # derived methods in Forrest (eg. AbstractTree#map calls Forrest#preorder)
-  #
-  # It is used as root node for projected trees when there is no single parent
-  # of the selection
-  #
-  # TODO Derive from ProjectedTree
-  #
-  class Forrest < AbstractTree
-    def node = raise ArgumentError, "#node is not defined on a Forrest object"
-
-    def filter(*filter, this: false)
-      constrain this, false
-      super(*filter, this: false)
-    end
-
-    def preorder(*filter, this: false)
-      constrain this, false
-      super(*filter, this: false)
-    end
-
-    def postorder(*filter)
-      constrain this, false
-      super(*filter, this: false)
-    end
-
-    def visit(*filter, this: false, &block)
-      constrain this, false
-      super(*filter, this: false, &block)
-    end
-
-    def accumulate(*filter, initial: nil, this: false, &block)
-      constrain this, false
-      super(*filter, this: false, initial: initial, &block)
-    end
-
-    def aggregate(*filter, this: false, &block)
-      constrain this, false
-      super(*filter, this: false, &block)
-    end
-
-    def project(*filter, this: false)
-      constrain this, false
-      super(*filter, this: false)
-    end
-
-    def initialize()
-      super(nil)
-    end
-
-    # def project(*filter) # TODO Short-cut 
-    # def forrest(*filter) # TODO Short-cut
-  end
+  class Tree < AbstractTree; end
 end
-
-
-
-
-
-
-
-
-
-
-
 

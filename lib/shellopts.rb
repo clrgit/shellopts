@@ -69,6 +69,7 @@ require_relative 'shellopts/parser.rb'
 require_relative 'shellopts/analyzer.rb'
 
 require_relative 'shellopts/formatters/spec.rb'
+require_relative 'shellopts/formatters/grammar.rb'
 
 __END__
 require 'indented_io'

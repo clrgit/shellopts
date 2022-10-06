@@ -5,7 +5,15 @@ $LOAD_PATH.unshift "#{Dir.getwd}/lib"
 require 'shellopts'
 
 spec = %(
-  cmd! -a
+  cmd1!
+    cmd11!
+
+    cmd12!
+      cmd121!
+
+  cmd2!
+  cmd2.cmd21!
+  cmd2.cmd22.cmd221!
 )
 
 lexer = ShellOpts::Lexer.new("main", spec)
@@ -15,6 +23,7 @@ tokens = lexer.lex
 puts
 parser = ShellOpts::Parser.new(tokens)
 program = parser.parse
+#program.dump
 
 analyzer = ShellOpts::Analyzer.new(program)
 analyzer.analyze

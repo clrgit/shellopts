@@ -22,10 +22,10 @@ module ShellOpts
       @tokens = TokenQueue.new tokens
     end
 
-    # Parse tokens and return stack.top-level Spec::Program object
+    # Parse tokens and return Spec::Spec object
     def parse
-      parse_program
-      @program
+      parse_spec
+      @spec
     end
 
   protected
@@ -60,9 +60,14 @@ module ShellOpts
       end
     end
 
+    def parse_spec
+      @spec = Spec::Spec.new(tokens.shift) # Also creates a command group with a program object
+      parse_program(@spec)
+    end
+
     def parse_section(parent)
       constrain parent, Spec::Description
-      parent.definition.is_a?(Spec::Program) or parser_error token, "Sections can't be nested"
+      parent.definition.is_a?(Spec::Spec) or parser_error token, "Sections can't be nested"
       
       defn = Spec::Definition.new(parent, token)
       if Lexer::SECTION_ALIASES.key? token.value
@@ -79,16 +84,11 @@ module ShellOpts
     end
 
     def parse_subsection(parent)
-      !parent.definition.is_a?(Spec::Program) or parser_error token, "Subsections can't be on the top level"
+      !parent.definition.is_a?(Spec::Spec) or parser_error token, "Subsections can't be on the top level"
       defn = Spec::Definition.new(parent, token)
       section = Spec::SubSection.new(defn, tokens.shift, nil)
       tokens.consume(:blank, nil, token.charno)
       parse_description(defn, breakon: [:section, :subsection])
-    end
-
-    def parse_program
-      @program = Spec::Program.new(tokens.shift) # Also creates a subject
-      parse_description(@program)
     end
 
     def parse_description(parent, breakon: nil)
@@ -141,7 +141,7 @@ module ShellOpts
     end
 
     def parse_option(parent)
-      defn = Spec::Definition.new(parent, token)
+      defn = Spec::OptionDefinition.new(parent, token)
       parse_option_group(defn)
       parse_description(defn)
     end
@@ -158,8 +158,14 @@ module ShellOpts
     end
 
     def parse_command(parent)
-      defn = Spec::Definition.new(parent, token)
+      defn = Spec::CommandDefinition.new(parent, token)
       parse_command_group(defn)
+      parse_description(defn)
+    end
+
+    def parse_program(defn)
+      group = Spec::CommandGroup.new(defn, defn.token)
+      command = Spec::Program.new(group, defn.token)
       parse_description(defn)
     end
 

@@ -253,7 +253,6 @@ describe "Lexer" do
         Text
       )
       expect(make src, fields: :kind).to eq [:option, :bullet, :text, :text]
-      
     end
 
     it "removes in-line comments from declarations" do

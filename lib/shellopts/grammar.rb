@@ -20,6 +20,9 @@ module ShellOpts
       # Parent command object or nil if this is the Program node
       alias_method :command, :parent
 
+      # Associated Spec node
+      attr_reader :spec
+
       # Display-name of object (String). Defaults to #ident with special
       # characters removed
       def name = ident.to_s
@@ -40,12 +43,13 @@ module ShellOpts
 
       # UID of object. This can be used in Node::[] to get the object
       def uid
-        case ident
-          when Symbol; [parent.uid, ident].join(".").sub(/!\./, ".")
-          when Integer; "#{parent.uid}[#{ident}]"
-        else
-          raise InternalError
-        end
+        @uid ||= 
+            case ident
+              when Symbol; [parent.uid, ident].join(".").sub(/!\./, ".")
+              when Integer; "#{parent.uid}[#{ident}]"
+            else
+              raise InternalError
+            end
       end
 
       # Associated Doc::Node object. Initialized by the parser
@@ -54,9 +58,10 @@ module ShellOpts
       # The associated token. A shorthand for +doc.token+
       forward_to :doc, :token
 
-      def initialize(parent, ident)
+      def initialize(parent, ident, spec: nil)
         constrain parent, *(self.class <= Program ? [nil] : [Option, Command, ArgSpec])
         constrain ident, *(self.class <= ArgSpec || self.class <= Arg ? [Symbol, Integer] : [Symbol])
+        constrain spec, Spec::Node, nil
         @ident = ident
         @children = {}
         parent&.send(:attach, self)
@@ -64,10 +69,12 @@ module ShellOpts
       end
 
       # Return true if node has a child node identified by the given ident
-      def key?(ident) children.find { |c| c.ident == ident } && true end
+      # FIXME: conflicts with forward_to 
+#     def key?(ident) children.find { |c| c.ident == ident } && true end
 
       # Access child nodes by identifier
-      def [](ident) children.find { |c| c.ident == ident } end
+      # FIXME: conflicts with forward_to 
+#     def [](ident) children.find { |c| c.ident == ident } end
 
       # Access node by relative UID. Eg. main.dot(option_name) or main.dot("[3].FILE")
       def dot(relative_uid) = Node[[self.uid, relative_uid].compact.join(".").sub("!.", ".")]
@@ -106,10 +113,10 @@ module ShellOpts
         @chidren.first
       end
 
-      def initialize(parent, ident, short_idents, long_idents)
-        p parent
+      def initialize(parent, ident, short_idents, long_idents, **opts)
         constrain parent, Command
-        super(parent, ident)
+        constrain ident, Symbol, String
+        super(parent, ident, **opts)
         constrain short_idents, [Symbol]
         constrain long_idents, [Symbol]
         constrain short_idents.include?(ident) || long_idents.include?(ident)
@@ -127,9 +134,9 @@ module ShellOpts
       def commands = children.select { |c| c.is_a? Command }
       def specs = children.select { |c| c.is_a? ArgSpec }
 
-      def initialize(parent, ident, idents)
+      def initialize(parent, ident, idents = [ident], **opts)
         constrain parent, (self.class == Program ? nil : Command)
-        super(parent, ident)
+        super(parent, ident, **opts)
         constrain idents, [Symbol]
         constrain idents.include?(ident) # Same semantics as Option
         @idents = idents
@@ -141,8 +148,8 @@ module ShellOpts
       attr_reader :name
       def uid = nil # To not prefix UID with program name in every Grammar class
 
-      def initialize(name: nil)
-        super(nil, self.ident, [self.ident])
+      def initialize(name: nil, **opts)
+        super(nil, self.ident, [self.ident], **opts)
         @name = name || File.basename($PROGRAM_NAME)
       end
     end
@@ -152,17 +159,17 @@ module ShellOpts
 
       # Note that +ident+ can be nil, if so it defaults to the index into the
       # parent's #args array
-      def initialize(parent, ident)
-        super(parent, ident || parent.spec.size)
+      def initialize(parent, ident, **opts)
+        super(parent, ident || parent.spec.size, **opts)
       end
     end
 
     class Arg < Node
       attr_reader :arg
 
-      def intialize(parent, ident, arg)
+      def intialize(parent, ident, arg, **opts)
         constrain parent, Command, Option
-        super(parent, ident)
+        super(parent, ident, **opts)
         @arg = arg
       end
     end

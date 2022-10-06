@@ -33,24 +33,124 @@ module ShellOpts
     end
 
     def analyze_briefs
-      brief_containers = accepts(Spec::Brief)
-      not_brief_container = lambda { |node| !brief_containers.any? { |k| node.is_a? k } }
-      spec.visit(brief_containers, false) { |node|
-        p spec.preorder([Spec::Brief], not_brief_container).to_a
-        p spec.preorder([Spec::Brief], not_brief_container).to_a.size
-        spec.preorder([Spec::Brief], not_brief_container).to_a.size <= 1 or 
-            analyzer_error node.token, "Multiple brief declarations"
+      spec.pairs(Spec::Definition, Spec::Brief).group.each { |_, children|
+        children.size <= 1 or analyzer_error children[1].token, "Multiple brief declarations"
       }
     end
 
     def analyze_arg_descrs
-#     arg_descr_containers = accepts(Spec::ArgDescr)
-#     spec.traverse(arg_descr_containers) { |node|
-#       node.select_children(Spec::ArgDescr).size <= 1 or analyzer_error node.token, "Multiple argument descriptions"
-#     }
+      spec.pairs(Spec::Definition, Spec::ArgDescr).group.each { |_, children|
+        children.size <= 1 or analyzer_error children[1].token, "Multiple argument descriptions"
+      }
     end
 
+    # TODO Check that commands are not nested within options
+    # TODO Check that command groups with more than one command does not have nested commands
+
     def analyze_commands
+      
+
+#     spec.dump
+#     exit
+
+
+#     cmds = spec.filter(Spec::Command).to_a
+
+      # Link up commands. Note that dotted commands are not resolved
+      spec.edges(Spec::Command) { |sup, sub|
+        sup.subcommands << sub if sup
+        sub.supercommand = sup
+      }
+
+      spec.pairs(Spec::CommandDefinition, Spec::Command) { |f,l|
+        puts "[#{f.token.value}(#{f.class.name}), #{f.token.value}(#{l.class.name})]"
+      }
+
+
+      grammar = Grammar::Program.new(name: spec.name)
+      spec.accumulate(Spec::CommandDefinition, grammar) { |acc, defn|
+        cmds = defn.subject.commands
+        new_acc = acc
+        cmds.each { |cmd| 
+          ident = "#{cmd.name}!".to_sym
+          new_acc = Grammar::Command.new(acc, ident, spec: cmd) 
+        }
+        new_acc
+      }
+
+      puts
+      grammar.dump
+      exit
+
+      spec.pairs(Spec::CommandDefinition, Spec::Command) { |defn, cmd|
+      }
+
+
+
+      spec.dump
+      exit
+
+      # Create grammar and link back and forth between Grammar and Spec objects
+      grammar = Grammar::Program.new(name: spec.name)
+      finalized = {} # Keeps track of commands not created as part of a dotted command
+
+      puts ">>>>>>>>>>>>>>>>"
+      spec.accumulate(Spec::CommandGroup, grammar) { |acc, defn|
+        cmds = defn.commands
+
+        cmds.each { |cmd|
+          dot_acc = acc
+          names = cmd.token.value.sub(/!$/, "").split(".")
+          while name = names.shift
+            ident = "#{name}!".to_sym
+            dot_acc = dot_acc[ident] || Grammar::Command.new(dot_acc, ident, spec: cmd)
+          end
+          !finalized.key?(dot_acc.uid) or analyzer_error cmd.token, "Duplicate command definition"
+          finalized[dot_acc.uid] = dot_acc
+          cmd.command = dot_acc
+#         acc = dot_acc
+        }
+        acc
+      }
+
+#     spec.accumulate(Spec::Command, grammar, this: false) { |acc, cmd|
+#       puts ">> #{cmd.token.value}"
+#       names = cmd.token.value.sub(/!$/, "").split(".")
+#       while name = names.shift
+#         ident = "#{name}!".to_sym
+#         acc = acc[ident] || Grammar::Command.new(acc, ident, spec: cmd)
+#       end
+#       !finalized.key?(acc.uid) or analyzer_error cmd.token, "Duplicate command definition"
+#       finalized[acc.uid] = acc
+#       cmd.command = acc
+#     }
+
+      grammar.dump
+      exit
+
+
+p :BING
+      # Fix dotted commands
+
+      cmds.each { |cmd| 
+        names = cmd.token.value.split(".")
+        if names.size > 1
+          p names
+        end
+      }
+#     exit
+#
+#     # Link up commands
+#     spec.edges(Spec::Command, true) { |sup, sub|
+#       sup.subcommands << sub if sup
+#       sub.supercommand = sup
+#     }
+#
+#     # Build command lookup
+#     spec.visit(Spec::Command) { |cmd|
+#       
+#     }
+
 #     p 1
 #     spec.project(Spec::CommandGroup) { |parent, node|
 #       if parent

@@ -124,10 +124,7 @@ module Tree
   class Pairs < Enumerator
     def group
       h = {}
-      each { |first, last|
-#       puts "#{first&.token&.value}->#{last&.token&.value}"
-        (h[first] ||= []) << last
-      }
+      each { |first, last| (h[first] ||= []) << last }
       h.each
     end
   end
@@ -306,9 +303,16 @@ module Tree
     end
 
     def do_accumulate(filter, this, acc, &block)
+#     puts "#do_accumulate -> #{self.token.value} (#{self.class.name})"
       select, traverse = filter.match(self)
+#     puts "  this: #{this}"
+#     puts "  select: #{select}"
+#     puts "  traverse: #{traverse}"
+#     puts "  children.size: #{children.size}"
       acc = yield(acc, self) if this && select
-      children.each { |child| child.do_accumulate(filter, true, acc, &block) } if traverse || !this
+      children.each { |child| 
+#       puts "    #{child.token.value}"
+        child.do_accumulate(filter, true, acc, &block) } if traverse || !this
     end
 
     def do_aggregate(filter, this, &block)
@@ -327,5 +331,17 @@ module Tree
   #
   class Tree < AbstractTree
   end
+
+# class TreeAdapter < AbstractTree
+#   attr_reader :parent_method
+#   attr_reader :children_method
+#   def parent = self.send(parent_method)
+#   def children = self.send(children_method)
+#
+#   def initialize(root, parent_method, children_method)
+#     @parent_method = parent_method
+#     @children_method = children_method
+#   end
+# end
 end
 

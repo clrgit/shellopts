@@ -16,11 +16,11 @@ describe "Parser" do
     StringIO.redirect(:stdout) { node.dump(format: :rspec) }
   end
 
-  # Parse 's' and check that the result matches 'r'. The parsed result has the
-  # initial "main" removed to save some repeated typing
+  # Parse 's' and check that the result matches 'r'. #check removes the first
+  # two lines that contain the 'main' declaration to save some typing
   def check(s, r)
-    parse(s).sub(/^main\s*\n/, "")
-    expect(undent parse(s).sub(/^main\s*\n/, "")).to eq undent r
+    s = parse(s).sub(/^.*?\n.*?\n/, "")
+    expect(undent s).to eq undent r
   end
 
   describe "#parse" do
@@ -115,13 +115,17 @@ describe "Parser" do
     end
 
     context "commands" do
-      it "creates a command group and subgroup around a command" do
+      it "creates a command group around a command" do
         s = %(
           cmd1!
+
+          cmd2!
         )
         check s, %(
           group
             cmd1!
+          group
+            cmd2!
         )
       end
       it "creates a command group around a multi-line list of commands" do

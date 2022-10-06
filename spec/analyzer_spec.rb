@@ -14,6 +14,7 @@ describe "ShellOpts" do
     @spec = parser.parse
     analyzer = Analyzer.new(spec)
     analyzer.analyze
+    @spec
   end
 
   def dump_command(node)
@@ -61,16 +62,38 @@ describe "ShellOpts" do
     end
 
     describe "#analyze_commands" do
-      it "finds the hierarchy of commands" do
+      it "links up commands" do
         s = %(
           cmd1!
             cmd11!
             cmd12!
-              cmd 121!
+              cmd121!
           cmd2!
         )
-        compile s
-        dump_command(spec)
+        spec = compile s
+        spec.visit(Spec::Command) { |cmd|
+          expect(cmd.supercommand.nil? || cmd.supercommand.subcommands.include?(cmd)).to eq true
+        }
+      end
+      it "checks for duplicate command names" do
+        s = %(
+          cmd1!
+            cmd1!
+        )
+        expect { compile s }.not_to raise_error
+
+        s = %(
+          cmd1!
+          cmd1!
+        )
+        expect { compile s }.to raise_error AnalyzerError
+
+        s = %(
+          cmd1!
+            cmd1!
+            cmd1!
+        )
+        expect { compile s }.to raise_error AnalyzerError
       end
     end
   end

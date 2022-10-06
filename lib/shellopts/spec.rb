@@ -6,21 +6,18 @@ module ShellOpts
   # subject and a definition of that subject that can contain other
   # definitions. Subjects are commands, options, sections, and list items
   #
-  # The top-level node is a Program definition with a ProgramSection as subject
-  # and the rest of the documentatin as its description
+  # The top-level node is a Spec definition with a command group of exactly one
+  # Program element as subject
   #
   module Spec
     class Node < Tree::Tree
-      attr_reader :parent
-      attr_reader :children # Array of child Node objects
       attr_reader :token
 
       def initialize(parent, token, check: true)
         constrain parent, Node, nil
         constrain token, Token
+        super(parent)
         @token = token
-        @children = []
-        parent&.send(:attach, self)
       end
 
       def accept?(klass) = self.class.accepts.include?(klass) 
@@ -30,24 +27,6 @@ module ShellOpts
       # is used in #attach to check the type of the node
       def self.accepts = []
       def accepts = self.class.accepts
-
-      # Attach a node to self and set node's parent. There is currently no
-      # #detach method
-      def attach(node, check: true)
-        if check && !accepts.any? { |klass| node.is_a? klass } 
-          raise Constrain::MatchError.new(
-              nil, nil, message: "Can't attach a #{node.class.name} to a #{self.class.name}")
-        end
-        constrain accepts.any? { |klass| node.is_a? klass } if check
-        @children << node
-        node.instance_variable_set(:@parent, self)
-      end
-
-      # Shorthand when there is only one child
-      def child
-        constrain children.size, 1
-        children.first
-      end
     end
 
     class Definition < Node
@@ -60,17 +39,22 @@ module ShellOpts
       def self.accepts = [Subject, Description]
     end
 
-    class Program < Definition
+    class Spec < Definition
       def name = token.value
-      attr_reader :subcommands
+      def program = subject.commands.first
 
       def initialize(token)
         constrain token.kind, :program
         super nil, token
-        @subcommands = []
-        Spec::ProgramSection.new(self, token)
       end
     end
+
+    class CommandDefinition < Definition
+    end
+
+    class OptionDefinition < Definition
+    end
+
 
     # A subject is something that can be described. It always belongs to a
     # description that in turn always has a description
@@ -223,6 +207,7 @@ module ShellOpts
 
     class OptionGroup < Group
       def brief = description.find(Brief)
+      def options = @options = filter(Command).to_a
 
       # Does not include Brief because it can't be attached directly to a
       # OptionGroup but belongs in the description
@@ -243,6 +228,12 @@ module ShellOpts
       def option_group = option_subgroup&.option_group
       def brief = find(Brief) || option_subgroup&.brief
 
+      # Associated Grammar::Command object. Initialized by the analyzer
+      attr_accessor :command 
+
+      # Associated Grammar::Option object. Initialize by the analyzer
+      attr_accessor :option
+
       def initialize(parent, token, check: false)
         constrain parent, OptionSubGroup, Command
         super(parent, token, check: check)
@@ -255,7 +246,7 @@ module ShellOpts
     class CommandGroup < Group
       def brief = description.find(Brief)
       def arg_descr = description.find(ArgDescr)
-      def commands = select(Command)
+      def commands = @commands = filter(Command).to_a
 
       # Does not include Option, ArgSpec, ArgDescr, or Brief because they
       # belongs in the description
@@ -268,8 +259,15 @@ module ShellOpts
       def brief = find(Brief) || command_group.brief
       def arg_descr = find(ArgDescr) || command_group.arg_descr
 
-      attr_accessor :supercommand # Initialized by the analyzer
-      attr_reader :subcommands # Initialized by the analyzer
+      # Parent command. Note dotted commands are not resolved. Initialized by
+      # the analyzer
+      attr_accessor :supercommand
+
+      # List of (possibly dotted) subcommands. Initialized by the analyzer
+      attr_reader :subcommands 
+
+      # Associated Grammar::Command object. Initialized by the analyzer
+      attr_accessor :command 
 
       def initialize(parent, token, check: false)
         constrain parent, CommandGroup
@@ -278,8 +276,16 @@ module ShellOpts
         @subcommands = []
       end
 
+      def attach_command(command)
+        command.supercommand = self
+        subcommands << command
+      end
+
       def to_s = token.value
       def self.accepts = [Option, ArgSpec, ArgDescr, Brief]
+    end
+
+    class Program < Command
     end
   end
 end

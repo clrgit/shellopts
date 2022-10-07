@@ -12,9 +12,10 @@ module ShellOpts
     end
 
     def analyze
-      analyze_briefs
-      analyze_arg_descrs
-      analyze_commands
+      check_briefs
+      check_arg_descrs
+      check_commands
+#     analyze_commands
     end
 
     def analyzer_error(token, message) 
@@ -32,29 +33,34 @@ module ShellOpts
       spec_classes.select { |klasses| klasses.accepts.any? { |k| k >= klass } }
     end
 
-    def analyze_briefs
+    def check_briefs
       spec.pairs(Spec::Definition, Spec::Brief).group.each { |_, children|
         children.size <= 1 or analyzer_error children[1].token, "Multiple brief declarations"
       }
     end
 
-    def analyze_arg_descrs
+    def check_arg_descrs
       spec.pairs(Spec::Definition, Spec::ArgDescr).group.each { |_, children|
         children.size <= 1 or analyzer_error children[1].token, "Multiple argument descriptions"
       }
     end
 
-    # TODO Check that commands are not nested within options
-    # TODO Check that command groups with more than one command does not have nested commands
+    def check_commands
+      # Check that commands are not nested within options
+      spec.pairs(Spec::OptionDefinition, Spec::Command).each { |defn, cmd|
+        analyzer_error cmd.token, "Commands can't be nested within an option"
+      }
+
+      # Check that command groups with more than one command does not have nested commands
+      spec.pairs(Spec::CommandDefinition, Spec::CommandDefinition).each { |sup, sub|
+        sup.subject.commands.size == 1 or 
+            analyzer_error sub.token, "Commands can't be nested within multiple commands"
+      }
+    end
 
     def analyze_commands
-      
-
 #     spec.dump
 #     exit
-
-
-#     cmds = spec.filter(Spec::Command).to_a
 
       # Link up commands. Note that dotted commands are not resolved
       spec.edges(Spec::Command) { |sup, sub|
@@ -65,7 +71,6 @@ module ShellOpts
       spec.pairs(Spec::CommandDefinition, Spec::Command) { |f,l|
         puts "[#{f.token.value}(#{f.class.name}), #{f.token.value}(#{l.class.name})]"
       }
-
 
       grammar = Grammar::Program.new(name: spec.name)
       spec.accumulate(Spec::CommandDefinition, grammar) { |acc, defn|

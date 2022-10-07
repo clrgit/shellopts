@@ -27,7 +27,7 @@ describe "ShellOpts" do
       it "does something"
     end
 
-    describe "#analyze_briefs" do
+    describe "#check_briefs" do
       it "rejects duplicate briefs" do
         s = %(
           cmd!
@@ -44,7 +44,7 @@ describe "ShellOpts" do
       end
     end
 
-    describe "#analyze_arg_descrs" do
+    describe "#check_arg_descrs" do
       it "rejects duplicate arg_descrs" do
         s = %(
           cmd!
@@ -61,41 +61,74 @@ describe "ShellOpts" do
       end
     end
 
-    describe "#analyze_commands" do
-      it "links up commands" do
+    describe "#check_commands" do
+      it "rejects commands nested within options" do
         s = %(
-          cmd1!
-            cmd11!
-            cmd12!
-              cmd121!
-          cmd2!
+          cmd!
+            --option
         )
-        spec = compile s
-        spec.visit(Spec::Command) { |cmd|
-          expect(cmd.supercommand.nil? || cmd.supercommand.subcommands.include?(cmd)).to eq true
-        }
+        expect { compile s }.not_to raise_error
+
+        s = %(
+          cmd!
+            --option
+              cmd2!
+        )
+        expect { compile s }.to raise_error AnalyzerError
+
       end
-      it "checks for duplicate command names" do
+
+      it "rejects commands nested within multiple commands" do
         s = %(
           cmd1!
-            cmd1!
+            cmd2!
         )
         expect { compile s }.not_to raise_error
 
         s = %(
           cmd1!
-          cmd1!
-        )
-        expect { compile s }.to raise_error AnalyzerError
-
-        s = %(
-          cmd1!
-            cmd1!
-            cmd1!
+          cmd2!
+            cmd3!
         )
         expect { compile s }.to raise_error AnalyzerError
       end
     end
+
+#   describe "#analyze_commands" do
+#     it "links up commands" do
+#       s = %(
+#         cmd1!
+#           cmd11!
+#           cmd12!
+#             cmd121!
+#         cmd2!
+#       )
+#       spec = compile s
+#       spec.visit(Spec::Command) { |cmd|
+#         expect(cmd.supercommand.nil? || cmd.supercommand.subcommands.include?(cmd)).to eq true
+#       }
+#     end
+#     it "checks for duplicate command names" do
+#       s = %(
+#         cmd1!
+#           cmd1!
+#       )
+#       expect { compile s }.not_to raise_error
+#
+#       s = %(
+#         cmd1!
+#         cmd1!
+#       )
+#       expect { compile s }.to raise_error AnalyzerError
+#
+#       s = %(
+#         cmd1!
+#           cmd1!
+#           cmd1!
+#       )
+#       expect { compile s }.to raise_error AnalyzerError
+#     end
+#   end
   end
 end
 

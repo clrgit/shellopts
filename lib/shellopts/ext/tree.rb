@@ -171,6 +171,10 @@ module Tree
 
     # Like #filter but enumerates [previous-matching-node, matching-node]
     # tuples. This can be used to build projected trees. See also #accumulate
+    #
+    # #edges returns nil as the previous matching node for top-most matches.
+    # This is different from #pairs
+    #
     def edges(*filter, this: true, &block)
       filter = self.class.filter(*filter)
       if block_given?
@@ -183,6 +187,11 @@ module Tree
     # Return pairs of nodes where the first node is selected by the filter
     # and the second node is a descendant of the first node that satisfies the
     # condition. The second node doesn't have to be matched by the filter
+    #
+    # #pairs always return pairs of nodes, nil can't be returned by #pairs
+    #
+    # TODO: Maybe change semantics so that 'pairs(cond)' selects pairs that
+    # match the condition
     def pairs(*filter, cond_expr, this: true, &block)
       filter = self.class.filter(*filter)
       cond = Filter.mk_lambda(cond_expr)

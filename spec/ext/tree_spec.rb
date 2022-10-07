@@ -1,5 +1,5 @@
 
-describe "Pairs" do
+describe "Tree::Pairs" do
   describe "group" do
     def groups_to_s(a)
       a.map { |first, rest| "#{first || 'nil'}->#{rest.join(',')}" }.join " "
@@ -20,7 +20,34 @@ describe "Pairs" do
   end
 end
 
-describe "Tree" do
+describe "Tree::Filter" do
+  class SomeNode < Tree::Tree
+    def yes? = true
+    def no? = false
+  end
+
+  context "when given a method name" do
+    let(:node) { SomeNode.new(nil) }
+
+    it "matches if the method exists and returns true" do
+      filter = Tree::Filter.new(:yes?, true)
+      select, traverse = filter.match(node)
+      expect(select).to eq true
+    end
+    it "doesn't match if the method returns false" do
+      filter = Tree::Filter.new(:no?, true)
+      select, traverse = filter.match(node)
+      expect(select).to eq false
+    end
+    it "doesn't match if the method doesn't exist" do
+      filter = Tree::Filter.new(:not_there, true)
+      select, traverse = filter.match(node)
+      expect(select).to eq false
+    end
+  end
+  end
+
+describe "Tree::Tree" do
   class Node < Tree::Tree
     attr_reader :name
     def initialize(parent, name)
@@ -121,7 +148,6 @@ describe "Tree" do
       end
     end
   end
-
 
   describe "#preorder" do
     context "without arguments" do

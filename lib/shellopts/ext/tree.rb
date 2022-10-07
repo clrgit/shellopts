@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+
+
 #require 'indented_io'
 
 # TODO
@@ -70,6 +72,9 @@ module Tree
     #     nil     Expects +select+ to return a two-tuple of booleans. Can't be
     #             used when +select+ is true
     #
+    # The filter method doesn't have to exist on all traversed nodes. The
+    # condition is only true if the method is defined and returns true
+    #
     # Filters should not have side-effects because they can be used in
     # enumerators that doesn't execute the filter unless the enumerator is
     # evaluated
@@ -109,7 +114,7 @@ module Tree
         when Proc, true, false, nil
           arg
         when Symbol
-          lambda { |node| node.send(arg) }
+          lambda { |node| node.respond_to?(arg) && node.send(arg) }
         when Class
           lambda { |node| node.is_a? arg }
         when Array

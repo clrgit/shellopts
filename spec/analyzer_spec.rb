@@ -94,20 +94,48 @@ describe "ShellOpts" do
       end
     end
 
-#   describe "#analyze_commands" do
-#     it "links up commands" do
-#       s = %(
-#         cmd1!
-#           cmd11!
-#           cmd12!
-#             cmd121!
-#         cmd2!
-#       )
-#       spec = compile s
-#       spec.visit(Spec::Command) { |cmd|
-#         expect(cmd.supercommand.nil? || cmd.supercommand.subcommands.include?(cmd)).to eq true
-#       }
-#     end
+    describe "#analyze_commands" do
+      it "links up commands" do
+        s = %(
+          cmd1!
+            cmd11!
+            cmd12!
+              cmd121!
+          cmd2!
+        )
+        spec = compile s
+        spec.visit(Spec::Command) { |cmd|
+          if cmd.supercommand.nil?
+            expect %w(cmd1 cmd2).include? cmd.name
+          else
+            expect(cmd.supercommand.nil? || cmd.supercommand.subcommands.include?(cmd)).to eq true
+          end
+        }
+      end
+
+      it "check for duplicate command names" do
+        s = %(
+          cmd1!
+            cmd1!
+        )
+        expect { compile s }.not_to raise_error
+
+        s = %(
+          cmd1!
+          cmd1!
+        )
+        expect { compile s }.to raise_error AnalyzerError
+
+        s = %(
+          cmd1!
+            cmd1!
+            cmd1!
+        )
+        expect { compile s }.to raise_error AnalyzerError
+        
+      end
+    end
+
 #     it "checks for duplicate command names" do
 #       s = %(
 #         cmd1!

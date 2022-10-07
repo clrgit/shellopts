@@ -15,7 +15,7 @@ module ShellOpts
       check_briefs
       check_arg_descrs
       check_commands
-#     analyze_commands
+      analyze_commands
     end
 
     def analyzer_error(token, message) 
@@ -63,61 +63,66 @@ module ShellOpts
 #     exit
 
       # Link up commands. Note that dotted commands are not resolved
-      spec.edges(Spec::Command) { |sup, sub|
-        sup.subcommands << sub if sup
-        sub.supercommand = sup
+      spec.pairs(Spec::CommandDefinition, Spec::CommandDefinition) { |sup, sub|
+        sup_cmd = sup.subject.commands.first
+        sub_cmd = sub.subject.commands.first
+
+        sup_cmd.subcommands << sub_cmd
+        sub_cmd.supercommand = sup_cmd
       }
 
-      spec.pairs(Spec::CommandDefinition, Spec::Command) { |f,l|
-        puts "[#{f.token.value}(#{f.class.name}), #{f.token.value}(#{l.class.name})]"
-      }
-
-      grammar = Grammar::Program.new(name: spec.name)
-      spec.accumulate(Spec::CommandDefinition, grammar) { |acc, defn|
-        cmds = defn.subject.commands
-        new_acc = acc
-        cmds.each { |cmd| 
-          ident = "#{cmd.name}!".to_sym
-          new_acc = Grammar::Command.new(acc, ident, spec: cmd) 
-        }
-        new_acc
-      }
-
-      puts
-      grammar.dump
-      exit
-
-      spec.pairs(Spec::CommandDefinition, Spec::Command) { |defn, cmd|
-      }
-
-
-
-      spec.dump
-      exit
-
-      # Create grammar and link back and forth between Grammar and Spec objects
-      grammar = Grammar::Program.new(name: spec.name)
-      finalized = {} # Keeps track of commands not created as part of a dotted command
-
-      puts ">>>>>>>>>>>>>>>>"
-      spec.accumulate(Spec::CommandGroup, grammar) { |acc, defn|
-        cmds = defn.commands
-
-        cmds.each { |cmd|
-          dot_acc = acc
-          names = cmd.token.value.sub(/!$/, "").split(".")
-          while name = names.shift
-            ident = "#{name}!".to_sym
-            dot_acc = dot_acc[ident] || Grammar::Command.new(dot_acc, ident, spec: cmd)
-          end
-          !finalized.key?(dot_acc.uid) or analyzer_error cmd.token, "Duplicate command definition"
-          finalized[dot_acc.uid] = dot_acc
-          cmd.command = dot_acc
+      # Check for duplicate command names
+#
+#     spec.pairs(Spec::CommandDefinition, Spec::Command) { |f,l|
+#       puts "[#{f.token.value}(#{f.class.name}), #{f.token.value}(#{l.class.name})]"
+#     }
+#
+#     grammar = Grammar::Program.new(name: spec.name)
+#     spec.accumulate(Spec::CommandDefinition, grammar) { |acc, defn|
+#       cmds = defn.subject.commands
+#       new_acc = acc
+#       cmds.each { |cmd| 
+#         ident = "#{cmd.name}!".to_sym
+#         new_acc = Grammar::Command.new(acc, ident, spec: cmd) 
+#       }
+#       new_acc
+#     }
+#
+#     puts
+#     grammar.dump
+#     exit
+#
+#     spec.pairs(Spec::CommandDefinition, Spec::Command) { |defn, cmd|
+#     }
+#
+#
+#
+#     spec.dump
+#     exit
+#
+#     # Create grammar and link back and forth between Grammar and Spec objects
+#     grammar = Grammar::Program.new(name: spec.name)
+#     finalized = {} # Keeps track of commands not created as part of a dotted command
+#
+#     puts ">>>>>>>>>>>>>>>>"
+#     spec.accumulate(Spec::CommandGroup, grammar) { |acc, defn|
+#       cmds = defn.commands
+#
+#       cmds.each { |cmd|
+#         dot_acc = acc
+#         names = cmd.token.value.sub(/!$/, "").split(".")
+#         while name = names.shift
+#           ident = "#{name}!".to_sym
+#           dot_acc = dot_acc[ident] || Grammar::Command.new(dot_acc, ident, spec: cmd)
+#         end
+#         !finalized.key?(dot_acc.uid) or analyzer_error cmd.token, "Duplicate command definition"
+#         finalized[dot_acc.uid] = dot_acc
+#         cmd.command = dot_acc
 #         acc = dot_acc
-        }
-        acc
-      }
-
+#       }
+#       acc
+#     }
+#
 #     spec.accumulate(Spec::Command, grammar, this: false) { |acc, cmd|
 #       puts ">> #{cmd.token.value}"
 #       names = cmd.token.value.sub(/!$/, "").split(".")
@@ -130,19 +135,19 @@ module ShellOpts
 #       cmd.command = acc
 #     }
 
-      grammar.dump
-      exit
+#     grammar.dump
+#     exit
 
 
-p :BING
+#p :BING
       # Fix dotted commands
 
-      cmds.each { |cmd| 
-        names = cmd.token.value.split(".")
-        if names.size > 1
-          p names
-        end
-      }
+#     cmds.each { |cmd| 
+#       names = cmd.token.value.split(".")
+#       if names.size > 1
+#         p names
+#       end
+#     }
 #     exit
 #
 #     # Link up commands

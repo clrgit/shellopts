@@ -1,7 +1,5 @@
 #!/usr/bin/env ruby
 
-
-
 #require 'indented_io'
 
 # TODO

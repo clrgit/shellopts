@@ -28,8 +28,8 @@ program = parser.parse
 analyzer = ShellOpts::Analyzer.new(program)
 analyzer.analyze
 
-#puts
-#program.dump(format: :rspec)
+puts
+program.dump(format: :rspec)
 #puts
 #program.dump(format: :debug)
 

@@ -1,10 +1,10 @@
 module ShellOpts
-
-  # The Spec module models the document structure
+  # The Spec module models the document structure. It is created by the parser
+  # and later split into a Grammar and a Doc object by the analyzer
   #
-  # A document consists of nested definitions. A definition composed of a
-  # subject and a definition of that subject that can contain other
-  # definitions. Subjects are commands, options, sections, and list items
+  # A document consists of nested definitions that are composed of a subject
+  # and a definition of that subject.  Subjects are commands, options,
+  # sections, and list items and can contain nested definitions.
   #
   # The top-level node is a Spec definition with a command group of exactly one
   # Program element as subject
@@ -50,6 +50,7 @@ module ShellOpts
     end
 
     class CommandDefinition < Definition
+      def commands = subject.commands
     end
 
     class OptionDefinition < Definition
@@ -254,7 +255,8 @@ module ShellOpts
     end
 
     class Command < Node
-      def name = token.value.sub(/^(?:.*\.)?(.*)!$/, '\1')
+      def name = @name ||= token.value.sub(/^(?:.*\.)?(.*)!$/, '\1')
+      def ident = @ident ||= "#{name}!".to_sym
       alias_method :command_group, :parent
       def brief = find(Brief) || command_group.brief
       def arg_descr = find(ArgDescr) || command_group.arg_descr
@@ -264,7 +266,7 @@ module ShellOpts
       attr_accessor :supercommand
 
       # List of (possibly dotted) subcommands. Initialized by the analyzer
-      attr_reader :subcommands 
+      attr_accessor :subcommands 
 
       # Associated Grammar::Command object. Initialized by the analyzer
       attr_accessor :command 
@@ -274,6 +276,7 @@ module ShellOpts
         super(parent, token, check: check)
         @supercommand = nil
         @subcommands = []
+        @command = nil
       end
 
       def attach_command(command)

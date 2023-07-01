@@ -6,14 +6,46 @@ require 'shellopts'
 
 spec = %(
   cmd1!
+    This is some text 1
+
     cmd11!
+      This is some more text 11
 
     cmd12!
+      This is some more text 12
+      
       cmd121!
+        Even more text 121
 
   cmd2!
+    This is some text 2
   cmd2.cmd21!
+    This is some text 221
   cmd2.cmd22.cmd221!
+    This is some text 222221
+)
+
+
+spec = %(
+  cmd1!
+    cmd2!
+
+  cmd1.cmd2!
+)
+
+spec = %(
+  cmd1!
+    cmd2!
+  cmd3!
+
+  cmd4!
+
+  cmd5!
+  cmd6!
+
+  cmd7!
+  cmd7!
+  cmd8!
 )
 
 lexer = ShellOpts::Lexer.new("main", spec)
@@ -22,11 +54,16 @@ tokens = lexer.lex
 
 puts
 parser = ShellOpts::Parser.new(tokens)
-program = parser.parse
-#program.dump
+spec = parser.parse
+spec.dump
+puts
 
-analyzer = ShellOpts::Analyzer.new(program)
-analyzer.analyze
+analyzer = ShellOpts::Analyzer.new(spec)
+grammar, doc = analyzer.analyze
+
+grammar.dump
+
+exit
 
 puts
 program.dump(format: :rspec)

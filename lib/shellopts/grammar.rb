@@ -12,7 +12,7 @@ module ShellOpts
   #     The first name in a list of aliases
   #
   module Grammar
-    class Node
+    class Node # TODO Make Node a Tree::Tree node
       attr_reader :parent
       attr_reader :children # Map from ident to child node
       forward_to :children, :key?, :[]
@@ -90,7 +90,8 @@ module ShellOpts
       def self.program = @@nodes.first
 
       def attach(child)
-        !@children.key?(child.ident) or raise ParserError, "Duplicate child: #{child.name}"
+        !@children.key?(child.ident) or 
+            raise Analyzer::analyzer_error(child.token, "Duplicate child: #{child.name}")
         @children[child.ident] = child
         child.instance_variable_set(:@parent, self)
       end

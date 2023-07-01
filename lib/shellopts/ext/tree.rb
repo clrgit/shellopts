@@ -344,6 +344,20 @@ module Tree
   class Tree < AbstractTree
   end
 
+
+
+# class TreeAdaptor < AbstractTree
+#   attr_reader :obj
+#
+#   def parent = nil
+#   def children
+#   end
+#
+#   def initialize(obj, &block)
+#     @block = block
+#
+# end
+
 # class TreeAdapter < AbstractTree
 #   attr_reader :parent_method
 #   attr_reader :children_method

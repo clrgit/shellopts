@@ -5,7 +5,7 @@ module ShellOpts
 
       refine Node do
         def dump
-          puts ident.inspect + " (#{self.class.name})"
+          puts idents.map(&:inspect).join(", ") + " (#{self.class.name})"
           indent { children.values.each { |child| child.dump } }
         end
       end

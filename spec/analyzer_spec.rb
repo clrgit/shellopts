@@ -117,6 +117,7 @@ describe "ShellOpts" do
         s = %(
           cmd1!
             cmd1!
+          cmd2!
         )
         expect { compile s }.not_to raise_error
 
@@ -132,64 +133,46 @@ describe "ShellOpts" do
             cmd1!
         )
         expect { compile s }.to raise_error AnalyzerError
-        
       end
     end
 
-#     it "checks for duplicate command names" do
-#       s = %(
-#         cmd1!
-#           cmd1!
-#       )
-#       expect { compile s }.not_to raise_error
-#
-#       s = %(
-#         cmd1!
-#         cmd1!
-#       )
-#       expect { compile s }.to raise_error AnalyzerError
-#
-#       s = %(
-#         cmd1!
-#           cmd1!
-#           cmd1!
-#       )
-#       expect { compile s }.to raise_error AnalyzerError
+    describe "#analyze_options" do
+    end
+
+#     it "rejects duplicate options" do
+#       expect { compile("-a -a") }.to raise_error AnalyzerError
+#     end
+#     it "rejects --with-separator together with --with_separator" do
+#       expect { compile("--with-separator --with_separator") }.to raise_error AnalyzerError
 #     end
 #   end
+#
+#   describe "#reorder_options" do
+#     it "moves options before the first command" do
+#       src = %(
+#         -a
+#         cmd!
+#         -b
+#       )
+#       expect(names(src)).to eq %w(-a -b cmd)
+#     end
+#     it "moves options before the COMMAND section if present" do
+#       src = %(
+#         -a
+#         COMMAND
+#         cmd!
+#         -b
+#       )
+#       expect(names(src)).to eq %w(-a -b COMMAND cmd)
+#     end
+#   end
+
   end
 end
 
 
 __END__
 
-      it "rejects duplicate options" do
-        expect { compile("-a -a") }.to raise_error AnalyzerError
-      end
-      it "rejects --with-separator together with --with_separator" do
-        expect { compile("--with-separator --with_separator") }.to raise_error AnalyzerError
-      end
-    end
-
-    describe "#reorder_options" do
-      it "moves options before the first command" do
-        src = %(
-          -a
-          cmd!
-          -b
-        )
-        expect(names(src)).to eq %w(-a -b cmd)
-      end
-      it "moves options before the COMMAND section if present" do
-        src = %(
-          -a
-          COMMAND
-          cmd!
-          -b
-        )
-        expect(names(src)).to eq %w(-a -b COMMAND cmd)
-      end
-    end
 
     describe "#link_commands" do
       it "links subcommands to supercommands" do

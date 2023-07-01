@@ -10,6 +10,13 @@ module ShellOpts
         end
       end
 
+      refine Command do
+        def dump
+          puts idents.map(&:inspect).join(", ") + " (#{self.class.name}) -> #{self.spec.object_id}"
+          indent { children.each { |child| child.dump } }
+        end
+      end
+
       class Formatter
         using Format::Short
         def format(obj) = obj.dump

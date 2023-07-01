@@ -41,7 +41,7 @@ module ShellOpts
       def uid
         @uid ||= 
             case ident
-              when Symbol; [parent.uid, ident].join(".").sub(/!\./, ".").to_sym
+              when Symbol; [parent.uid, ident].compact.join(".").sub(/!\./, ".").to_sym
               when Integer; "#{parent.uid}[#{ident}]"
             else
               raise InternalError
@@ -70,6 +70,8 @@ module ShellOpts
       # Access node by absolute UID
       def self.[](uid) = @@nodes[uid]
       def self.[]=(uid, node) @@nodes[uid] = node end
+      def self.key?(uid) = @@nodes.key?(uid) 
+      def self.nodes = @@nodes.values
 
     private
       # Map from UID to Node object
@@ -110,16 +112,13 @@ module ShellOpts
     end
 
     class Command < Node
-      def command?(ident) = commands.any? { |cmd| cmd.idents.include?(ident) } # TODO Optimize
-      def command(ident) = commands.find { |cmd| cmd.idents.include?(ident) }
-
       def name = ident.to_s[0..-2]
 
       attr_reader :idents
       def literals = @literals ||= idents.map { |i| i.to_s[0..-2] }
 
       def options = children.select { |c| c.is_a? Option }
-      def commands = children.select { |c| c.is_a? Command }
+      def commands = children.select { |c| c.is_a? Command } # TODO: Rename to #subcommands
       def specs = children.select { |c| c.is_a? ArgSpec }
 
       def initialize(parent, ident, idents = [ident], **opts)
@@ -129,6 +128,13 @@ module ShellOpts
         constrain idents.include?(ident) # Same semantics as Option
         @idents = idents
       end
+
+      # FIXME Actually the same as self.key?(ident) and self[ident]
+      # Check if ident is a name of a sub-command or of any sub-command alias # TODO: Rename to #subcommand
+      def command?(ident) = commands.any? { |cmd| cmd.idents.include?(ident) } # TODO Optimize
+
+      # Lookup ident in sub-commands. Aliases are supported
+      def command(ident) = commands.find { |cmd| cmd.idents.include?(ident) }
     end
 
     class Program < Command

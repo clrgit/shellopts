@@ -248,7 +248,9 @@ module Tree
       children.each { |child| child.do_visit(filter, true, &block) } if traverse || !this
     end
 
+    # TODO: Break if acc.nil? Test it 
     def do_accumulate(filter, this, acc, &block)
+      return nil if acc.nil?
 #     puts "#do_accumulate -> #{self.token.value} (#{self.class.name})"
       select, traverse = filter.match(self)
 #     puts "  this: #{this}"
@@ -256,9 +258,7 @@ module Tree
 #     puts "  traverse: #{traverse}"
 #     puts "  children.size: #{children.size}"
       acc = yield(acc, self) if this && select
-      children.each { |child| 
-#       puts "    #{child.token.value}"
-        child.do_accumulate(filter, true, acc, &block) } if traverse || !this
+      children.each { |child| child.do_accumulate(filter, true, acc, &block) } if traverse || !this
     end
 
     def do_aggregate(filter, this, &block)

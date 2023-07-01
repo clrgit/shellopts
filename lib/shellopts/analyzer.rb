@@ -79,15 +79,34 @@ module ShellOpts
         # Check for duplicates
         idents_hash = {}
         defn.commands.map { |cmd|
-          p cmd.path
-          !parent.command?(cmd.ident) && !idents_hash.key?(cmd.ident) or
-              analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
-          idents_hash[cmd.ident] = true
+          p cmd.ident
+          p cmd.qual
+
+          if cmd.qual.nil?
+            !parent.command?(cmd.ident) && !idents_hash.key?(cmd.ident) or
+                analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
+            idents_hash[cmd.ident] = true
+          else
+            if !Grammar::Node.key?(cmd.qual)
+              # TODO
+              # TODO #virtual? property 
+              # TODO #ensure(qual) method
+            end
+            qual_parent = Grammar::Node[cmd.qual]
+            !qual_parent.command?(cmd.ident) or 
+                analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
+            command = Grammar::Command.new(qual_parent, cmd.ident, [cmd.ident], spec: defn)
+          end
+
         }
+
+        # FIXME: The following is executed for qualified commands too
+
         idents = idents_hash.keys
 
+
         # Command object
-        command = Grammar::Command.new(parent, idents.first, idents)
+        command = Grammar::Command.new(parent, idents.first, idents, spec: defn)
 
         # Create back-references from the Spec to the grammar object
         defn.commands.each { |cmd| 

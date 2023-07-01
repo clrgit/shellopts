@@ -35,10 +35,11 @@ spec = %(
 
 spec = %(
   cmd1!
-    cmd2!
+    cmd11!
 
-  cmd22!
+  cmd2!
   cmd1.cmd12!
+    Descriptive text
 
   cmd3!
 

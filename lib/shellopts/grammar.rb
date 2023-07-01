@@ -12,11 +12,7 @@ module ShellOpts
   #     The first name in a list of aliases
   #
   module Grammar
-    class Node # TODO Make Node a Tree::Tree node
-      attr_reader :parent
-      attr_reader :children # Map from ident to child node
-      forward_to :children, :key?, :[]
-
+    class Node < Tree::Set # TODO Make Node a Tree::Tree node
       # Parent command object or nil if this is the Program node
       alias_method :command, :parent
 
@@ -45,14 +41,14 @@ module ShellOpts
       def uid
         @uid ||= 
             case ident
-              when Symbol; [parent.uid, ident].join(".").sub(/!\./, ".")
+              when Symbol; [parent.uid, ident].join(".").sub(/!\./, ".").to_sym
               when Integer; "#{parent.uid}[#{ident}]"
             else
               raise InternalError
             end
       end
 
-      # Associated Doc::Node object. Initialized by the parser
+      # Associated Doc::Node object. Initialized by the analyzer
       attr_accessor :doc 
 
       # The associated token. A shorthand for +doc.token+
@@ -63,18 +59,10 @@ module ShellOpts
         constrain ident, *(self.class <= ArgSpec || self.class <= Arg ? [Symbol, Integer] : [Symbol])
         constrain spec, Spec::Node, nil
         @ident = ident
-        @children = {}
-        parent&.send(:attach, self)
+        @spec = spec
+        super(parent)
         Node.register_node(self)
       end
-
-      # Return true if node has a child node identified by the given ident
-      # FIXME: conflicts with forward_to 
-#     def key?(ident) children.find { |c| c.ident == ident } && true end
-
-      # Access child nodes by identifier
-      # FIXME: conflicts with forward_to 
-#     def [](ident) children.find { |c| c.ident == ident } end
 
       # Access node by relative UID. Eg. main.dot(option_name) or main.dot("[3].FILE")
       def dot(relative_uid) = Node[[self.uid, relative_uid].compact.join(".").sub("!.", ".")]
@@ -89,12 +77,8 @@ module ShellOpts
       def self.register_node(node) = @@nodes[node.uid] = node
       def self.program = @@nodes.first
 
-      def attach(child)
-        !@children.key?(child.ident) or 
-            raise Analyzer::analyzer_error(child.token, "Duplicate child: #{child.name}")
-        @children[child.ident] = child
-        child.instance_variable_set(:@parent, self)
-      end
+      # Used by Tree
+      def key = ident
     end
 
     class Option < Node
@@ -126,6 +110,9 @@ module ShellOpts
     end
 
     class Command < Node
+      def command?(ident) = commands.any? { |cmd| cmd.idents.include?(ident) } # TODO Optimize
+      def command(ident) = commands.find { |cmd| cmd.idents.include?(ident) }
+
       def name = ident.to_s[0..-2]
 
       attr_reader :idents

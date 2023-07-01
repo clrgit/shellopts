@@ -20,13 +20,19 @@ module ShellOpts
         @token = token
       end
 
-      def accept?(klass) = self.class.accepts.include?(klass) 
+      # TODO Call this method from the parser
+      def accept?(klass) = self.class.accepts.any? { |acceptable| klass <= acceptable }
 
-#   protected
+    protected
       # List of classes those objects are accepted as children of this node. It
       # is used in #attach to check the type of the node
       def self.accepts = []
       def accepts = self.class.accepts
+
+      def attach(child)
+        accept?(child.class) or raise ArgumentError
+        super
+      end
     end
 
     class Definition < Node
@@ -257,16 +263,17 @@ module ShellOpts
     class Command < Node
       def name = @name ||= token.value.sub(/^(?:.*\.)?(.*)!$/, '\1')
       def ident = @ident ||= "#{name}!".to_sym
+      def path = token.value.split(".").map(&:to_sym)
       alias_method :command_group, :parent
       def brief = find(Brief) || command_group.brief
       def arg_descr = find(ArgDescr) || command_group.arg_descr
 
-      # Parent command. Note dotted commands are not resolved. Initialized by
-      # the analyzer
-      attr_accessor :supercommand
-
-      # List of (possibly dotted) subcommands. Initialized by the analyzer
-      attr_accessor :subcommands 
+#     # Parent command. Note dotted commands are not resolved. Initialized by
+#     # the analyzer
+#     attr_accessor :supercommand
+#
+#     # List of (possibly dotted) subcommands. Initialized by the analyzer
+#     attr_accessor :subcommands 
 
       # Associated Grammar::Command object. Initialized by the analyzer
       attr_accessor :command 

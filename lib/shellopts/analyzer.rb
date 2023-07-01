@@ -18,9 +18,7 @@ module ShellOpts
       check_briefs
       check_arg_descrs
       check_commands
-#     analyze_commands
-#     analyze_commands2
-      analyze_commands3
+      analyze_commands
       analyze_options
       generate
       [@grammar, @doc]
@@ -69,171 +67,41 @@ module ShellOpts
       }
     end
 
-    def analyze_program(spec)
+    def analyze_commands
+      # Top-level program object
       program = Grammar::Program.new(name: spec.program.name)
       spec.program.command = program
-      spec.program.commands.each { |cmd|
-        analyze_command(program, cmd)
-      }
-    end
-
-    def analyze_commands3
-      program = Grammar::Program.new(name: spec.program.name)
-      spec.program.command = program
+    
+      # Create nested Command objects
       spec.accumulate(Spec::CommandDefinition, program) { |parent,defn|
-        idents = defn.commands.map(&:ident)
-        Grammar::Command.new(parent, idents.first, idents)
+
+
+        # Check for duplicates
+        idents_hash = {}
+        defn.commands.map { |cmd|
+          p cmd.path
+          !parent.command?(cmd.ident) && !idents_hash.key?(cmd.ident) or
+              analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
+          idents_hash[cmd.ident] = true
+        }
+        idents = idents_hash.keys
+
+        # Command object
+        command = Grammar::Command.new(parent, idents.first, idents)
+
+        # Create back-references from the Spec to the grammar object
+        defn.commands.each { |cmd| 
+          cmd.command = command 
+        }
+
+        command
       }
 
+      # Create dotted Command objects
 
 
-#       idents.each { |ident|
-#         !parent.key?(ident) or analyzer_error "Duplicate command: #{cmd.name}"
-#         Grammar::Command.new(parent, 
-#       }
-#       
-#     }
       @grammar = program
     end
-
-
-
-    def create_command(parent, defn)
-      defn.commands.each { |cmd|
-      }
-#     !parent.key?(cmd.name) or analyzer_error "Duplicate command: #{cmd.name}"
-#     Grammar::Command.new(parent, cmd.name
-      
-      
-    end
-
-    def analyze_commands2
-      # Link up commands. Note that dotted commands are not resolved. TODO
-#     spec.pairs(Spec::CommandDefinition, Spec::CommandDefinition) { |sup, sub|
-#       sup_cmd = sup.subject.commands.first
-#       sub_cmd = sub.subject.commands.first
-#
-#       sup_cmd.subcommands << sub_cmd
-#       sub_cmd.supercommand = sup_cmd
-#     }
-#
-#     spec.filter(Spec::CommandDefinition, false) { |defn|
-#       spec.program.subcommands += defn.commands
-#     }
-  
-      # Create Command objects
-      program = Grammar::Program.new(name: spec.program.name)
-      spec.program.command = program
-
-      spec.filter(Spec::CommandDefinition, false) { |defn|
-        create_command(program, defn)
-      }
-
-#     exit
-      
-#     program.dump
-
-
-#     spec.filter(Spec::CommandDefinition, false) { |defn|
-#       create_command(defn)
-#     }
-
-
-#     exit
-      
-    end
-
-    def analyze_commands
-      # Link up commands. Note that dotted commands are not resolved. TODO
-      spec.pairs(Spec::CommandDefinition, Spec::CommandDefinition) { |sup, sub|
-        sup_cmd = sup.subject.commands.first
-        sub_cmd = sub.subject.commands.first
-
-        sup_cmd.subcommands << sub_cmd
-        sub_cmd.supercommand = sup_cmd
-
-#       spec.program.subcommands << sup_cmd if sup.
-      }
-
-      spec.filter(Spec::CommandDefinition, false) { |defn|
-        spec.program.subcommands += defn.commands
-      }
-
-      # Explode dotted commands
-
-      # Check for duplicate command names
-#     h = {}
-#     spec.pairs(Spec::CommandDefinition, Spec::Command) { |f,l|
-#       !(h[f.object_id] ||= {}).key?(l.name) or analyzer_error l.token, "Duplicate command: '#{l.name}'"
-#       h[f.object_id][l.name] = true
-#     }
-
-#     h = {}
-#     spec.visit(Spec::Command) 
-
-      spec.dump
-#     exit
-
-#     spec.accumulate(Spec::Command, {}) { |acc, command|
-#       next if command.is_a?(Spec::Program)
-#       puts "accumulate(#{acc.inspect}, #{command.name.inspect} (#{command.class}))"
-#
-#       !acc.key?(command.name) or analyzer_error command.token, "Duplicate command: '#{command.name}'"
-#       acc[command.name] = {}
-#       {}
-#
-#     }
-
-#     h = { cmds }
-#     t = TreeAdaptor.new( { |cmd| cmd.subcommands }
-
-
-      puts "------------"
-      spec.filter(Spec::CommandDefinition, false).map(&:commands).flatten.each { |cmd|
-        p cmd.subcommands.size
-#       p defn.commands.size
-#       defn.commands.each
-      }
-      exit
-
-      spec.accumulate(Spec::CommandDefinition, {}) { |acc, defn|
-          
-      }
-
-
-#     h = {}
-#     spec.filter(Spec::Command) { |cmd|
-#       puts "cmd: #{cmd.name}"
-#       puts "     #{cmd.supercommand&.name.inspect}"
-#       puts "     [#{cmd.subcommands.map(&:name).join(', ')}]"
-#       puts
-#     }
-
-
-
-
-
-#     spec.accumulate(Spec::CommandDefinition, {}) { |acc, defn|
-#       defn
-#       
-#     }
-
-
-#     h = {}
-#     s = [h]
-#     spec.pairs(Spec::CommandDefinition, Spec::Command) { |defn, cmd|
-#       !s.last.key?(cmd.name) or analyzer_error cmd.token, "Duplicate command: '#{cmd.name}'"
-#       s.last[cmd.name] = true
-#
-#       
-#       
-#     }
-
-
-        
-
-#     v = root.accumulate({}) { |acc, node| acc[node.name] = {} }
-#     expect(v).to eq "root"=>{"a"=>{"b"=>{}, "c"=>{}}, "d"=>{"e"=>{}}}
 
 
 #p :BING
@@ -276,7 +144,7 @@ module ShellOpts
        
 #     command_containers = accepts(Spec::Command)
 #     spec.traverse(command
-    end
+#   end
 
     def analyze_options
     end

@@ -17,6 +17,7 @@ module ShellOpts
         formatter = 
             case format
               when :debug; Format::Short::Formatter.new
+              when :rspec; Format::RSpec::Formatter.new
             else
               raise ArgumentError
             end
@@ -26,5 +27,7 @@ module ShellOpts
   end
 end
 
-require_relative './grammar_debug.rb'
+#p ShellOpts::Grammar::Format::Short::Formatter
 
+require_relative './grammar_debug.rb'
+require_relative './grammar_rspec.rb'

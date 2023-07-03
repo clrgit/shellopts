@@ -6,23 +6,41 @@ describe "ShellOpts" do
     @spec
   end
 
-  # Parse 's' and return a dump of the parse tree
+  def grammar
+    @grammar
+  end
+
+  def doc
+    @doc
+  end
+
+  # Compile 's' and return the grammar object
   def compile(s) 
     lexer = Lexer.new("main", s)
     tokens = lexer.lex
     parser = Parser.new(tokens)
     @spec = parser.parse
     analyzer = Analyzer.new(spec)
-    analyzer.analyze
-    @spec
+    @grammar, @doc = analyzer.analyze
+    @grammar
   end
 
-  def dump_command(node)
-    puts node.name
-    indent { node.subcommands.each { |subcommand| dump_command(subcommand) } }
+  # Compile 's' and check that the result matches 'r'. #check removes the first
+  # line that contains the '!' declaration to save some typing
+  def check(s, r)
+    s = render(compile(s)).sub(/^.*?\n/, "")
+    expect(undent s).to eq undent r
+  end
+
+  using Ext::StringIO::Redirect
+
+  def render(node)
+    StringIO.redirect(:stdout) { node.dump(format: :rspec) }
   end
 
   describe "Analyzer" do
+    before(:each) { Grammar::Node.clear }
+
     describe "#analyze" do
       it "does something"
     end
@@ -95,25 +113,7 @@ describe "ShellOpts" do
     end
 
     describe "#analyze_commands" do
-      it "links up commands" do
-        s = %(
-          cmd1!
-            cmd11!
-            cmd12!
-              cmd121!
-          cmd2!
-        )
-        spec = compile s
-        spec.visit(Spec::Command) { |cmd|
-          if cmd.supercommand.nil?
-            expect %w(cmd1 cmd2).include? cmd.name
-          else
-            expect(cmd.supercommand.nil? || cmd.supercommand.subcommands.include?(cmd)).to eq true
-          end
-        }
-      end
-
-      it "check for duplicate command names" do
+      it "checks for duplicate command names" do
         s = %(
           cmd1!
             cmd1!
@@ -133,6 +133,42 @@ describe "ShellOpts" do
             cmd1!
         )
         expect { compile s }.to raise_error AnalyzerError
+
+        s = %(
+          cmd1!
+            cmd2!
+          cmd1.cmd2!
+        )
+        expect { compile s }.to raise_error AnalyzerError
+      end
+      it "creates command objects" do
+        s = %(
+          cmd1!
+
+          cmd2!
+        )
+        expect(compile(s).commands.map(&:uid)).to eq [:cmd1!, :cmd2!]
+      end
+      it "creates command groups" do
+        s = %(
+          cmd1!
+          cmd2!
+
+          cmd3!
+        )
+        check s, %(
+          cmd1!, cmd2!
+          cmd3!
+        )
+      end
+      it "creates intermediate command objects" do
+        s = %(
+          cmd1.cmd2!
+        )
+        check s, %(
+          cmd1!
+            cmd2!
+        )
       end
     end
 

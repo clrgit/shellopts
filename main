@@ -41,7 +41,7 @@ spec = %(
   cmd1.cmd12!
     Descriptive text
 
-  cmd3!
+  cmd3.cmd31.cmd311!
 
   cmd4!
 

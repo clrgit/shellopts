@@ -23,6 +23,8 @@ module ShellOpts
       # TODO Call this method from the parser
       def accept?(klass) = self.class.accepts.any? { |acceptable| klass <= acceptable }
 
+      def inspect = "'#{token.value}' (#{self.class})"
+
     protected
       # List of classes those objects are accepted as children of this node. It
       # is used in #attach to check the type of the node
@@ -212,6 +214,8 @@ module ShellOpts
       def header = children.map(&:to_s)
     end
 
+    # An option group is a list of continuous subgroups without blank lines in
+    # between, like a text paragraph
     class OptionGroup < Group
       def brief = description.find(Brief)
       def options = @options = filter(Command).to_a
@@ -221,13 +225,14 @@ module ShellOpts
       def self.accepts = [OptionSubGroup] 
     end
 
+    # An option subgroup is a list of options on the same line
     class OptionSubGroup < Node
       alias_method :option_group, :parent
       def brief = find(Brief) || option_group.brief
       def self.accepts = [Option, Brief]
     end
 
-    # An option can be attached to a OptionSubGroup or a Command.
+    # An option. Options can be attached to a OptionSubGroup or a Command, 
     # #option_subgroup and #option_group returns nil in the last case
     class Option < Node
       def name = token.value.sub(/^-+/, "")
@@ -250,6 +255,8 @@ module ShellOpts
       def self.accepts = [Brief]
     end
 
+    # A command group is a list of continuous commands without blank lines in
+    # between, like a text paragraph
     class CommandGroup < Group
       def brief = description.find(Brief)
       def arg_descr = description.find(ArgDescr)
@@ -260,6 +267,7 @@ module ShellOpts
       def self.accepts = [Command]
     end
 
+    # A Command
     class Command < Node
       def name = @name ||= token.value.sub(/^(?:.*\.)?(.*)!$/, '\1')
       def ident = @ident ||= "#{name}!".to_sym
@@ -274,13 +282,6 @@ module ShellOpts
       alias_method :command_group, :parent
       def brief = find(Brief) || command_group.brief
       def arg_descr = find(ArgDescr) || command_group.arg_descr
-
-#     # Parent command. Note dotted commands are not resolved. Initialized by
-#     # the analyzer
-#     attr_accessor :supercommand
-#
-#     # List of (possibly dotted) subcommands. Initialized by the analyzer
-#     attr_accessor :subcommands 
 
       # Associated Grammar::Command object. Initialized by the analyzer
       attr_accessor :command 

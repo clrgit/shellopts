@@ -67,11 +67,16 @@ module ShellOpts
       # Access node by relative UID. Eg. main.dot(option_name) or main.dot("[3].FILE")
       def dot(relative_uid) = Node[[self.uid, relative_uid].compact.join(".").sub("!.", ".")]
 
-      # Access node by absolute UID
+      # Access node in global pool by UID
       def self.[](uid) = @@nodes[uid]
       def self.[]=(uid, node) @@nodes[uid] = node end
       def self.key?(uid) = @@nodes.key?(uid) 
+      def self.keys = @@nodes.keys
       def self.nodes = @@nodes.values
+      def self.clear = @@nodes.clear # Used in RSpec tests
+
+      # Limit error output
+      def inspect = "#{token&.value} (#{self.class})"
 
     private
       # Map from UID to Node object

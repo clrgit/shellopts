@@ -67,103 +67,53 @@ module ShellOpts
       }
     end
 
+    # Helper method. Create command objects included in +qual+
+    def ensure_command(qual, defn)
+      cmds = qual.to_s.sub(/!$/, "").split(".").map { :"#{_1}!" }
+      p cmds
+      curr = grammar
+      for cmd in cmds
+        p Grammar::Node.keys
+        Grammar::Command.new(curr, cmd, [cmd], spec: defn) if !Grammar::Node.key?(cmd)
+        curr = curr.command(cmd)
+      end
+      curr
+    end
+
     def analyze_commands
       # Top-level program object
-      program = Grammar::Program.new(name: spec.program.name)
-      spec.program.command = program
+      @grammar = spec.program.command = Grammar::Program.new(name: spec.program.name, spec: spec)
     
-      # Create nested Command objects
-      spec.accumulate(Spec::CommandDefinition, program) { |parent,defn|
+      # Create Command objects
+      spec.accumulate(Spec::CommandDefinition, grammar) { |parent,defn|
+        pure_cmds, qual_cmds = defn.commands.partition { |cmd| cmd.qual.nil? }
 
-
-        # Check for duplicates
-        idents_hash = {}
-        defn.commands.map { |cmd|
-          p cmd.ident
-          p cmd.qual
-
-          if cmd.qual.nil?
+        # Collect same-level identifiers and create unqualified commands
+        if !pure_cmds.empty?
+          idents_hash = {}
+          pure_cmds.each { |cmd| # check for duplicates and collect idents
             !parent.command?(cmd.ident) && !idents_hash.key?(cmd.ident) or
                 analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
             idents_hash[cmd.ident] = true
-          else
-            if !Grammar::Node.key?(cmd.qual)
-              # TODO
-              # TODO #virtual? property 
-              # TODO #ensure(qual) method
-            end
-            qual_parent = Grammar::Node[cmd.qual]
-            !qual_parent.command?(cmd.ident) or 
-                analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
-            command = Grammar::Command.new(qual_parent, cmd.ident, [cmd.ident], spec: defn)
-          end
+          }
+          idents = idents_hash.keys
+          command = Grammar::Command.new(parent, idents.first, idents, spec: defn)
+        end
 
-        }
+        # Ensure parent objects and then create qualified command
+        qual_cmds.each { |cmd|
+          puts "-----"
+          p cmd.qual
+          qual_parent = ensure_command(cmd.qual, defn)
+          !qual_parent.command?(cmd.ident) or 
+              analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
+          command = Grammar::Command.new(qual_parent, cmd.ident, [cmd.ident], spec: defn)
+        } 
 
-        # FIXME: The following is executed for qualified commands too
-
-        idents = idents_hash.keys
-
-
-        # Command object
-        command = Grammar::Command.new(parent, idents.first, idents, spec: defn)
-
-        # Create back-references from the Spec to the grammar object
-        defn.commands.each { |cmd| 
-          cmd.command = command 
-        }
-
+        # Emit accumulator
         command
       }
-
-      # Create dotted Command objects
-
-
-      @grammar = program
     end
-
-
-#p :BING
-      # Fix dotted commands
-
-#     cmds.each { |cmd| 
-#       names = cmd.token.value.split(".")
-#       if names.size > 1
-#         p names
-#       end
-#     }
-#     exit
-#
-#     # Link up commands
-#     spec.edges(Spec::Command, true) { |sup, sub|
-#       sup.subcommands << sub if sup
-#       sub.supercommand = sup
-#     }
-#
-#     # Build command lookup
-#     spec.visit(Spec::Command) { |cmd|
-#       
-#     }
-
-#     p 1
-#     spec.project(Spec::CommandGroup) { |parent, node|
-#       if parent
-#         node.supercommand = parent
-#         parent.subcommands << node
-#       end
-#
-#     }
-#
-
-
-
-
-      # TODO Nest commands hierarchically 
-      # TODO Resolve dotted commands
-       
-#     command_containers = accepts(Spec::Command)
-#     spec.traverse(command
-#   end
 
     def analyze_options
     end

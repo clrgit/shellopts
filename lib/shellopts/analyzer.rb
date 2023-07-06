@@ -15,12 +15,19 @@ module ShellOpts
     end
 
     def analyze
+      # Pre-checks
+      check_options
       check_briefs
       check_arg_descrs
       check_commands
+
+      # Top-level program object
+      @grammar = spec.program.command = Grammar::Program.new(name: spec.program.name, spec: spec)
+    
+      # Generate grammar and doc 
       analyze_commands
       analyze_options
-      generate
+
       [@grammar, @doc]
     end
 
@@ -29,7 +36,6 @@ module ShellOpts
     def self.analyzer_error(token, message)
       raise AnalyzerError.new(token), message 
     end
-      
 
   protected
     # List of classes derived from Spec::Node (incl. Spec::Node)
@@ -42,9 +48,16 @@ module ShellOpts
       spec_classes.select { |klasses| klasses.accepts.any? { |k| k >= klass } }
     end
 
+    def check_options
+      spec.pairs(Spec::OptionDefinition, Spec::OptionDefinition) { |first, last|
+        analyzer_error last.token, "Nested option definition"
+      }
+    end
+
     def check_briefs
-      spec.pairs(Spec::Definition, Spec::Brief).group.each { |_, children|
-        children.size <= 1 or analyzer_error children[1].token, "Multiple brief declarations"
+      spec.filter([Spec::CommandDefinition, Spec::OptionDefinition]) { |defn|
+        defn.description.filter(Spec::Brief).to_a.size <= 1 or 
+            analyzer_error defn.token, "Multiple brief definitions"
       }
     end
 
@@ -70,10 +83,8 @@ module ShellOpts
     # Helper method. Create command objects included in +qual+
     def ensure_command(qual, defn)
       cmds = qual.to_s.sub(/!$/, "").split(".").map { :"#{_1}!" }
-      p cmds
       curr = grammar
       for cmd in cmds
-        p Grammar::Node.keys
         Grammar::Command.new(curr, cmd, [cmd], spec: defn) if !Grammar::Node.key?(cmd)
         curr = curr.command(cmd)
       end
@@ -81,9 +92,6 @@ module ShellOpts
     end
 
     def analyze_commands
-      # Top-level program object
-      @grammar = spec.program.command = Grammar::Program.new(name: spec.program.name, spec: spec)
-    
       # Create Command objects
       spec.accumulate(Spec::CommandDefinition, grammar) { |parent,defn|
         pure_cmds, qual_cmds = defn.commands.partition { |cmd| cmd.qual.nil? }
@@ -102,8 +110,6 @@ module ShellOpts
 
         # Ensure parent objects and then create qualified command
         qual_cmds.each { |cmd|
-          puts "-----"
-          p cmd.qual
           qual_parent = ensure_command(cmd.qual, defn)
           !qual_parent.command?(cmd.ident) or 
               analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
@@ -116,9 +122,40 @@ module ShellOpts
     end
 
     def analyze_options
+      return
+      puts "#analyze_options"
+      spec.visit(Spec::Option) { |opt|
+        puts opt.token
+        indent { 
+          if opt.option_subgroup
+            puts "subgroup   : #{opt.option_subgroup.token}"
+            puts "group      : #{opt.option_group.token}"
+            puts "description: #{opt.option_group.description}"
+          else
+            puts "<command option>"
+          end
+        }
+      }
+      # for each command definition
+      #   for each command group
+      #     for each command
+      #       for each option
+      #       end
+      #     end
+      #   end
+      # end
+      #
+      # for each option definition
+      #   for each option group
+      #     for each option subgroup
+      #       for each option
+      #       end
+      #     end
+      #   end
+      # end
+      puts "done"
     end
 
-    def generate
 #     exit
 #
 #     grammar = Grammar::Program.new(name: spec.name)
@@ -182,7 +219,6 @@ module ShellOpts
 #     grammar.dump
 #     exit
 
-    end
   end
 end
 

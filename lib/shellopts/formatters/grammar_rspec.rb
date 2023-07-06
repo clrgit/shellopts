@@ -13,9 +13,7 @@ module ShellOpts
 
       class Formatter
         using Format::RSpec
-        def format(obj) 
-          obj.dump
-        end
+        def format(obj) = obj.dump
       end
     end
   end

@@ -105,15 +105,23 @@ module ShellOpts
         @chidren.first
       end
 
-      def initialize(parent, ident, short_idents, long_idents, **opts)
+      def initialize(parent, idents, **opts)
         constrain parent, Command
-        constrain ident, Symbol, String
+        constrain idents, [Symbol]
+        @short_idents, @long_idents = idents.partition { |ident| ident.to_s.size == 1 }
+        ident = @long_idents.empty? ? @short_idents.first : @long_idents.first
         super(parent, ident, **opts)
-        constrain short_idents, [Symbol]
-        constrain long_idents, [Symbol]
-        constrain short_idents.include?(ident) || long_idents.include?(ident)
-        @short_idents, @long_idents = short_idents, long_idents
       end
+
+#     def initialize(parent, ident, short_idents, long_idents, **opts)
+#       constrain parent, Command
+#       constrain ident, Symbol
+#       super(parent, ident, **opts)
+#       constrain short_idents, [Symbol]
+#       constrain long_idents, [Symbol]
+#       constrain short_idents.include?(ident) || long_idents.include?(ident)
+#       @short_idents, @long_idents = short_idents, long_idents
+#     end
     end
 
     class Command < Node

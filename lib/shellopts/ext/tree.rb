@@ -94,7 +94,7 @@ module Tree
     # Implementation of Enumerable#inject method
     def inject(default = nil, &block) = preorder.inject(default, &block)
 
-    # Like #each but with filters. Same as #preorder except is can take a block
+    # Like #each but with filters. Same as #preorder except it can take a block argument
     def filter(*filter, this: true, &block) 
       filter = self.class.filter(*filter)
       if block_given?
@@ -146,10 +146,20 @@ module Tree
     # Post-order enumerator of selected nodes
     def postorder(*filter, this: true) = raise NotImplementedError
 
-    def history(
+    # List of ancestors of this node bottom-up
+    def progenitors(*filter)
+      filter = self.class.filter(*filter)
+      a = []
+      follow(parent, :parent).select { |node| 
+        select, traverse = filter.match(node)
+        a << node if select
+        break if !traverse
+      }
+      a
+    end
 
     # List ancestors of this node top-down
-    def ancestors = follow(parent, :parent).to_a.reverse
+    def ancestors(*filter) = progenitors(*filter).to_a.reverse
 
     # Enumerator of descendant nodes matching filter. Same as #preorder with
     # :this set to false

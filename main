@@ -34,22 +34,23 @@ spec = %(
 )
 
 spec = %(
-  cmd1!
-    cmd11!
+  -a -b @ -a and -b brief
+  -c @ -c brief
+    Describes -a, -b, and -c
 
-  cmd2!
-  cmd1.cmd12!
-    Descriptive text
+  -d 
+    @ -d brief
+    Describes -d
 
-  cmd3.cmd31.cmd311!
-
-  cmd4!
-
-  cmd5!
-  cmd6!
-
-  cmd7!
-  cmd8!
+  cmd1! -e @ cmd1 brief
+    cmd11! -f
+      @ cmd11 brief
+#     -f -g
+#     -h
+#       Describes -f, -g, and -h
+#
+#     -i
+#       Describes -i
 )
 
 lexer = ShellOpts::Lexer.new("main", spec)

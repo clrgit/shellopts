@@ -49,6 +49,9 @@ require 'indented_io'
 require 'constrain'
 include Constrain
 
+require 'follow'
+include Follow
+
 require_relative 'shellopts/ext/forward_to.rb'
 include ForwardTo
 
@@ -72,6 +75,7 @@ require_relative 'shellopts/analyzer.rb'
 require_relative 'shellopts/formatters/spec.rb'
 require_relative 'shellopts/formatters/grammar.rb'
 
+#require_relative 'shellopts/type.rb'
 
 
 

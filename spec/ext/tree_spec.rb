@@ -171,6 +171,12 @@ describe "Tree::Tree" do
     end
   end
 
+  describe "#progenitors" do
+    it "enumerates the ancestors of this object bottom-up" do
+      expect(c.progenitors.map(&:name)).to eq %w(a root)
+    end
+  end
+
   describe "#ancestors" do
     it "enumerates the ancestors of this object top-down" do
       expect(c.ancestors.map(&:name)).to eq %w(root a) 

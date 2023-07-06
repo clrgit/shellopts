@@ -14,7 +14,8 @@ module Tree
     #
     #   when +traverse+ is
     #     true    Traverse always. This is the default
-    #     false   Traverse only if select didn't match
+    #     false   Traverse only if select didn't match. This effectively means
+    #             stop-on-match
     #     nil     Expects +select+ to return a two-tuple of booleans. Can't be
     #             used when +select+ is true
     #

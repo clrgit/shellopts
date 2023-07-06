@@ -1,7 +1,7 @@
 
 include ShellOpts
 
-describe "ShellOpts" do
+describe "Analyzer" do
   def spec
     @spec
   end
@@ -38,142 +38,218 @@ describe "ShellOpts" do
     StringIO.redirect(:stdout) { node.dump(format: :rspec) }
   end
 
-  describe "Analyzer" do
-    before(:each) { Grammar::Node.clear }
+  before(:each) { Grammar::Node.clear }
 
-    describe "#analyze" do
-      it "does something"
+  describe "#analyze" do
+    it "does something"
+  end
+
+  describe "#check_options" do
+    it "rejects nested options" do
+      s = %(
+        -a
+        -b
+      )
+      expect { compile s }.not_to raise_error
+      s = %(
+        -a
+          -b
+      )
+      expect { compile s }.to raise_error AnalyzerError
     end
+  end
 
-    describe "#check_briefs" do
-      it "rejects duplicate briefs" do
-        s = %(
-          cmd!
-            @brief1
-        )
-        expect { compile s }.not_to raise_error
+  describe "#check_briefs" do
+    it "rejects duplicate command briefs" do
+      s = %(
+        cmd1! @brief1
+        cmd2!
+          @brief
+      )
+      expect { compile s }.not_to raise_error
 
-        s = %(
-          cmd!
-            @brief1
-            @brief2
-        )
-        expect { compile s }.to raise_error AnalyzerError
-      end
+      # This is not an error because brief2 the default brief
+      s = %(
+        cmd1!
+        cmd2! @brief1
+          @brief2
+      )
+      expect { compile s }.not_to raise_error
+
+      s = %(
+        cmd!
+          @brief1
+          @brief2
+      )
+      expect { compile s }.to raise_error AnalyzerError
+
     end
+    it "rejects duplicate option briefs" do
+      s = %(
+        -a @brief
+        -b
+          @brief
+      )
+      expect { compile s }.not_to raise_error
 
-    describe "#check_arg_descrs" do
-      it "rejects duplicate arg_descrs" do
-        s = %(
-          cmd!
-            -- ARG
-        )
-        expect { compile s }.not_to raise_error
+      # This is not an error because brief2 the default brief
+      s = %(
+        -a
+        -b @brief1
+          @brief2
+      )
+      expect { compile s }.not_to raise_error
 
-        s = %(
-          cmd!
-            -- ARG1
-            -- ARG2
-        )
-        expect { compile s }.to raise_error AnalyzerError
-      end
+      s = %(
+        -a 
+          @brief
+          @brief
+      )
+      expect { compile s }.to raise_error AnalyzerError
     end
+  end
 
-    describe "#check_commands" do
-      it "rejects commands nested within options" do
-        s = %(
-          cmd!
-            --option
-        )
-        expect { compile s }.not_to raise_error
+  describe "#check_arg_descrs" do
+    it "rejects duplicate arg_descrs" do
+      s = %(
+        cmd!
+          -- ARG
+      )
+      expect { compile s }.not_to raise_error
 
-        s = %(
-          cmd!
-            --option
-              cmd2!
-        )
-        expect { compile s }.to raise_error AnalyzerError
+      s = %(
+        cmd!
+          -- ARG1
+          -- ARG2
+      )
+      expect { compile s }.to raise_error AnalyzerError
+    end
+  end
 
-      end
+  describe "#check_commands" do
+    it "rejects commands nested within options" do
+      s = %(
+        cmd!
+          --option
+      )
+      expect { compile s }.not_to raise_error
 
-      it "rejects commands nested within multiple commands" do
-        s = %(
-          cmd1!
+      s = %(
+        cmd!
+          --option
             cmd2!
-        )
-        expect { compile s }.not_to raise_error
+      )
+      expect { compile s }.to raise_error AnalyzerError
 
-        s = %(
-          cmd1!
-          cmd2!
-            cmd3!
-        )
-        expect { compile s }.to raise_error AnalyzerError
-      end
     end
 
-    describe "#analyze_commands" do
-      it "checks for duplicate command names" do
-        s = %(
-          cmd1!
-            cmd1!
+    it "rejects commands nested within multiple commands" do
+      s = %(
+        cmd1!
           cmd2!
-        )
-        expect { compile s }.not_to raise_error
+      )
+      expect { compile s }.not_to raise_error
 
-        s = %(
-          cmd1!
-          cmd1!
-        )
-        expect { compile s }.to raise_error AnalyzerError
-
-        s = %(
-          cmd1!
-            cmd1!
-            cmd1!
-        )
-        expect { compile s }.to raise_error AnalyzerError
-
-        s = %(
-          cmd1!
-            cmd2!
-          cmd1.cmd2!
-        )
-        expect { compile s }.to raise_error AnalyzerError
-      end
-      it "creates command objects" do
-        s = %(
-          cmd1!
-
-          cmd2!
-        )
-        expect(compile(s).commands.map(&:uid)).to eq [:cmd1!, :cmd2!]
-      end
-      it "creates command groups" do
-        s = %(
-          cmd1!
-          cmd2!
-
+      s = %(
+        cmd1!
+        cmd2!
           cmd3!
-        )
-        check s, %(
-          cmd1!, cmd2!
-          cmd3!
-        )
-      end
-      it "creates intermediate command objects" do
-        s = %(
-          cmd1.cmd2!
-        )
-        check s, %(
+      )
+      expect { compile s }.to raise_error AnalyzerError
+    end
+  end
+
+  describe "#analyze_commands" do
+    it "checks for duplicate commands" do
+      s = %(
+        cmd1!
           cmd1!
-            cmd2!
-        )
-      end
+        cmd2!
+      )
+      expect { compile s }.not_to raise_error
+
+      s = %(
+        cmd1!
+        cmd1!
+      )
+      expect { compile s }.to raise_error AnalyzerError
+
+      s = %(
+        cmd1!
+          cmd1!
+          cmd1!
+      )
+      expect { compile s }.to raise_error AnalyzerError
+
+      s = %(
+        cmd1!
+          cmd2!
+        cmd1.cmd2!
+      )
+      expect { compile s }.to raise_error AnalyzerError
+    end
+    it "creates command objects" do
+      s = %(
+        cmd1!
+
+        cmd2!
+      )
+      expect(compile(s).commands.map(&:uid)).to eq [:cmd1!, :cmd2!]
+    end
+    it "creates command groups" do
+      s = %(
+        cmd1!
+        cmd2!
+
+        cmd3!
+      )
+      check s, %(
+        cmd1!, cmd2!
+        cmd3!
+      )
+    end
+    it "creates intermediate command objects" do
+      s = %(
+        cmd1.cmd2!
+      )
+      check s, %(
+        cmd1!
+          cmd2!
+      )
+    end
+  end
+
+  describe "#analyze_options" do
+    it "creates option objects" do
+      s = %(
+        --opt
+      )
     end
 
-    describe "#analyze_options" do
+    it "creates option groups" do
+      s = %(
+        cmd!
+          --opt1
+
+          --opt2
+      )
     end
+    it "creates option subgroups" do
+      s = %(
+        cmd!
+          --opt1
+          --opt2
+      )
+    end
+    it "creates command options" do
+      s = %(
+        cmd! --opt1 --opt2
+      )
+    end
+  end
+end
+
+__END__
 
 #     it "rejects duplicate options" do
 #       expect { compile("-a -a") }.to raise_error AnalyzerError

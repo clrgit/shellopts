@@ -62,6 +62,8 @@ module ShellOpts
     end
 
     class OptionDefinition < Definition
+      alias_method :option_group, :subject
+      def options = option_group.filter(Option)
     end
 
 
@@ -215,25 +217,27 @@ module ShellOpts
     end
 
     # An option group is a list of continuous subgroups without blank lines in
-    # between, like a text paragraph
+    # between, like a text paragraph. Options in a group share a common description
     class OptionGroup < Group
       def brief = description.find(Brief)
-      def options = @options = filter(Command).to_a
+      def options = @options = filter(Command).to_a # FIXME Huh?
 
       # Does not include Brief because it can't be attached directly to a
       # OptionGroup but belongs in the description
       def self.accepts = [OptionSubGroup] 
     end
 
-    # An option subgroup is a list of options on the same line
+    # An option subgroup is a list of options on the same line. Options in a
+    # subgroup share a common brief
     class OptionSubGroup < Node
       alias_method :option_group, :parent
       def brief = find(Brief) || option_group.brief
       def self.accepts = [Option, Brief]
     end
 
-    # An option. Options can be attached to a OptionSubGroup or a Command, 
-    # #option_subgroup and #option_group returns nil in the last case
+    # An option. It is attached to an OptionSubGroup when it is part of a
+    # description, or a Command when it is defined directly on the command.
+    # #option_subgroup, #option_group, and #brief returns nil in the last case
     class Option < Node
       def name = token.value.sub(/^-+/, "")
       def option_subgroup = parent.is_a?(OptionSubGroup) ? parent : nil

@@ -171,6 +171,12 @@ describe "Tree::Tree" do
     end
   end
 
+  describe "#ancestors" do
+    it "enumerates the ancestors of this object top-down" do
+      expect(c.ancestors.map(&:name)).to eq %w(root a) 
+    end
+  end
+
   describe "#visit" do
     let(:acc) { [] }
     let(:block) { lambda { |node| acc << node.name } }

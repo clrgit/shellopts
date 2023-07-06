@@ -146,6 +146,11 @@ module Tree
     # Post-order enumerator of selected nodes
     def postorder(*filter, this: true) = raise NotImplementedError
 
+    def history(
+
+    # List ancestors of this node top-down
+    def ancestors = follow(parent, :parent).to_a.reverse
+
     # Enumerator of descendant nodes matching filter. Same as #preorder with
     # :this set to false
     def descendants(*filter) = preorder(filter, this: false)

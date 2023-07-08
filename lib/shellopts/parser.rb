@@ -44,8 +44,8 @@ module ShellOpts
       blank: :parse_blanks,
       text: :parse_text,
       code: :parse_code,
-      option: :parse_option,
-      command: :parse_command,
+      option: :parse_option_definition,
+      command: :parse_command_definition,
       brief: :parse_brief,
       arg_spec: :parse_arg_spec,
       arg_descr: :parse_arg_descr,
@@ -140,7 +140,7 @@ module ShellOpts
       Spec::Brief.new(parent, tokens.shift)
     end
 
-    def parse_option(parent)
+    def parse_option_definition(parent)
       defn = Spec::OptionDefinition.new(parent, token)
       parse_option_group(defn)
       parse_description(defn)
@@ -151,13 +151,20 @@ module ShellOpts
       head = token
       tokens.consume(:option, nil, token.charno) { |option|
         subgroup = Spec::OptionSubGroup.new(group, option)
-        tokens.unshift option
-        tokens.consume(:option, option.lineno, nil) { |t| Spec::Option.new(subgroup, t) }
+        parse_option(subgroup, option)
         tokens.consume(:brief, option.lineno, nil) { |brief| Spec::Brief.new(subgroup, brief) }
       }
     end
 
-    def parse_command(parent)
+    def parse_option(parent, option)
+      tokens.unshift option
+      tokens.consume(:option, option.lineno, nil) { |t| 
+        
+        Spec::Option.new(parent, t) 
+      }
+    end
+
+    def parse_command_definition(parent)
       defn = Spec::CommandDefinition.new(parent, token)
       parse_command_group(defn)
       parse_description(defn)

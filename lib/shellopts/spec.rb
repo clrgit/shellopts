@@ -240,27 +240,28 @@ module ShellOpts
       def self.accepts = [Option, Brief]
     end
 
-    # An option. It is attached to an OptionSubGroup when it is part of a
-    # description, or a Command when it is defined directly on the command.
-    # #option_subgroup, #option_group, and #brief returns nil in the last case
+    # An option and it's aliases. It is attached to an OptionSubGroup when it is
+    # part of a description, or a Command when it is defined directly on the
+    # command.  #option_subgroup, #option_group, and #brief returns nil in the
+    # last case
     class Option < Node
       def name = token.value.sub(/^-+/, "")
       def option_subgroup = parent.is_a?(OptionSubGroup) ? parent : nil
       def option_group = option_subgroup&.option_group
       def brief = find(Brief) || option_subgroup&.brief
-
+    
       # Associated Grammar::Command object. Initialized by the analyzer
       alias_method :command=, :grammar=
       alias_method :command, :grammar
-
+    
       # Associated Grammar::Option object. Initialize by the analyzer
       attr_accessor :option
-
+    
       def initialize(parent, token, check: false)
         constrain parent, OptionSubGroup, Command
         super(parent, token, check: check)
       end
-
+    
       def to_s = token.value
       def self.accepts = [Brief]
     end

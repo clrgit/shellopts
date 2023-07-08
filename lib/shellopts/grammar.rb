@@ -12,6 +12,8 @@ module ShellOpts
   #     The first name in a list of aliases
   #
   module Grammar
+    def self.program = Node.program
+
     class Node < Tree::Set # TODO Make Node a Tree::Tree node
       # Parent command object or nil if this is the Program node
       alias_method :command, :parent
@@ -61,11 +63,15 @@ module ShellOpts
         @ident = ident
         @spec = spec
         super(parent)
+        spec.grammar = self if spec
         Node.register_node(self)
       end
 
       # Access node by relative UID. Eg. main.dot(option_name) or main.dot("[3].FILE")
       def dot(relative_uid) = Node[[self.uid, relative_uid].compact.join(".").sub("!.", ".")]
+
+      # Top-level program node
+      def self.program = @@nodes[nil]
 
       # Access node in global pool by UID
       def self.[](uid) = @@nodes[uid]
@@ -82,7 +88,6 @@ module ShellOpts
       # Map from UID to Node object
       @@nodes = {}
       def self.register_node(node) = @@nodes[node.uid] = node
-      def self.program = @@nodes.first
 
       # Used by Tree
       def key = ident

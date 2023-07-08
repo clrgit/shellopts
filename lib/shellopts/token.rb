@@ -36,6 +36,9 @@ module ShellOpts
     # :code
     #   a multiline string of code
     #
+    # :bullet
+    #   a list bullet
+    #
     # :blank
     #   a blank line
     #   

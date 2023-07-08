@@ -90,6 +90,21 @@ describe "Parser" do
               -c
         )
       end
+      it "accepts list of options" # do
+#       s = %(
+#         -a,b
+#         -c,d=FILE
+#       )
+#       check s, %(
+#         group
+#           subgroup
+#             -a
+#             -b
+#           subgroup
+#             -c
+#             -d
+#       )
+#     end
       it "takes a description" do
         s = %(
           -a

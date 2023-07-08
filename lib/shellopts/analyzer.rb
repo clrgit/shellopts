@@ -50,14 +50,14 @@ module ShellOpts
 
     def check_options
       spec.pairs(Spec::OptionDefinition, Spec::OptionDefinition) { |first, last|
-        analyzer_error last.token, "Nested option definition"
+        analyzer_error last.token, "Options can't be nedted within an option"
       }
     end
 
     def check_briefs
       spec.filter([Spec::CommandDefinition, Spec::OptionDefinition]) { |defn|
         defn.description.filter(Spec::Brief).to_a.size <= 1 or 
-            analyzer_error defn.token, "Multiple brief definitions"
+            analyzer_error defn.token, "Duplicate brief definition"
       }
     end
 
@@ -73,7 +73,7 @@ module ShellOpts
         analyzer_error cmd.token, "Commands can't be nested within an option"
       }
 
-      # Check that command groups with more than one command does not have nested commands
+      # Check that command groups with more than one command have no nested commands
       spec.pairs(Spec::CommandDefinition, Spec::CommandDefinition).each { |sup, sub|
         sup.subject.commands.size == 1 or 
             analyzer_error sub.token, "Commands can't be nested within multiple commands"
@@ -122,8 +122,68 @@ module ShellOpts
     end
 
     def analyze_options
-      return
+#     return
       puts "#analyze_options"
+
+      spec.filter([Spec::Spec, Spec::CommandDefinition]) { |node|
+        command = node.grammar
+        p command.name
+        opt_defns = node.description.children.select { |node| node.is_a?(Spec::OptionDefinition) }
+
+        indent {
+          opt_defns.each { |opt_defn|
+            puts "#{opt_defn.token} (#{opt_defn.class})"
+            indent { puts opt_defn.options.map(&:token) }
+            opts = opt_defn.options.map { _1.name.to_sym }
+            Grammar::Option.new(command, opts, spec: opt_defn)
+          }
+        }
+#       exit
+
+#         node.commands.each { |cmd|
+#           p cmd.class
+#         }
+      }
+
+      p Grammar::Node.keys
+      program = Grammar::Node[nil]
+      p program.ident
+      p Grammar::Node[nil]
+      
+      Grammar.program.dump
+      exit
+
+      spec.filter(Spec::OptionDefinition) { |node|
+        puts node.token
+        indent {
+          node.options.each { |opt|
+            p opt.class
+          }
+        }
+      }
+      exit
+
+
+      # Alternatively
+      spec.filter(Spec::Spec, Spec::Command).each { |node|
+        # Find Grammar object
+        # Find Command options
+        # Find Description options
+        # Check for duplicates
+        # Create options
+      }
+
+      # Find commands with same-line options
+      same_cmds = spec.pairs([Spec::Spec, Spec::Command], Spec::Option).map { |cmd, opt|
+        puts "#{cmd.name} #{opt&.name}"
+      }
+
+      # Find commands with nested options
+      
+
+      exit
+
+
       spec.visit(Spec::Option) { |opt|
         puts opt.token
         indent { 

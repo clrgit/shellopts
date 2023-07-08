@@ -41,7 +41,7 @@ describe "Analyzer" do
   before(:each) { Grammar::Node.clear }
 
   describe "#analyze" do
-    it "does something"
+    it "does a lot of stuff"
   end
 
   describe "#check_options" do
@@ -57,6 +57,17 @@ describe "Analyzer" do
       )
       expect { compile s }.to raise_error AnalyzerError
     end
+    it "rejects duplicate options" # do
+#     s = %(
+#       -a -a
+#     )
+#     expect { compile s }.to raise_error AnalyzerError
+#     s = %(
+#       -a
+#       -a
+#     )
+#     expect { compile s }.to raise_error AnalyzerError
+#   end
   end
 
   describe "#check_briefs" do

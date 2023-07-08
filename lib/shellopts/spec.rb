@@ -13,6 +13,9 @@ module ShellOpts
     class Node < Tree::Tree
       attr_reader :token
 
+      # Associated grammar object or nil. Initialized by the analyzer
+      attr_accessor :grammar
+
       def initialize(parent, token, check: true)
         constrain parent, Node, nil
         constrain token, Token
@@ -48,6 +51,7 @@ module ShellOpts
     end
 
     class Spec < Definition
+      alias_method :command_group, :subject
       def name = token.value
       def program = subject.commands.first
 
@@ -58,6 +62,7 @@ module ShellOpts
     end
 
     class CommandDefinition < Definition
+      alias_method :command_group, :subject
       def commands = subject.commands
     end
 
@@ -220,7 +225,7 @@ module ShellOpts
     # between, like a text paragraph. Options in a group share a common description
     class OptionGroup < Group
       def brief = description.find(Brief)
-      def options = @options = filter(Command).to_a # FIXME Huh?
+      def options = @options ||= filter(Option).to_a
 
       # Does not include Brief because it can't be attached directly to a
       # OptionGroup but belongs in the description
@@ -245,7 +250,8 @@ module ShellOpts
       def brief = find(Brief) || option_subgroup&.brief
 
       # Associated Grammar::Command object. Initialized by the analyzer
-      attr_accessor :command 
+      alias_method :command=, :grammar=
+      alias_method :command, :grammar
 
       # Associated Grammar::Option object. Initialize by the analyzer
       attr_accessor :option

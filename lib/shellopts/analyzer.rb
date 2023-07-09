@@ -21,14 +21,19 @@ module ShellOpts
       check_arg_descrs
       check_commands
 
+      # Top-level group and program command
+
       # Top-level program object
-      @grammar = spec.program.command = Grammar::Program.new(name: spec.program.name, spec: spec)
+#     program = Grammar::Program.new(name: spec.program.name, spec: spec)
+#     spec.program.command = program
+#     @grammar = program.group
+#       group = Grammar::Group.new(parent, spec: defn)
     
-      # Generate grammar and doc 
-      puts "-----------------------------------------"
+#     # Generate grammar and doc 
+#     puts "-----------------------------------------"
       analyze_commands
-      exit
-      analyze_options
+#     exit
+#     analyze_options
 
       [@grammar, @doc]
     end
@@ -93,42 +98,63 @@ module ShellOpts
       curr
     end
 
+#     @grammar = Grammar::ProgramGroup.new(spec: spec)
+
     def analyze_commands
       puts "#analyze_commands"
       indent {
-      # Create Command objects
-      spec.accumulate(Spec::CommandDefinition, grammar) { |parent,defn|
-        puts defn.inspect
-        indent { puts defn.commands.map(&:inspect) }
+        
+      @grammar = spec.accumulate(Spec::CommandDefinition, nil) { |parent,defn|
+        group = Grammar::Group.new(parent, spec: spec)
 
+        # Collect commands
+        if parent.is_a? Grammar::ProgramGroup
+          main = defn.command_parent.commands.first
+          Grammar::Program.new(group, name: main.name, spec: main.spec)
+        else
+          pure_cmds, qual_cmds = defn.commands.partition { |cmd| cmd.qual.nil? }
 
-        pure_cmds, qual_cmds = defn.commands.partition { |cmd| cmd.qual.nil? }
+          # Collect same-level identifiers and create unqualified commands
+          if !pure_cmds.empty?
+            idents_hash = {}
+            pure_cmds.each { |cmd| # check for duplicates and collect idents
+              !group.key?(cmd.ident) && !idents_hash.key?(cmd.ident) or # TODO use [] and key?
+                  analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
+              analyze_command(group, cmd)
+              idents_hash[cmd.ident] = true
+            }
+            idents = idents_hash.keys
+          end
 
-        # Collect same-level identifiers and create unqualified commands
-        if !pure_cmds.empty?
-          idents_hash = {}
-          pure_cmds.each { |cmd| # check for duplicates and collect idents
-            !parent.command?(cmd.ident) && !idents_hash.key?(cmd.ident) or
-                analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
-            idents_hash[cmd.ident] = true
-          }
-          idents = idents_hash.keys
-          command = Grammar::Command.new(parent, idents.first, idents, spec: defn)
+          # Qualified commands: Ensure parent objects and then create command
+#         qual_cmds.each { |cmd|
+#           qual_parent = ensure_command(cmd.qual, defn)
+#           !qual_parent.command?(cmd.ident) or 
+#               analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
+#
+#           # FIXME: Problem that we lose group info so options can't be shared
+#           command = Grammar::Command.new(qual_parent, cmd.ident, [cmd.ident], spec: defn)
+#         } 
         end
 
-        # Qualified commands: Ensure parent objects and then create command
-        qual_cmds.each { |cmd|
-          qual_parent = ensure_command(cmd.qual, defn)
-          !qual_parent.command?(cmd.ident) or 
-              analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
-          command = Grammar::Command.new(qual_parent, cmd.ident, [cmd.ident], spec: defn)
-        } 
+        # Collect sub-commands
+        group
+      }
+      }
 
-        # Emit accumulator
-        command
-      }
-      }
+      @grammar.dump
+      p @grammar.class
+      p @grammar.keys
+      p @grammar.children.map(&:class)
+      exit
     end
+
+    def analyze_command(group, cmd)
+      constrain group, Grammar::Group
+      constrain cmd, Spec::Command
+      Grammar::Command.new(group, cmd.ident, spec: cmd)
+    end
+
 
     def analyze_options
       puts

@@ -50,8 +50,12 @@ module ShellOpts
       def self.accepts = [Subject, Description]
     end
 
-    class Spec < Definition
+    class CommandDefinition < Definition
       alias_method :command_group, :subject
+      def commands = subject.commands
+    end
+
+    class Spec < CommandDefinition
       def name = token.value
       def program = subject.commands.first
       def commands = [program]
@@ -60,11 +64,6 @@ module ShellOpts
         constrain token.kind, :program
         super nil, token
       end
-    end
-
-    class CommandDefinition < Definition
-      alias_method :command_group, :subject
-      def commands = subject.commands
     end
 
     class OptionDefinition < Definition

@@ -15,18 +15,18 @@ module ShellOpts
     def self.program = Node.program
 
     class Node < Tree::Set # TODO Make Node a Tree::Tree node
-      # Parent command object or nil if this is the Program node. FIXME: Args can have options as parents
-      alias_method :command, :parent
-
       # Display-name of object (String). Defaults to #ident with special
       # characters removed
-      def name = ident.to_s
+      attr_reader :name
 
       # Usually a Symbol but anonymous ArgSpec objects have Integer idents.
-      # Initialized by the parser. Equal to :! for the top level Program object
+      # Initialized by the parser. Equal to :! for the top level Program
+      # object. Can be nil for internal nodes, those nodes are registered by
+      # object id
       attr_reader :ident
 
-      # Alias idents. Must include #ident
+      # Alias idents. Must include #ident. Equal to the empty array if ident is
+      # nil
       attr_reader :idents
 
       # Literal of the node's #ident as the user sees it (String). Eg.
@@ -36,10 +36,12 @@ module ShellOpts
       # Alias literals. Must include #literal
       def literals = abstract_method
 
-      # UID of object. This can be used in Node::[] to get the object
+      # UID of object. This can be used in Node::[] to get the object.
+      # nil if ident is nil
       def uid
         @uid ||= 
             case ident
+              when nil; nil
               when Symbol; [parent.uid, ident].compact.join(".").sub(/!\./, ".").to_sym
               when Integer; "#{parent.uid}[#{ident}]"
             else
@@ -53,13 +55,15 @@ module ShellOpts
       # Associated Doc::Node object. Initialized by the analyzer
       attr_accessor :doc 
 
-      # The associated token. A shorthand for +doc.token+
+      # The associated token. A shorthand for +spec.token+
       forward_to :spec, :token
 
-      def initialize(parent, ident, spec: nil)
-        constrain parent, *(self.class <= Program ? [nil] : [Option, Command, ArgSpec])
-        constrain ident, *(self.class <= ArgSpec || self.class <= Arg ? [Symbol, Integer] : [Symbol])
+      def initialize(parent, ident, name: nil, spec: nil)
+#       constrain parent, *(self.class <= ProgramGroup ? [nil] : [Group, Option, Command, ArgSpec])
+        constrain parent, Node, nil
+        constrain ident, *(self.class <= ArgSpec || self.class <= Arg ? [Symbol, Integer] : [Symbol]), nil
         constrain spec, Spec::Node, nil
+        @name = name || ident&.to_s
         @ident = ident
         @spec = spec
         super(parent)
@@ -85,15 +89,21 @@ module ShellOpts
       def inspect = "#{token&.value} (#{self.class})"
 
     private
-      # Map from UID to Node object
+      # Map from UID to Node object. Nodes with a nil ident are not registered
       @@nodes = {}
-      def self.register_node(node) = @@nodes[node.uid] = node
+      def self.register_node(node)
+        @@nodes[node.uid] = node if node.uid
+      end
 
       # Used by Tree
-      def key = ident
+      def key = ident.nil? ? object_id : ident
     end
 
     class Option < Node
+      # Option kind, :group or :command
+      def kind = abstract_method
+
+      # Has to come before alias_method below
       forward_to :spec, :name, :names, :short_names, :long_names, 
                         :ident, :idents, :short_idents, :long_idents, 
                         :repeatable?, :optional?, :argument_name, :argument_type
@@ -101,7 +111,6 @@ module ShellOpts
       # Override Node#literal to include '-' or '--'
       alias_method :literal, :name
       alias_method :literals, :names
-
 
       def arg
         @children.size <= 1 or raise InternalError, "More than one child"
@@ -113,52 +122,65 @@ module ShellOpts
         constrain spec, Spec::Option
         super(parent, spec.ident, spec: spec, **opts)
       end
+    end
 
-#     def initialize(parent, ident, short_idents, long_idents, **opts)
-#       constrain parent, Command
-#       constrain ident, Symbol
-#       super(parent, ident, **opts)
-#       constrain short_idents, [Symbol]
-#       constrain long_idents, [Symbol]
-#       constrain short_idents.include?(ident) || long_idents.include?(ident)
-#       @short_idents, @long_idents = short_idents, long_idents
-#     end
+    class GroupOption < Option
+      alias_method :group, :parent
+      def kind = :group
+    end
+
+    class CommandOption < Option
+      alias_method :command, :parent
+      def kind = :command
+    end
+
+    class Group < Node
+      alias_method :group, :parent
+
+      def commands = children.select { |c| c.is_a? Command }
+      def groups = children.select { |c| c.is_a? Group }
+      def options = children.select { |c| c.is_a? Option }
+      def specs = children.select { |c| c.is_a? ArgSpec }
+
+      def initialize(parent, **opts) 
+        constrain parent, Group, nil
+        super(parent, nil, **opts)
+      end
+    end
+
+    class ProgramGroup < Group
+      def initialize(**opts) = super(nil, **opts)
     end
 
     class Command < Node
-      def name = ident.to_s[0..-2]
+      alias_method :group, :parent
+      def options = group.options + children.select { |c| c.is_a? Option }
+      def specs = group.specs + children.select { |c| c.is_a? ArgSpec }
+      def commands = group.groups.map(&:commands).flatten
 
-      attr_reader :idents
       def literals = @literals ||= idents.map { |i| i.to_s[0..-2] }
 
-      def options = children.select { |c| c.is_a? Option }
-      def commands = children.select { |c| c.is_a? Command } # TODO: Rename to #subcommands
-      def specs = children.select { |c| c.is_a? ArgSpec }
-
-      def initialize(parent, ident, idents = [ident], **opts)
-        constrain parent, (self.class == Program ? nil : Command)
-        super(parent, ident, **opts)
-        constrain idents, [Symbol]
-        constrain idents.include?(ident) # Same semantics as Option
-        @idents = idents
+      def initialize(parent, ident, name: nil, **opts)
+        constrain parent, (self.class == Program ? nil : Group)
+        name ||= ident.to_s[0..-2]
+        super(parent, ident, name: name, **opts)
       end
 
       # FIXME Actually the same as self.key?(ident) and self[ident]
       # Check if ident is a name of a sub-command or of any sub-command alias # TODO: Rename to #subcommand
-      def command?(ident) = commands.any? { |cmd| cmd.idents.include?(ident) } # TODO Optimize
+#     def command?(ident) = commands.any? { |cmd| cmd.idents.include?(ident) } # TODO Optimize
 
       # Lookup ident in sub-commands. Aliases are supported
-      def command(ident) = commands.find { |cmd| cmd.idents.include?(ident) }
+#     def command(ident) = commands.find { |cmd| cmd.idents.include?(ident) }
     end
 
     class Program < Command
-      def ident = :!
-      attr_reader :name
+      IDENT = :!
       def uid = nil # To not prefix UID with program name in every Grammar class
 
-      def initialize(name: nil, **opts)
-        super(nil, self.ident, [self.ident], **opts)
-        @name = name || File.basename($PROGRAM_NAME)
+      def initialize(parent, name: nil, **opts)
+        name ||= File.basename($PROGRAM_NAME)
+        super(parent, IDENT, [IDENT], name: name, **opts)
       end
     end
 

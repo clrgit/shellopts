@@ -182,8 +182,8 @@ module Tree
     def accumulate(*filter, accumulator, this: true, &block)
       filter = self.class.filter(*filter)
       block_given? or raise ArgumentError, "Block is required"
-      do_accumulate(filter, this, accumulator, &block)
-      accumulator
+      acc = do_accumulate(filter, this, accumulator, &block)
+      accumulator.nil? ? acc : accumulator
     end
 
     # Traverse the tree bottom-up while aggregating information
@@ -263,9 +263,9 @@ module Tree
       children.each { |child| child.do_visit(filter, true, &block) } if traverse || !this
     end
 
-    # TODO: Break if acc.nil? Test it 
+    # TODO: Break if acc.nil? Test it. Probably a bad idea because we can easily start with a nil accumulator
     def do_accumulate(filter, this, acc, &block)
-      return nil if acc.nil?
+#     return nil if acc.nil?
 #     puts "#do_accumulate -> #{self.token.value} (#{self.class.name})"
       select, traverse = filter.match(self)
 #     puts "  this: #{this}"
@@ -274,6 +274,7 @@ module Tree
 #     puts "  children.size: #{children.size}"
       acc = yield(acc, self) if this && select
       children.each { |child| child.do_accumulate(filter, true, acc, &block) } if traverse || !this
+      acc
     end
 
     def do_aggregate(filter, this, &block)

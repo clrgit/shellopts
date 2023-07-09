@@ -345,50 +345,6 @@ describe "Parser" do
         )
       end
       
-      it "applies to a nested command" do
-        s = %(
-          cmd1! @cmd1 brief
-          cmd2!
-            @cmd default brief
-            cmd3! @cmd3 brief
-            cmd4!
-              @cmd4 brief
-        )
-        s = %(
-          -a -b @ -a and -b brief
-          -c @ -c brief
-            Describes -a, -b, and -c
-
-          -d 
-            @ -d brief
-            Describes -d
-
-          cmd1! -e @ cmd1 brief
-          cmd1_alias! --special-option
-            @default cmd1 brief
-
-            Command description
-
-            cmd11! -f
-              Some text
-
-              @ cmd11 brief
-
-              Some more text
-
-              -g -h #@ grief
-              -i
-                Describes -g, -h, and -i
-
-              -j=FILE
-                Describes -j
-
-              Finally
-        )
-        puts compile s
-        exit
-      end
-
       it "can be applied multiple times" do
         s = %(
           -a
@@ -416,12 +372,6 @@ describe "Parser" do
           cmd2!
             @default cmd brief
         )
-#       s = %(
-#           cmd1! -e @ cmd1 brief
-#           cmd1_alias! --special-option
-#             @default cmd1 brief
-#       )
-#       puts compile s
         check s, %(
           group
             cmd1!

@@ -62,7 +62,8 @@ spec = %(
       -j=FILE
         Describes -j
 
-      Finally
+  cmd2! 
+    Finally
 )
 
 # TODO: Option parsing

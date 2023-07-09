@@ -161,17 +161,14 @@ module ShellOpts
       def literals = @literals ||= idents.map { |i| i.to_s[0..-2] }
 
       def initialize(parent, ident, name: nil, **opts)
-        constrain parent, (self.class == Program ? nil : Group)
+        constrain parent, Group, nil
         name ||= ident.to_s[0..-2]
         super(parent, ident, name: name, **opts)
       end
 
-      # FIXME Actually the same as self.key?(ident) and self[ident]
-      # Check if ident is a name of a sub-command or of any sub-command alias # TODO: Rename to #subcommand
-#     def command?(ident) = commands.any? { |cmd| cmd.idents.include?(ident) } # TODO Optimize
-
-      # Lookup ident in sub-commands. Aliases are supported
-#     def command(ident) = commands.find { |cmd| cmd.idents.include?(ident) }
+      def [](key) = self.key?(key) ? self[key] : group[key]
+      def key?(key) = self.key?(key) || group.key?(key)
+      def keys() = group.keys + self.keys
     end
 
     class Program < Command
@@ -180,7 +177,7 @@ module ShellOpts
 
       def initialize(parent, name: nil, **opts)
         name ||= File.basename($PROGRAM_NAME)
-        super(parent, IDENT, [IDENT], name: name, **opts)
+        super(parent, IDENT, name: name, **opts)
       end
     end
 

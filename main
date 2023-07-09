@@ -105,7 +105,11 @@ puts
 analyzer = ShellOpts::Analyzer.new(spec)
 grammar, doc = analyzer.analyze
 
-grammar.dump
+puts "GRAMMAR"
+indent { grammar.dump }
+
+puts "NODES"
+p ShellOpts::Grammar::Node.keys
 
 exit
 

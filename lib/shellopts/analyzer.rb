@@ -21,16 +21,6 @@ module ShellOpts
       check_arg_descrs
       check_commands
 
-      # Top-level group and program command
-
-      # Top-level program object
-#     program = Grammar::Program.new(name: spec.program.name, spec: spec)
-#     spec.program.command = program
-#     @grammar = program.group
-#       group = Grammar::Group.new(parent, spec: defn)
-    
-#     # Generate grammar and doc 
-#     puts "-----------------------------------------"
       analyze_commands
 #     exit
 #     analyze_options
@@ -98,19 +88,14 @@ module ShellOpts
       curr
     end
 
-#     @grammar = Grammar::ProgramGroup.new(spec: spec)
-
     def analyze_commands
-      puts "#analyze_commands"
-      indent {
-        
       @grammar = spec.accumulate(Spec::CommandDefinition, nil) { |parent,defn|
         group = Grammar::Group.new(parent, spec: spec)
 
         # Collect commands
-        if parent.is_a? Grammar::ProgramGroup
-          main = defn.command_parent.commands.first
-          Grammar::Program.new(group, name: main.name, spec: main.spec)
+        if parent.nil?
+          main = defn.command_group.commands.first
+          Grammar::Program.new(group, name: main.name, spec: main)
         else
           pure_cmds, qual_cmds = defn.commands.partition { |cmd| cmd.qual.nil? }
 
@@ -120,7 +105,7 @@ module ShellOpts
             pure_cmds.each { |cmd| # check for duplicates and collect idents
               !group.key?(cmd.ident) && !idents_hash.key?(cmd.ident) or # TODO use [] and key?
                   analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
-              analyze_command(group, cmd)
+              Grammar::Command.new(group, cmd.ident, spec: cmd)
               idents_hash[cmd.ident] = true
             }
             idents = idents_hash.keys
@@ -140,21 +125,7 @@ module ShellOpts
         # Collect sub-commands
         group
       }
-      }
-
-      @grammar.dump
-      p @grammar.class
-      p @grammar.keys
-      p @grammar.children.map(&:class)
-      exit
     end
-
-    def analyze_command(group, cmd)
-      constrain group, Grammar::Group
-      constrain cmd, Spec::Command
-      Grammar::Command.new(group, cmd.ident, spec: cmd)
-    end
-
 
     def analyze_options
       puts

@@ -15,11 +15,8 @@ module ShellOpts
     def self.program = Node.program
 
     class Node < Tree::Set # TODO Make Node a Tree::Tree node
-      # Parent command object or nil if this is the Program node
+      # Parent command object or nil if this is the Program node. FIXME: Args can have options as parents
       alias_method :command, :parent
-
-      # Associated Spec node
-      attr_reader :spec
 
       # Display-name of object (String). Defaults to #ident with special
       # characters removed
@@ -50,11 +47,14 @@ module ShellOpts
             end
       end
 
+      # Associated Spec node
+      attr_reader :spec
+
       # Associated Doc::Node object. Initialized by the analyzer
       attr_accessor :doc 
 
       # The associated token. A shorthand for +doc.token+
-      forward_to :doc, :token
+      forward_to :spec, :token
 
       def initialize(parent, ident, spec: nil)
         constrain parent, *(self.class <= Program ? [nil] : [Option, Command, ArgSpec])
@@ -94,28 +94,24 @@ module ShellOpts
     end
 
     class Option < Node
+      forward_to :spec, :name, :names, :short_names, :long_names, 
+                        :ident, :idents, :short_idents, :long_idents, 
+                        :repeatable?, :optional?, :argument_name, :argument_type
+
       # Override Node#literal to include '-' or '--'
-      def literal = @literal ||= short_idents.include?(ident) ? "-#{ident}" : "--#{ident}"
+      alias_method :literal, :name
+      alias_method :literals, :names
 
-      attr_reader :short_idents
-      attr_reader :long_idents
-      def idents = @idents ||= @short_idents + @long_idents
-
-      def short_literals = @short_literals ||= @short_idents.map { |i| "-#{i}" }
-      def long_literals = @long_literals ||= @long_idents.map { |i| "--#{i}" }
-      def literals = @literals ||= short_literals + long_literals
 
       def arg
         @children.size <= 1 or raise InternalError, "More than one child"
         @chidren.first
       end
 
-      def initialize(parent, idents, **opts)
+      def initialize(parent, spec: nil, **opts)
         constrain parent, Command
-        constrain idents, [Symbol]
-        @short_idents, @long_idents = idents.partition { |ident| ident.to_s.size == 1 }
-        ident = @long_idents.empty? ? @short_idents.first : @long_idents.first
-        super(parent, ident, **opts)
+        constrain spec, Spec::Option
+        super(parent, spec.ident, spec: spec, **opts)
       end
 
 #     def initialize(parent, ident, short_idents, long_idents, **opts)

@@ -68,6 +68,25 @@ describe "Analyzer" do
 #     )
 #     expect { compile s }.to raise_error AnalyzerError
 #   end
+    it "collapses '-' and '_'" # do
+      # TODO
+      #   check_error %(
+      #     ...
+      #   )
+      #   check_success %(
+      #     ...
+      #   )
+#     s = %(
+#       --opt-value
+#       --opt_another
+#     )
+#     expect { compile s }.not_to raise_error
+#     s = %(
+#       --opt-value
+#       --opt_value
+#     )
+#     expect { compile s }.to raise_error AnalyzerError
+#   end
   end
 
   describe "#check_briefs" do

@@ -43,6 +43,10 @@ spec = %(
     Describes -d
 
   cmd1! -e @ cmd1 brief
+  cmd1_alias! --special-option
+    @default cmd1 brief
+
+    Command description
 
     cmd11! -f
       Some text
@@ -51,7 +55,7 @@ spec = %(
 
       Some more text
 
-      -g -h
+      -g -h #@ grief
       -i
         Describes -g, -h, and -i
 
@@ -68,6 +72,24 @@ spec = %(
 # -g=FILE -t,txt=FILE @ shared brief
 #   shared doc
 #)
+
+#spec = %(
+# -a 
+# 
+# -b -c # Shares brief and doc
+#
+# -d,e # Aliases
+#
+# -f # Shares doc and brief
+# -g
+#
+# -h -i @subgroup-brief
+# -j @option-brief
+# -k 
+#   @group-brief
+#)
+  
+  
 
 lexer = ShellOpts::Lexer.new("main", spec)
 tokens = lexer.lex

@@ -54,6 +54,7 @@ module ShellOpts
       alias_method :command_group, :subject
       def name = token.value
       def program = subject.commands.first
+      def commands = [program]
 
       def initialize(token)
         constrain token.kind, :program
@@ -249,17 +250,62 @@ module ShellOpts
       def option_subgroup = parent.is_a?(OptionSubGroup) ? parent : nil
       def option_group = option_subgroup&.option_group
       def brief = find(Brief) || option_subgroup&.brief
-    
-      # Associated Grammar::Command object. Initialized by the analyzer
-      alias_method :command=, :grammar=
-      alias_method :command, :grammar
+
+      attr_reader :name
+      attr_reader :names
+      attr_reader :short_names
+      attr_reader :long_names
+
+      attr_reader :ident
+      attr_reader :idents
+      attr_reader :short_idents
+      attr_reader :long_idents
+
+      def repeatable? = @repeatable
+      def optional? = @optional
+
+      def argument? = argument_type.nil?
+      attr_reader :argument_name
+      attr_reader :argument_type
     
       # Associated Grammar::Option object. Initialize by the analyzer
-      attr_accessor :option
+      alias_method :option, :grammar
     
-      def initialize(parent, token, check: false)
+      def initialize(parent, token, idents, repeatable, optional, argument_name, argument_type, check: false)
         constrain parent, OptionSubGroup, Command
+        constrain idents, [Symbol]
+        constrain repeatable, true, false
+        constrain optional, true, false
+        constrain argument_name, String, nil
+        constrain argument_type, Type::Type, nil
         super(parent, token, check: check)
+
+        @idents = idents
+        @repeatable = repeatable
+        @optional = optional
+        @argument_name = argument_name
+        @argument_type = argument_type
+
+        @names = []
+        @short_names = []
+        @long_names = []
+        @short_idents = []
+        @long_idents = []
+        @idents.each { |ident|
+          name = ident.to_s
+          if name.size == 1
+            @names << "-#{name}"
+            @short_names << "-#{name}"
+            @short_idents << ident
+          else
+            @names << "--#{name}"
+            @long_names << "--#{name}"
+            @long_idents << ident
+          end
+        }
+
+        @ident = @long_idents.first || @short_idents.first
+        @name = @long_names.first || @short_names.first
       end
     
       def to_s = token.value

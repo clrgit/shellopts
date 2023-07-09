@@ -1,5 +1,11 @@
 
 # TODO: Rename/move file
+#
+# FIXME: Wtf is this?
+#
+#        Notes
+#         o +op+ relates to the line number
+#
 module ShellOpts
   class TokenQueue
     using Ext::Array::ShiftWhile
@@ -24,9 +30,9 @@ module ShellOpts
       constrain charno, Integer, nil
 
       l = lambda { |t|
-        kinds.include?(t.kind) && 
-        t.lineno == (lineno || t.lineno) && 
-        t.charno.send(op, charno || t.charno)
+        kinds.include?(t.kind) \
+        && t.lineno == (lineno || t.lineno) \
+        && t.charno.send(op, charno || t.charno)
       }
       r = []
       if block_given?

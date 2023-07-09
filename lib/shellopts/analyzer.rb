@@ -25,7 +25,9 @@ module ShellOpts
       @grammar = spec.program.command = Grammar::Program.new(name: spec.program.name, spec: spec)
     
       # Generate grammar and doc 
+      puts "-----------------------------------------"
       analyze_commands
+      exit
       analyze_options
 
       [@grammar, @doc]
@@ -50,13 +52,13 @@ module ShellOpts
 
     def check_options
       spec.pairs(Spec::OptionDefinition, Spec::OptionDefinition) { |first, last|
-        analyzer_error last.token, "Options can't be nedted within an option"
+        analyzer_error last.token, "Options can't be nested within an option"
       }
     end
 
     def check_briefs
       spec.filter([Spec::CommandDefinition, Spec::OptionDefinition]) { |defn|
-        defn.description.filter(Spec::Brief).to_a.size <= 1 or 
+        defn.description.children.select { _1.is_a? Spec::Brief }.size <= 1 or 
             analyzer_error defn.token, "Duplicate brief definition"
       }
     end
@@ -73,11 +75,11 @@ module ShellOpts
         analyzer_error cmd.token, "Commands can't be nested within an option"
       }
 
-      # Check that command groups with more than one command have no nested commands
-      spec.pairs(Spec::CommandDefinition, Spec::CommandDefinition).each { |sup, sub|
-        sup.subject.commands.size == 1 or 
-            analyzer_error sub.token, "Commands can't be nested within multiple commands"
-      }
+#     # Check that command groups with more than one command have no nested commands
+#     spec.pairs(Spec::CommandDefinition, Spec::CommandDefinition).each { |sup, sub|
+#       sup.subject.commands.size == 1 or 
+#           analyzer_error sub.token, "Commands can't be nested within multiple commands"
+#     }
     end
 
     # Helper method. Create command objects included in +qual+
@@ -92,8 +94,14 @@ module ShellOpts
     end
 
     def analyze_commands
+      puts "#analyze_commands"
+      indent {
       # Create Command objects
       spec.accumulate(Spec::CommandDefinition, grammar) { |parent,defn|
+        puts defn.inspect
+        indent { puts defn.commands.map(&:inspect) }
+
+
         pure_cmds, qual_cmds = defn.commands.partition { |cmd| cmd.qual.nil? }
 
         # Collect same-level identifiers and create unqualified commands
@@ -108,7 +116,7 @@ module ShellOpts
           command = Grammar::Command.new(parent, idents.first, idents, spec: defn)
         end
 
-        # Ensure parent objects and then create qualified command
+        # Qualified commands: Ensure parent objects and then create command
         qual_cmds.each { |cmd|
           qual_parent = ensure_command(cmd.qual, defn)
           !qual_parent.command?(cmd.ident) or 
@@ -119,31 +127,59 @@ module ShellOpts
         # Emit accumulator
         command
       }
+      }
     end
 
     def analyze_options
-#     return
+      puts
       puts "#analyze_options"
+      indent {
+#       puts "commands: #{
 
-      spec.filter([Spec::Spec, Spec::CommandDefinition]) { |node|
-        command = node.grammar
-        p command.name
-        opt_defns = node.description.children.select { |node| node.is_a?(Spec::OptionDefinition) }
-
-        indent {
-          opt_defns.each { |opt_defn|
-            puts "#{opt_defn.token} (#{opt_defn.class})"
-            indent { puts opt_defn.options.map(&:token) }
-            opts = opt_defn.options.map { _1.name.to_sym }
-            Grammar::Option.new(command, opts, spec: opt_defn)
+        puts "Grammar commands:"
+        indent { 
+          Grammar.program.filter(Grammar::Command) { |cmd|
+            puts "#{cmd.inspect} @#{cmd.object_id}"
+            puts "  #{cmd.spec.inspect} @#{cmd.spec.object_id}"
           }
         }
-#       exit
 
-#         node.commands.each { |cmd|
-#           p cmd.class
-#         }
+        puts "Spec commands:"
+        indent { 
+          spec.filter(Spec::Command) { |cmd|
+            puts "#{cmd.inspect} @#{cmd.object_id}"
+            puts "  #{cmd.grammar.inspect} @#{cmd&.grammar&.object_id || 'nil'}"
+          }
+        }
+
+        exit
+
+
+      # Same-line options
+      same_cmds = spec.pairs(Spec::Command, Spec::Option).map { |node, opt|
+        p node.class
+        p node.token
+        command = node.grammar
+        p command
+
+        Grammar::Option.new(command, spec: opt)
       }
+
+      }
+
+      # Options on their own line(s)
+      spec.filter([Spec::Spec, Spec::CommandDefinition]) { |node|
+        command = node.grammar
+        opt_defns = node.description.children.select { |node| node.is_a?(Spec::OptionDefinition) }
+        opt_defns.each { |opt_defn|
+          opt_defn.options.each { |opt|
+            Grammar::Option.new(command, spec: opt)
+          }
+        }
+      }
+
+
+
 
       p Grammar::Node.keys
       program = Grammar::Node[nil]

@@ -29,10 +29,15 @@ module ShellOpts
     end
 
   protected
+    SHORT_OPTION_NAME_RE = /[a-zA-Z0-9?]/
+    LONG_OPTION_NAME_RE = /[a-zA-Z0-9][a-zA-Z0-9_-]*/
+    OPTION_NAME_RE=/(?:#{SHORT_OPTION_NAME_RE}|#{LONG_OPTION_NAME_RE})/
+    OPTION_NAME_LIST_RE = /#{OPTION_NAME_RE}(?:,#{OPTION_NAME_RE})*/
+
     # Queue of tokens (TokenQueue object)
     attr_reader :tokens
 
-    # First token of queue
+    # Current token, first token of queue
     def token = tokens.head
 
     def parser_error(token, message) = raise ParserError, token, message
@@ -147,20 +152,67 @@ module ShellOpts
     end
 
     def parse_option_group(parent)
+      constrain token.kind, :option
       group = Spec::OptionGroup.new(parent, parent.token)
-      head = token
       tokens.consume(:option, nil, token.charno) { |option|
         subgroup = Spec::OptionSubGroup.new(group, option)
-        parse_option(subgroup, option)
+        tokens.unshift option
+        parse_option(subgroup)
         tokens.consume(:brief, option.lineno, nil) { |brief| Spec::Brief.new(subgroup, brief) }
       }
     end
 
-    def parse_option(parent, option)
-      tokens.unshift option
-      tokens.consume(:option, option.lineno, nil) { |t| 
-        
-        Spec::Option.new(parent, t) 
+    def parse_option(parent)
+      constrain parent, Spec::Command, Spec::OptionSubGroup
+#     constrain token.kind, :option
+      tokens.consume(:option, token.lineno, :>=, token.charno) { |option|
+        option.source =~ /^(-|--|\+|\+\+)(#{OPTION_NAME_LIST_RE})(?:=(.+?)(\?)?)?$/ or 
+            parser_error option, "Illegal option: #{option.source.inspect}"
+        initial = $1
+        names = $2
+        arg = $3
+        optional = !$4.nil?
+        repeatable = %w(+ ++).include?(initial)
+        idents = names.split(",").map(&:to_sym)
+
+        named = true
+        if arg.nil?
+          argument_name = nil
+          argument_type = nil
+        else
+          if arg =~ /^([^:]+)(?::(.*))/
+            argument_name = $1
+            named = true
+            arg = $2
+          elsif arg =~ /^:(.*)/
+            arg = $1
+            named = false
+          end
+
+          case arg
+            when "", nil
+              argument_name ||= "VAL"
+              argument_type = Type::StringType.new
+            when "#"
+              argument_name ||= "INT"
+              argument_type = Type::IntegerType.new
+            when "$"
+              argument_name ||= "NUM"
+              argument_type = Type::FloatType.new
+            when "FILE", "DIR", "PATH", "EFILE", "EDIR", "EPATH", "NFILE", "NDIR", "NPATH", "IFILE", "OFILE"
+              argument_name ||= arg.sub(/^(?:E|N|I|O)/, "")
+              argument_type = Type::FileType.new(arg.downcase.to_sym)
+            when /,/
+              argument_name ||= arg
+              argument_type = Type::EnumType.new(arg.split(","))
+            else
+              named && argument_name.nil? or parser_error option, "Illegal type expression: #{arg.inspect}"
+              argument_name = arg
+              argument_type = Type::StringType.new
+          end
+          optional = !optional.nil?
+        end
+        Spec::Option.new(parent, option, idents, repeatable, optional, argument_name, argument_type) 
       }
     end
 
@@ -178,12 +230,13 @@ module ShellOpts
 
     def parse_command_group(parent)
       group = Spec::CommandGroup.new(parent, parent.token)
-      head = token
       tokens.consume(:command, nil, token.charno) { |command|
         cmd = Spec::Command.new(group, command)
         tokens.consume([:option, :arg_descr, :arg_spec, :brief], command.lineno, nil) { |t|
           if t.kind == :option # Special handling because these options does not belong to a group
-            Spec::Option.new(cmd, t)
+            tokens.unshift t
+            parse_option(cmd)
+#           Spec::Option.new(cmd, t)
           else
             tokens.unshift t
             parse_node(cmd)
@@ -211,6 +264,23 @@ module ShellOpts
         parse_description(list_item)
       }
     end
+
   end
 end
+
+#           # TODO TODO TODO Move to #parse_option
+#           option = parse_option
+#           option_doc = option.doc
+#           push_node option
+#
+#           # Collect following options with the same indent
+#           next_token = @tokens.first
+#           while next_token.charno == token.charno && next_token.kind == :option
+#             token = @tokens.shift
+#             next_token = @token.first
+#             option = Option.parse(cmds.top, token)
+#             group << option
+#           end
+#
+#           nodes.push option
 

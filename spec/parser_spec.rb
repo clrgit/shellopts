@@ -16,11 +16,14 @@ describe "Parser" do
     StringIO.redirect(:stdout) { node.dump(format: :rspec) }
   end
 
+  def compile(s)
+    undent parse(s).sub(/^.*?\n.*?\n/, "")
+  end
+
   # Parse 's' and check that the result matches 'r'. #check removes the first
   # two lines that contain the 'main' declaration to save some typing
   def check(s, r)
-    s = parse(s).sub(/^.*?\n.*?\n/, "")
-    expect(undent s).to eq undent r
+    expect(compile s).to eq undent r
   end
 
   describe "#parse" do
@@ -341,6 +344,50 @@ describe "Parser" do
             @brief
         )
       end
+      
+      it "applies to a nested command" do
+        s = %(
+          cmd1! @cmd1 brief
+          cmd2!
+            @cmd default brief
+            cmd3! @cmd3 brief
+            cmd4!
+              @cmd4 brief
+        )
+        s = %(
+          -a -b @ -a and -b brief
+          -c @ -c brief
+            Describes -a, -b, and -c
+
+          -d 
+            @ -d brief
+            Describes -d
+
+          cmd1! -e @ cmd1 brief
+          cmd1_alias! --special-option
+            @default cmd1 brief
+
+            Command description
+
+            cmd11! -f
+              Some text
+
+              @ cmd11 brief
+
+              Some more text
+
+              -g -h #@ grief
+              -i
+                Describes -g, -h, and -i
+
+              -j=FILE
+                Describes -j
+
+              Finally
+        )
+        puts compile s
+        exit
+      end
 
       it "can be applied multiple times" do
         s = %(
@@ -361,6 +408,26 @@ describe "Parser" do
             cmd!
             @brief3
             @brief4
+        )
+      end
+      it "handles default briefs" do
+        s = %(
+          cmd1! @ cmd1 brief
+          cmd2!
+            @default cmd brief
+        )
+#       s = %(
+#           cmd1! -e @ cmd1 brief
+#           cmd1_alias! --special-option
+#             @default cmd1 brief
+#       )
+#       puts compile s
+        check s, %(
+          group
+            cmd1!
+              @cmd1 brief
+            cmd2!
+            @default cmd brief
         )
       end
     end

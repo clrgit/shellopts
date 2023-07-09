@@ -34,14 +34,16 @@ module ShellOpts
       def literal = name
 
       # Alias literals. Must include #literal
-      def literals = abstract_method
+      def literals = [literal]
 
       # UID of object. This can be used in Node::[] to get the object.
       # nil if ident is nil
+      #
+      # FIXME: :[] should only be defined for objects where it makes sense
       def uid
         @uid ||= 
             case ident
-              when nil; nil
+              when nil; nil #parent&.uid
               when Symbol; [parent.uid, ident].compact.join(".").sub(/!\./, ".").to_sym
               when Integer; "#{parent.uid}[#{ident}]"
             else
@@ -68,7 +70,6 @@ module ShellOpts
         @spec = spec
         super(parent)
         spec.grammar = self if spec
-        Node.register_node(self)
       end
 
       # Access node by relative UID. Eg. main.dot(option_name) or main.dot("[3].FILE")
@@ -77,24 +78,10 @@ module ShellOpts
       # Top-level program node
       def self.program = @@nodes[nil]
 
-      # Access node in global pool by UID
-      def self.[](uid) = @@nodes[uid]
-      def self.[]=(uid, node) @@nodes[uid] = node end
-      def self.key?(uid) = @@nodes.key?(uid) 
-      def self.keys = @@nodes.keys
-      def self.nodes = @@nodes.values
-      def self.clear = @@nodes.clear # Used in RSpec tests
-
       # Limit error output
       def inspect = "#{token&.value} (#{self.class})"
 
     private
-      # Map from UID to Node object. Nodes with a nil ident are not registered
-      @@nodes = {}
-      def self.register_node(node)
-        @@nodes[node.uid] = node if node.uid
-      end
-
       # Used by Tree
       def key = ident.nil? ? object_id : ident
     end
@@ -157,8 +144,6 @@ module ShellOpts
       def options = group.options + children.select { |c| c.is_a? Option }
       def specs = group.specs + children.select { |c| c.is_a? ArgSpec }
       def commands = group.groups.map(&:commands).flatten
-
-      def literals = @literals ||= idents.map { |i| i.to_s[0..-2] }
 
       def initialize(parent, ident, name: nil, **opts)
         constrain parent, Group, nil

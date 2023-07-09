@@ -109,7 +109,7 @@ puts "GRAMMAR"
 indent { grammar.dump }
 
 puts "NODES"
-p ShellOpts::Grammar::Node.keys
+#p ShellOpts::Grammar::Node.keys
 
 exit
 

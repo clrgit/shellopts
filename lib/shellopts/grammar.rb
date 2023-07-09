@@ -36,21 +36,6 @@ module ShellOpts
       # Alias literals. Must include #literal
       def literals = [literal]
 
-      # UID of object. This can be used in Node::[] to get the object.
-      # nil if ident is nil
-      #
-      # FIXME: :[] should only be defined for objects where it makes sense
-      def uid
-        @uid ||= 
-            case ident
-              when nil; nil #parent&.uid
-              when Symbol; [parent.uid, ident].compact.join(".").sub(/!\./, ".").to_sym
-              when Integer; "#{parent.uid}[#{ident}]"
-            else
-              raise InternalError
-            end
-      end
-
       # Associated Spec node
       attr_reader :spec
 
@@ -73,7 +58,7 @@ module ShellOpts
       end
 
       # Access node by relative UID. Eg. main.dot(option_name) or main.dot("[3].FILE")
-      def dot(relative_uid) = Node[[self.uid, relative_uid].compact.join(".").sub("!.", ".")]
+      # def dot(relative_uid) = Node[[self.uid, relative_uid].compact.join(".").sub("!.", ".")]
 
       # Top-level program node
       def self.program = @@nodes[nil]
@@ -158,7 +143,6 @@ module ShellOpts
 
     class Program < Command
       IDENT = :!
-      def uid = nil # To not prefix UID with program name in every Grammar class
 
       def initialize(parent, name: nil, **opts)
         name ||= File.basename($PROGRAM_NAME)

@@ -163,7 +163,7 @@ module Tree
 
     # Enumerator of descendant nodes matching filter. Same as #preorder with
     # :this set to false
-    def descendants(*filter) = preorder(filter, this: false)
+    def descendants(*filter) = preorder(*filter, this: false)
 
     # Execute block on selected nodes. Effectively the same as
     # 'preorder(...).each(&block)' but faster as it doesn't create an

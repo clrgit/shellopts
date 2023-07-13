@@ -52,6 +52,7 @@ module Tree
 
     # Match +node+ against the filter and return a [select, traverse] tuple of booleans
     def match(node) = @matcher.call(node)
+    def match?(node) = !@matcher.call(node).nil? # Better
 
     # Create a proc if arg is a Symbol or an Array of classes. Pass through
     # Proc objects, true, false, and nil
@@ -70,6 +71,19 @@ module Tree
       else
         raise ArgumentError
       end
+    end
+
+    def dump
+      puts "Filter"
+      indent {
+        puts "class: #{@matcher.class}"
+        if @matcher.is_a?(Array)
+          puts "select: #{@matcher.first.inspect}"
+          puts "tarverse: #{@matcher.last.inspect}"
+        else
+          puts "select: #{@matcher.inspect}"
+        end
+      }
     end
   end
 end

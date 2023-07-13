@@ -1,20 +1,19 @@
 
 module ShellOpts
   class Analyzer
+    attr_reader :grammar
     attr_reader :spec
-    attr_reader :grammar # Initialized by #analyze
-    attr_reader :doc # Initialized by #analyze
 
     def initialize(spec)
       @spec = spec
-      @grammar = nil
-      @doc = nil
+#     @grammar = Grammar::Program.new(spec: spec)
     end
 
     def validate
     end
 
     def analyze
+
       # Pre-checks
       check_options
       check_briefs
@@ -70,6 +69,14 @@ module ShellOpts
         analyzer_error cmd.token, "Commands can't be nested within an option"
       }
 
+      # Check that dotted commands are stand-alone. This may be relaxed later
+      is_qualified = lambda { |node| node.qualified? }
+      spec.filter(:qualified?).each { |cmd|
+        cmd.command_group.size == 1 or analyzer_error cmd.token, "Qualified commands must be stand-alone"
+      }
+
+      # TODO Check that qualified commands are singleton or have a shared prefix
+
 #     # Check that command groups with more than one command have no nested commands
 #     spec.pairs(Spec::CommandDefinition, Spec::CommandDefinition).each { |sup, sub|
 #       sup.subject.commands.size == 1 or 
@@ -77,48 +84,79 @@ module ShellOpts
 #     }
     end
 
-    # Helper method. Create command objects included in +qual+
-    def ensure_command(qual, defn)
+    # Helper method. Create command objects for qualifications
+    def ensure_command(group, qual, defn)
+      constrain group, Grammar::Group
+      constrain qual, Symbol
+      constrain defn, Spec::Node
+
+      puts "#ensure_command"
+      indent {
+        puts "group: #{group}"
+        puts "keys : #{group.keys.inspect}"
+        puts "qual : #{qual.inspect}"
+        puts "defn : #{defn.inspect}"
+
       cmds = qual.to_s.sub(/!$/, "").split(".").map { :"#{_1}!" }
       curr = grammar
       for cmd in cmds
-        Grammar::Command.new(curr, cmd, [cmd], spec: defn) if !Grammar::Node.key?(cmd)
-        curr = curr.command(cmd)
+        if !group.key?(cmd)
+          puts "create #{cmd.inspect}"
+          group = Grammar::Group.new(group, spec: defn)
+          Grammar::Command.new(group, cmd, spec: defn) if !curr.key?(cmd)
+        end
+        curr = curr[cmd]
       end
       curr
+      }
     end
 
     def analyze_commands
-      @grammar = spec.accumulate(Spec::CommandDefinition, nil) { |parent,defn|
-        group = Grammar::Group.new(parent, spec: spec)
+      spec.accumulate(Spec::CommandDefinition, nil) { |parent,defn|
 
-        # Collect commands
+        # Handle top-level Program object
         if parent.nil?
           main = defn.command_group.commands.first
-          Grammar::Program.new(group, name: main.name, spec: main)
+          @grammar = Grammar::Program.new(name: main.name, spec: main)
+          group = @grammar
+
+        # Remaining commands
         else
-          pure_cmds, qual_cmds = defn.commands.partition { |cmd| cmd.qual.nil? }
+          # Create common group object (may be unused - the garbage collect
+          # will deal with it)
+          group = Grammar::Group.new(parent.group, spec: defn)
+
+          # Collect commands
+          pure_cmds, qual_cmds = defn.commands.partition { |cmd| !cmd.qualified? }
 
           # Collect same-level identifiers and create unqualified commands
           if !pure_cmds.empty?
             idents_hash = {}
             pure_cmds.each { |cmd| # check for duplicates and collect idents
-              !group.key?(cmd.ident) && !idents_hash.key?(cmd.ident) or # TODO use [] and key?
+#             puts "Create #{cmd}"
+#             puts "  parent: #{parent.inspect}"
+#             puts "  keys : #{parent.keys.inspect}"
+              !parent.key?(cmd.ident) && !idents_hash.key?(cmd.ident) or # TODO use [] and key?
                   analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
-              Grammar::Command.new(group, cmd.ident, spec: cmd)
+              Grammar::Command.new(parent, group, cmd.ident, spec: cmd)
+#             puts "  keys : #{parent.keys.inspect}"
               idents_hash[cmd.ident] = true
             }
             idents = idents_hash.keys
           end
 
-          # Qualified commands: Ensure parent objects and then create command
+          # IDEA: Create a EmptyGroup class
+
+#         # Qualified commands: Ensure parent objects and then create command
 #         qual_cmds.each { |cmd|
-#           qual_parent = ensure_command(cmd.qual, defn)
-#           !qual_parent.command?(cmd.ident) or 
-#               analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
+#           puts "cmd: #{cmd}"
+#           puts "     #{cmd.qualification}"
+#         
 #
-#           # FIXME: Problem that we lose group info so options can't be shared
-#           command = Grammar::Command.new(qual_parent, cmd.ident, [cmd.ident], spec: defn)
+#           qual_parent = ensure_command(group, cmd.qualification, defn)
+#           !qual_parent.key?(cmd.ident) or 
+#               analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
+#           command = Grammar::Command.new(qual_parent, cmd.ident, spec: defn)
 #         } 
         end
 
@@ -135,7 +173,7 @@ module ShellOpts
 
         puts "Grammar commands:"
         indent { 
-          Grammar.program.filter(Grammar::Command) { |cmd|
+          grammar.filter(Grammar::Command) { |cmd|
             puts "#{cmd.inspect} @#{cmd.object_id}"
             puts "  #{cmd.spec.inspect} @#{cmd.spec.object_id}"
           }
@@ -178,10 +216,7 @@ module ShellOpts
 
 
 
-      p Grammar::Node.keys
       program = Grammar::Node[nil]
-      p program.ident
-      p Grammar::Node[nil]
       
       Grammar.program.dump
       exit

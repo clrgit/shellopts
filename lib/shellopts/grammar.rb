@@ -12,7 +12,7 @@ module ShellOpts
   #     The first name in a list of aliases
   #
   module Grammar
-    def self.program = Node.program
+    def self.grammar = Node.grammar
 
     class Node < Tree::Set # TODO Make Node a Tree::Tree node
       # Display-name of object (String). Defaults to #ident with special
@@ -20,7 +20,7 @@ module ShellOpts
       attr_reader :name
 
       # Usually a Symbol but anonymous ArgSpec objects have Integer idents.
-      # Initialized by the parser. Equal to :! for the top level Program
+      # Initialized by the parser. Equal to :! for the top level grammar
       # object. Can be nil for internal nodes, those nodes are registered by
       # object id
       attr_reader :ident
@@ -46,9 +46,8 @@ module ShellOpts
       forward_to :spec, :token
 
       def initialize(parent, ident, name: nil, spec: nil)
-#       constrain parent, *(self.class <= ProgramGroup ? [nil] : [Group, Option, Command, ArgSpec])
         constrain parent, Node, nil
-        constrain ident, *(self.class <= ArgSpec || self.class <= Arg ? [Symbol, Integer] : [Symbol]), nil
+        constrain ident, Symbol, Integer, nil
         constrain spec, Spec::Node, nil
         @name = name || ident&.to_s
         @ident = ident
@@ -60,8 +59,8 @@ module ShellOpts
       # Access node by relative UID. Eg. main.dot(option_name) or main.dot("[3].FILE")
       # def dot(relative_uid) = Node[[self.uid, relative_uid].compact.join(".").sub("!.", ".")]
 
-      # Top-level program node
-      def self.program = @@nodes[nil]
+      # Top-level grammar node
+      def self.grammar = @@grammar
 
       # Limit error output
       def inspect = "#{token&.value} (#{self.class})"
@@ -69,6 +68,74 @@ module ShellOpts
     private
       # Used by Tree
       def key = ident.nil? ? object_id : ident
+
+      # Top-level Grammar object. Initialized in Grammar#initialize
+      @@grammar = nil
+    end
+
+    class Group < Node
+      attr_reader :commands
+      def options = children.select { |c| c.is_a? Command }
+      def args = children.select { |c| c.is_a? ArgSpec }
+
+      def initialize(parent, **opts)
+        constrain parent, Group, nil
+        super(parent, nil, **opts)
+        @commands = {}
+      end
+    end
+
+    class Command < Node
+      alias_method :command, :parent
+
+      attr_reader :group
+
+      def commands = group.options + children.select { |c| c.is_a? Command }
+      def options = group.options + children.select { |c| c.is_a? Option }
+      def args = group.specs + children.select { |c| c.is_a? ArgSpec }
+
+      def initialize(parent, group, ident, name: nil, **opts)
+        constrain parent, Command, nil
+        constrain group, Group
+        name ||= ident.to_s[0..-2]
+        super(parent, ident, name: name, **opts)
+        @group = group
+        @group.commands[ident] = self
+      end
+
+      def [](key) = group.key?(key) ? group[key] : super
+      def key?(key) = group.key?(key) || super
+      def keys() = group.keys + super
+    end
+
+    class Program < Command
+      IDENT = :!
+
+      def initialize(name: nil, spec: nil, **opts)
+        name ||= File.basename($PROGRAM_NAME)
+        group = Group.new(nil, spec: spec)
+        super(nil, group, IDENT, name: name, spec: nil, **opts)
+      end
+    end
+
+    class ArgSpec < Node
+      alias_method :args, :children
+
+      # Note that +ident+ can be nil, if so it defaults to the index into the
+      # parent's #args array
+      def initialize(parent, ident, **opts)
+        super(parent, ident || parent.spec.size, **opts)
+      end
+    end
+
+    class Arg < Node
+      attr_reader :arg
+
+      def intialize(parent, ident, arg, **opts)
+        constrain parent, Command, Option
+        super(parent, ident, **opts)
+        @arg = arg
+      end
     end
 
     class Option < Node
@@ -104,70 +171,6 @@ module ShellOpts
     class CommandOption < Option
       alias_method :command, :parent
       def kind = :command
-    end
-
-    class Group < Node
-      alias_method :group, :parent
-
-      def commands = children.select { |c| c.is_a? Command }
-      def groups = children.select { |c| c.is_a? Group }
-      def options = children.select { |c| c.is_a? Option }
-      def specs = children.select { |c| c.is_a? ArgSpec }
-
-      def initialize(parent, **opts) 
-        constrain parent, Group, nil
-        super(parent, nil, **opts)
-      end
-    end
-
-    class ProgramGroup < Group
-      def initialize(**opts) = super(nil, **opts)
-    end
-
-    class Command < Node
-      alias_method :group, :parent
-      def options = group.options + children.select { |c| c.is_a? Option }
-      def specs = group.specs + children.select { |c| c.is_a? ArgSpec }
-      def commands = group.groups.map(&:commands).flatten
-
-      def initialize(parent, ident, name: nil, **opts)
-        constrain parent, Group, nil
-        name ||= ident.to_s[0..-2]
-        super(parent, ident, name: name, **opts)
-      end
-
-      def [](key) = self.key?(key) ? self[key] : group[key]
-      def key?(key) = self.key?(key) || group.key?(key)
-      def keys() = group.keys + self.keys
-    end
-
-    class Program < Command
-      IDENT = :!
-
-      def initialize(parent, name: nil, **opts)
-        name ||= File.basename($PROGRAM_NAME)
-        super(parent, IDENT, name: name, **opts)
-      end
-    end
-
-    class ArgSpec < Node
-      alias_method :args, :children
-
-      # Note that +ident+ can be nil, if so it defaults to the index into the
-      # parent's #args array
-      def initialize(parent, ident, **opts)
-        super(parent, ident || parent.spec.size, **opts)
-      end
-    end
-
-    class Arg < Node
-      attr_reader :arg
-
-      def intialize(parent, ident, arg, **opts)
-        constrain parent, Command, Option
-        super(parent, ident, **opts)
-        @arg = arg
-      end
     end
   end
 end

@@ -182,6 +182,14 @@ describe "Tree::Tree" do
       expect(c.ancestors.map(&:name)).to eq %w(root a) 
     end
   end
+  
+  describe "#decendants" do
+    it "enumerates the decendants of this object in preorder" do
+      expect(a.descendants.map(&:name)).to eq %w(b c) 
+      expect(d.descendants.map(&:name)).to eq %w(e)
+    end
+  end
+
 
   describe "#visit" do
     let(:acc) { [] }

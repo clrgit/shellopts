@@ -66,6 +66,24 @@ spec = %(
     Finally
 )
 
+spec = %(
+  cmd1!
+    --opt1
+
+    cmd2!
+
+    cmd3!
+
+  cmd1.cmd4!
+    --opt4
+      Now, is this legal: 'cmd1 --opt1 cmd4 --opt4' ?
+
+  cmd2!
+  cmd1.cmd5!
+    --opt5
+      And are both of these legal: 'cmd1 cmd5 --opt5' and 'cmd2 --opt5
+)
+
 # TODO: Option parsing
 #spec = %(
 # -f=FILE @ own brief

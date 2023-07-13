@@ -65,56 +65,74 @@ module ShellOpts
       # Limit error output
       def inspect = "#{token&.value} (#{self.class})"
 
-    private
+    protected
       # Used by Tree
       def key = ident.nil? ? object_id : ident
 
+    private
       # Top-level Grammar object. Initialized in Grammar#initialize
       @@grammar = nil
     end
 
     class Group < Node
-      attr_reader :commands
-      def options = children.select { |c| c.is_a? Command }
+      alias_method :group, :parent
+
+      def commands = children.select { |c| c.is_a? Command }
+      def options = children.select { |c| c.is_a? Option }
       def args = children.select { |c| c.is_a? ArgSpec }
 
       def initialize(parent, **opts)
         constrain parent, Group, nil
         super(parent, nil, **opts)
-        @commands = {}
       end
     end
 
+    class Grammar < Group
+      def initialize(**opts) = super(nil, **opts)
+    end
+
     class Command < Node
-      alias_method :command, :parent
+      # A command's parent is the group because a command can have a set of
+      # different parent commands that can't be modelled as a tree
+      alias_method :group, :parent
 
-      attr_reader :group
-
-      def commands = group.options + children.select { |c| c.is_a? Command }
+      def commands = children.select { |c| c.is_a? Command }
       def options = group.options + children.select { |c| c.is_a? Option }
-      def args = group.specs + children.select { |c| c.is_a? ArgSpec }
+      def args = group.args + children.select { |c| c.is_a? ArgSpec }
 
-      def initialize(parent, group, ident, name: nil, **opts)
-        constrain parent, Command, nil
-        constrain group, Group
+      def initialize(parent, ident, name: nil, **opts)
+        constrain parent, Group, nil
         name ||= ident.to_s[0..-2]
         super(parent, ident, name: name, **opts)
-        @group = group
-        @group.commands[ident] = self
       end
 
-      def [](key) = group.key?(key) ? group[key] : super
-      def key?(key) = group.key?(key) || super
-      def keys() = group.keys + super
+      # Children is searched if key is a command. Otherwise the union of the
+      # options and the group's options is searched
+      def [](key)
+        if key.to_s.end_with?("!")
+          super
+        else
+          group.key?(key) ? group[key] : super
+        end
+      end
+
+      def key?(key)
+        if key.to_s.end_with?("!")
+          super
+        else
+          group.key?(key) || super
+        end
+      end
+      
+      def keys = group.options.map(&:key) + super
     end
 
     class Program < Command
       IDENT = :!
 
-      def initialize(name: nil, spec: nil, **opts)
+      def initialize(parent, name: nil, spec: nil, **opts)
         name ||= File.basename($PROGRAM_NAME)
-        group = Group.new(nil, spec: spec)
-        super(nil, group, IDENT, name: name, spec: nil, **opts)
+        super(parent, IDENT, name: name, spec: nil, **opts)
       end
     end
 

@@ -117,8 +117,8 @@ module ShellOpts
         # Handle top-level Program object
         if parent.nil?
           main = defn.command_group.commands.first
-          @grammar = Grammar::Program.new(name: main.name, spec: main)
-          group = @grammar
+          @grammar = group = Grammar::Grammar.new(spec: main)
+          Grammar::Program.new(group, name: main.name, spec: main)
 
         # Remaining commands
         else
@@ -136,9 +136,9 @@ module ShellOpts
 #             puts "Create #{cmd}"
 #             puts "  parent: #{parent.inspect}"
 #             puts "  keys : #{parent.keys.inspect}"
-              !parent.key?(cmd.ident) && !idents_hash.key?(cmd.ident) or # TODO use [] and key?
+              !group.key?(cmd.ident) && !idents_hash.key?(cmd.ident) or # TODO use [] and key?
                   analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
-              Grammar::Command.new(parent, group, cmd.ident, spec: cmd)
+              Grammar::Command.new(group, cmd.ident, spec: cmd)
 #             puts "  keys : #{parent.keys.inspect}"
               idents_hash[cmd.ident] = true
             }

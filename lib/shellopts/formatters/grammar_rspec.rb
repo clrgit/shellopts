@@ -6,8 +6,6 @@ module ShellOpts
 
       refine Node do
         def dump
-          p self.class
-          raise if idents.nil?
           puts idents.join(", ")
           indent { children.each(&:dump) }
         end

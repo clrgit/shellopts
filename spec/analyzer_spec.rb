@@ -206,14 +206,13 @@ describe "Analyzer" do
   end
 
   describe "#analyze_commands" do
-    it "checks for duplicate commands" 
-#   do
-#     s = %(
-#       cmd1!
-#         cmd1!
-#       cmd2!
-#     )
-#     expect { compile s }.not_to raise_error
+    it "checks for duplicate commands" do
+      s = %(
+        cmd1!
+          cmd1!
+        cmd2!
+      )
+      expect { compile s }.not_to raise_error
 #
 #     s = %(
 #       cmd1!
@@ -234,7 +233,7 @@ describe "Analyzer" do
 #       cmd1.cmd2!
 #     )
 #     expect { compile s }.to raise_error AnalyzerError
-#   end
+    end
     it "creates command objects" do
       s = %(
         cmd1!

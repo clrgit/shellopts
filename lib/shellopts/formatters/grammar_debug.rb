@@ -18,6 +18,7 @@ module ShellOpts
 
       refine Group do
         def dump_children
+          puts "children: #{children.size}"
           print "commands: "
           if commands.empty?
             puts "[]"
@@ -30,9 +31,13 @@ module ShellOpts
             puts "[]"
           else
             puts
-            indent { groups.each { |cmd| cmd.dump } }
+            indent { groups.each { |grp| grp.dump } }
           end
         end
+      end
+
+      refine Grammar do
+        dump_header = self.class
       end
 
 #     refine Command do

@@ -6,20 +6,32 @@ raise if !defined? ShellOpts::Grammar
 
 module ShellOpts
   module Grammar
-    module Format; end
+    module Format
+      FORMATS = [:debug, :rspec]
+
+      def self.set(format)
+        constrain format, *FORMATS
+        @@format = format
+      end
+
+      def self.get() = @@format
+
+      @@format = :debug
+    end
 
     class Node
       # Main format switcher for Spec objects. It instantiates a formatter
       # object from a class corresponding to the :format argument and let it
       # handle the output. The formatter class refines Spec, augmenting its
       # classes with methods to do the actual output
-      def dump(format: :debug)
+      def dump(format: nil)
+        constrain format, *Format::FORMATS, nil
         formatter = 
-            case format
+            case format || Format.get
               when :debug; Format::Short::Formatter.new
               when :rspec; Format::RSpec::Formatter.new
             else
-              raise ArgumentError
+              raise
             end
         formatter.format(self)
       end

@@ -14,7 +14,7 @@ describe "Analyzer" do
     @doc
   end
 
-  # Compile 's' and return the grammar object
+  # Compile 's' and return the top-level Grammar object
   def compile(s) 
     lexer = Lexer.new("main", s)
     tokens = lexer.lex
@@ -35,7 +35,7 @@ describe "Analyzer" do
   using Ext::StringIO::Redirect
 
   def render(node)
-    StringIO.redirect(:stdout) { node.dump(format: :rspec) }
+    StringIO.redirect(:stdout) { node.dump }
   end
 
   describe "#analyze" do
@@ -213,20 +213,24 @@ describe "Analyzer" do
         cmd2!
       )
       expect { compile s }.not_to raise_error
-#
-#     s = %(
-#       cmd1!
-#       cmd1!
-#     )
-#     expect { compile s }.to raise_error AnalyzerError
-#
-#     s = %(
-#       cmd1!
-#         cmd1!
-#         cmd1!
-#     )
-#     expect { compile s }.to raise_error AnalyzerError
-#
+
+      s = %(
+        cmd1!
+        cmd1!
+      )
+      expect { compile s }.to raise_error AnalyzerError
+
+      s = %(
+        cmd1!
+          cmd1!
+          cmd1!
+      )
+      expect { compile s }.to raise_error AnalyzerError
+
+#     g = compile s
+#     p g.size
+#     exit
+
 #     s = %(
 #       cmd1!
 #         cmd2!
@@ -240,24 +244,21 @@ describe "Analyzer" do
 
         cmd2!
       )
-      expect(compile(s).commands.map(&:ident)).to eq [:cmd1!, :cmd2!]
+      expect(compile(s).subcommands.map(&:ident)).to eq [:cmd1!, :cmd2!]
     end
-    it "creates command groups" 
-#   do
-#     s = %(
-#       cmd1!
-#       cmd2!
-#
-#       cmd3!
-#     )
-#     a = compile(s)
-#     a.dump
-#
-#     check s, %(
-#       cmd1!, cmd2!
-#       cmd3!
-#     )
-#   end
+    it "creates command groups" do
+      s = %(
+        cmd1!
+        cmd2!
+
+        cmd3!
+      )
+
+      check s, %(
+        cmd1!, cmd2!
+        cmd3!
+      )
+    end
     it "creates intermediate command objects" 
 #   do
 #     s = %(

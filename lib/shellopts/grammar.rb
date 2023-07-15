@@ -74,12 +74,16 @@ module ShellOpts
       @@grammar = nil
     end
 
+    # Commands are organized in groups that share options, arguments and
+    # documentation and that may have a parent group of commands
     class Group < Node
       alias_method :group, :parent
 
       def commands = children.select { |c| c.is_a? Command }
+      def subcommands = groups.map(&:commands).flatten
       def options = children.select { |c| c.is_a? Option }
       def args = children.select { |c| c.is_a? ArgSpec }
+      def groups = children.select { |c| c.is_a? Group }
 
       def initialize(parent, **opts)
         constrain parent, Group, nil
@@ -87,18 +91,19 @@ module ShellOpts
       end
     end
 
+    # The top-level grammar object is a group
     class Grammar < Group
       def initialize(**opts) = super(nil, **opts)
     end
 
     class Command < Node
-      # A command's parent is the group because a command can have a set of
-      # different parent commands that can't be modelled as a tree
       alias_method :group, :parent
 
-      def commands = children.select { |c| c.is_a? Command }
+      # #subcommands and #groups are convenience methods
+      def subcommands = group.subcommands
       def options = group.options + children.select { |c| c.is_a? Option }
       def args = group.args + children.select { |c| c.is_a? ArgSpec }
+      def groups = group.groups
 
       def initialize(parent, ident, name: nil, **opts)
         constrain parent, Group, nil
@@ -139,11 +144,24 @@ module ShellOpts
     class ArgSpec < Node
       alias_method :args, :children
 
+      # Option kind, :group or :command
+      def kind = abstract_method
+
       # Note that +ident+ can be nil, if so it defaults to the index into the
       # parent's #args array
       def initialize(parent, ident, **opts)
         super(parent, ident || parent.spec.size, **opts)
       end
+    end
+
+    class GroupArgSpec < ArgSpec
+      alias_method :group, :parent
+      def kind = :group
+    end
+
+    class CommandArgSpec < ArgSpec
+      alias_method :command, :parent
+      def kind = :command
     end
 
     class Arg < Node

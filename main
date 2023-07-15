@@ -70,18 +70,26 @@ spec = %(
   cmd1!
     --opt1
 
-    cmd2!
+    cmd11!
 
-    cmd3!
+    cmd12!
 
-  cmd1.cmd4!
-    --opt4
-      Now, is this legal: 'cmd1 --opt1 cmd4 --opt4' ?
+# cmd1.cmd4!
+#   --opt4
+#     Now, is this legal: 'cmd1 --opt1 cmd4 --opt4' ?
 
   cmd2!
-  cmd1.cmd5!
-    --opt5
-      And are both of these legal: 'cmd1 cmd5 --opt5' and 'cmd2 --opt5
+
+# cmd1.cmd5!
+#   --opt5
+#     And are both of these legal: 'cmd1 cmd5 --opt5' and 'cmd2 --opt5
+)
+
+spec = %(
+  cmd1!
+  cmd2!
+
+  cmd3!
 )
 
 # TODO: Option parsing
@@ -117,17 +125,49 @@ tokens = lexer.lex
 puts
 parser = ShellOpts::Parser.new(tokens)
 spec = parser.parse
-spec.dump
-puts
+#spec.dump
+#puts
+#exit
 
 analyzer = ShellOpts::Analyzer.new(spec)
 grammar, doc = analyzer.analyze
 
-puts "GRAMMAR"
+puts "Grammar#dump(:debug)"
 indent { grammar.dump }
+puts
+#exit
 
-puts "NODES"
-#p ShellOpts::Grammar::Node.keys
+puts "Grammar#dump(:rspec)"
+ShellOpts::Grammar::Format.set :rspec
+indent { grammar.dump }
+puts
+exit
+
+#p grammar.groups.size
+#p grammar.subcommands.map(&:ident)
+#exit
+#indent {
+# grammar.groups.each { |group|
+#   p group.commands.map(&:ident)
+#   indent {
+#     p group.subcommands.map(&:ident)
+#   }
+# }
+#}
+
+grp1 = grammar.groups.first
+grp2 = grammar.groups.last
+
+p grp1.subcommands
+p grp2.subcommands
+
+prg = grammar.commands.first
+p prg.subcommands
+p prg.subcommands.first.subcommands
+p prg.subcommands.last.subcommands
+exit
+
+indent { grammar.dump }
 
 exit
 

@@ -73,6 +73,7 @@ require_relative 'shellopts/lexer.rb'
 require_relative 'shellopts/parser.rb'
 require_relative 'shellopts/analyzer.rb'
 
+require_relative 'shellopts/format.rb'
 require_relative 'shellopts/formatters/spec.rb'
 require_relative 'shellopts/formatters/grammar.rb'
 

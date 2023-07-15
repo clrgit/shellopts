@@ -3,12 +3,20 @@ module ShellOpts
   module Grammar
     module Format::RSpec
       include ShellOpts::Grammar
+      include ShellOpts::Format
 
       refine Node do
+        def dump_header = puts ident
+        def dump_children = children.each { |child| child.dump }
         def dump
-          puts idents.join(", ")
-          indent { children.each(&:dump) }
+          dump_header
+          indent { dump_children }
         end
+      end
+
+      refine Group do
+        def dump_header = puts commands.map(&:ident).join(", ")
+        def dump_children = groups.each(&:dump)
       end
 
       class Formatter

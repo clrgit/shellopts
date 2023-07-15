@@ -113,6 +113,7 @@ module ShellOpts
 
     def analyze_commands
       spec.accumulate(Spec::CommandDefinition, nil) { |parent,defn|
+        group = nil # Return value, defined below
 
         # Handle top-level Program object
         if parent.nil?
@@ -124,7 +125,7 @@ module ShellOpts
         else
           # Create common group object (may be unused - the garbage collect
           # will deal with it)
-          group = Grammar::Group.new(parent.group, spec: defn)
+          group = Grammar::Group.new(parent, spec: defn)
 
           # Collect commands
           pure_cmds, qual_cmds = defn.commands.partition { |cmd| !cmd.qualified? }
@@ -133,16 +134,12 @@ module ShellOpts
           if !pure_cmds.empty?
             idents_hash = {}
             pure_cmds.each { |cmd| # check for duplicates and collect idents
-#             puts "Create #{cmd}"
-#             puts "  parent: #{parent.inspect}"
-#             puts "  keys : #{parent.keys.inspect}"
-              !group.key?(cmd.ident) && !idents_hash.key?(cmd.ident) or # TODO use [] and key?
+              !group.key?(cmd.ident) or
                   analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
               Grammar::Command.new(group, cmd.ident, spec: cmd)
-#             puts "  keys : #{parent.keys.inspect}"
               idents_hash[cmd.ident] = true
             }
-            idents = idents_hash.keys
+            idents = idents_hash.keys # FIXME: Why?
           end
 
           # IDEA: Create a EmptyGroup class

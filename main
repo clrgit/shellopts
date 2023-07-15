@@ -100,6 +100,13 @@ spec = parser.parse
 analyzer = ShellOpts::Analyzer.new(spec)
 grammar, doc = analyzer.analyze
 
+puts
+#p grammar.children.map(&:class)
+#p grammar.children.last.ident
+#p grammar.keys
+#p grammar[:cmd1!]
+#exit
+
 
 puts "Grammar#dump(:debug)"
 indent { grammar.dump }
@@ -110,6 +117,12 @@ puts "Grammar#dump(:rspec)"
 ShellOpts::Grammar::Format.set :rspec
 indent { grammar.dump }
 puts
+puts grammar[:cmd1!].ident
+puts grammar[:cmd1!].class
+puts grammar[:cmd1!][:cmd11!].ident
+puts grammar[:cmd1!][:cmd11!].class
+puts grammar[:!].ident
+puts grammar[:!].class
 exit
 
 #p grammar.groups.size

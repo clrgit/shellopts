@@ -74,36 +74,6 @@ module ShellOpts
       @@grammar = nil
     end
 
-    # Commands are organized in groups that share options, arguments and
-    # documentation and that may have a parent group of commands
-    class Group < Node
-      alias_method :group, :parent
-
-      def ident = commands.first&.ident
-
-      def commands = children.select { |c| c.is_a? Command }
-      def subcommands = groups.map(&:commands).flatten
-      def options = children.select { |c| c.is_a? Option }
-      def args = children.select { |c| c.is_a? ArgSpec }
-      def groups = children.select { |c| c.is_a? Group }
-
-      def initialize(parent, **opts)
-        constrain parent, Group, nil
-        super(parent, nil, **opts)
-      end
-
-      def key?(key) = values.find { _1.ident == key }
-      def keys = values.map(&:ident)
-      def [](key) = values.find { _1.ident == key }
-      def values = options + subcommands
-    end
-
-    # The top-level grammar object is a group
-    class Grammar < Group
-      def program = commands.first
-      def initialize(**opts) = super(nil, **opts)
-    end
-
     class Command < Node
       alias_method :group, :parent
 
@@ -119,9 +89,9 @@ module ShellOpts
         super(parent, ident, name: name, **opts)
       end
 
-      def key?(key) = group.key?(key) || options.find { _1.key == key }
-      def keys = group.keys + options.map(&:key)
-      def [](key) = group.key?(key) ? group[key] : options.find { _1.key == key }
+      def key?(key) = values.find { _1.ident == key }
+      def keys = values.map(&:ident)
+      def [](key) = values.find { _1.ident == key }
       def values = group.values + options
     end
 
@@ -132,6 +102,34 @@ module ShellOpts
         name ||= File.basename($PROGRAM_NAME)
         super(parent, IDENT, name: name, spec: nil, **opts)
       end
+    end
+
+    # Commands are organized in groups that share options, arguments and
+    # documentation and that may have a parent group of commands
+    class Group < Command
+      def name = commands.first.name
+      def ident = commands.first&.ident
+
+      def commands = children.select { |c| c.is_a?(Command) && !c.is_a?(Group) }
+      def subcommands = groups.map(&:commands).flatten
+      def options = children.select { |c| c.is_a? Option }
+      def args = children.select { |c| c.is_a? ArgSpec }
+      def groups = children.select { |c| c.is_a? Group }
+
+      def initialize(parent, **opts)
+        constrain parent, Group, nil
+        super(parent, nil, **opts)
+      end
+
+      def values = options + subcommands
+    end
+
+    # The top-level grammar object is a group
+    class Grammar < Group
+      def program = commands.first
+      def initialize(**opts) = super(nil, **opts)
+
+      def values = super + [program] # Special case for :!
     end
 
     class ArgSpec < Node

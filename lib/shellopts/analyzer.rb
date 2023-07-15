@@ -6,14 +6,12 @@ module ShellOpts
 
     def initialize(spec)
       @spec = spec
-#     @grammar = Grammar::Program.new(spec: spec)
     end
 
     def validate
     end
 
     def analyze
-
       # Pre-checks
       check_options
       check_briefs
@@ -97,6 +95,7 @@ module ShellOpts
               curr = Grammar::Command.new(group, ident, spec: cmd)
             end
           }
+
           !group.nil? or analyzer_error defn.token, "Duplicate command: #{cmd.token.value}"
 
         # Same-level unqualified commands
@@ -116,7 +115,17 @@ module ShellOpts
     def analyze_options
       puts
       puts "#analyze_options"
+
       indent {
+        spec.filter(Spec::Option) { |node|
+          p node
+        }
+      }
+    end
+  end
+end
+
+__END__
 #       puts "commands: #{
 
         puts "Grammar commands:"

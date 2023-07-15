@@ -123,15 +123,12 @@ module ShellOpts
 
         # Remaining commands
         else
-          # Create common group object (may be unused - the garbage collect
-          # will deal with it)
-          group = Grammar::Group.new(parent, spec: defn)
-
           # Collect commands
           pure_cmds, qual_cmds = defn.commands.partition { |cmd| !cmd.qualified? }
 
           # Collect same-level identifiers and create unqualified commands
           if !pure_cmds.empty?
+            group = Grammar::Group.new(parent, spec: defn)
             idents_hash = {}
             pure_cmds.each { |cmd| # check for duplicates and collect idents
               !group.key?(cmd.ident) or
@@ -144,17 +141,32 @@ module ShellOpts
 
           # IDEA: Create a EmptyGroup class
 
+
 #         # Qualified commands: Ensure parent objects and then create command
-#         qual_cmds.each { |cmd|
-#           puts "cmd: #{cmd}"
-#           puts "     #{cmd.qualification}"
+          qual_cmds.each { |cmd|
+            curr = grammar.program
+            cmd.path.each { |ident|
+              if curr.key?(ident)
+                curr = curr[ident]
+              else
+                group = Grammar::Group.new(curr.group, spec: cmd)
+                curr = Grammar::Command.new(group, ident, spec: cmd)
+              end
+            }
+
+
+
+#           exit
+            
+
 #         
+#           for 
 #
 #           qual_parent = ensure_command(group, cmd.qualification, defn)
 #           !qual_parent.key?(cmd.ident) or 
 #               analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
 #           command = Grammar::Command.new(qual_parent, cmd.ident, spec: defn)
-#         } 
+          } 
         end
 
         # Collect sub-commands

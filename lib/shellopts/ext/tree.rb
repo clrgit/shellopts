@@ -308,7 +308,7 @@ module Tree
       @nodes = {}
       super
     end
-    forward_to :nodes, :[], :[]=, :key?, :keys
+    forward_to :nodes, :[], :[]=, :key?, :keys, :values
   protected
     def attach_by_key(child, key)
       !nodes.key?(key) or raise ArgumentError

@@ -186,23 +186,22 @@ describe "Analyzer" do
 #     expect { compile s }.to raise_error AnalyzerError
 #   end
   
-    it "rejects qualified commands that are not stand-alone" 
-#   do
-#     s = %(
-#       cmd1!
-#         
-#       cmd1.cmd2!
-#     )
-#     expect { compile s }.not_to raise_error
-#
-#     s = %(
-#       cmd1!
-#
-#       cmd2!
-#       cmd1.cmd3!
-#     )
-#     expect { compile s }.to raise_error AnalyzerError
-#   end
+    it "rejects qualified commands that are not stand-alone" do
+      s = %(
+        cmd1!
+          
+        cmd1.cmd2!
+      )
+      expect { compile s }.not_to raise_error
+
+      s = %(
+        cmd1!
+
+        cmd2!
+        cmd1.cmd3!
+      )
+      expect { compile s }.to raise_error AnalyzerError
+    end
   end
 
   describe "#analyze_commands" do
@@ -259,14 +258,25 @@ describe "Analyzer" do
         cmd3!
       )
     end
-    it "creates intermediate command objects" 
-#   do
+    it "creates intermediate command objects" do
+      s = %(
+        cmd1.cmd2!
+      )
+      check s, %(
+        cmd1!
+          cmd2!
+      )
+    end
+#   it "creates intermediate only if needed command objects" do
 #     s = %(
 #       cmd1.cmd2!
+#       
+#       cmd1.cmd3!
 #     )
 #     check s, %(
 #       cmd1!
 #         cmd2!
+#         cmd3!
 #     )
 #   end
   end

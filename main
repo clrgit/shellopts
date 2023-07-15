@@ -116,6 +116,9 @@ spec = %(
 #   @group-brief
 #)
   
+spec = %(
+  cmd1.cmd2!
+)
   
 
 lexer = ShellOpts::Lexer.new("main", spec)

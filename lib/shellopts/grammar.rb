@@ -79,6 +79,8 @@ module ShellOpts
     class Group < Node
       alias_method :group, :parent
 
+      def ident = commands.first&.ident
+
       def commands = children.select { |c| c.is_a? Command }
       def subcommands = groups.map(&:commands).flatten
       def options = children.select { |c| c.is_a? Option }
@@ -89,10 +91,13 @@ module ShellOpts
         constrain parent, Group, nil
         super(parent, nil, **opts)
       end
+
+#     def dot(subcommand) = @subcommands.find { _1.ident == subcommand }
     end
 
     # The top-level grammar object is a group
     class Grammar < Group
+      def program = commands.first
       def initialize(**opts) = super(nil, **opts)
     end
 
@@ -111,11 +116,11 @@ module ShellOpts
         super(parent, ident, name: name, **opts)
       end
 
-      # Children is searched if key is a command. Otherwise the union of the
-      # options and the group's options is searched
+      # Interface to options, args, and commands
       def [](key)
+        constrain key, Symbol
         if key.to_s.end_with?("!")
-          super
+          subcommands.find { _1.ident == key }
         else
           group.key?(key) ? group[key] : super
         end
@@ -130,6 +135,8 @@ module ShellOpts
       end
       
       def keys = group.options.map(&:key) + super
+
+      def values = group.options + subcommands + super
     end
 
     class Program < Command

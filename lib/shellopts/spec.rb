@@ -327,16 +327,10 @@ module ShellOpts
     class Command < Node
       def name = @name ||= token.value.sub(/^(?:.*\.)?(.*)!$/, '\1')
       def ident = @ident ||= "#{name}!".to_sym
-      def qualification
-        @qualification ||= 
-            if q = token.value.match(/^(.*?)\.[^.]*$/)&.[](1)
-              "#{q}!".to_sym
-            else
-              nil
-            end
-      end
+      def path = token.value[0..-2].split(".").map { :"#{_1}!" }
+      def qualification = path[0..-1]
 
-      def qualified? = !qualification.nil?
+      def qualified? = qualification.size > 1
 
       alias_method :command_group, :parent
       def brief = find(Brief) || command_group.brief

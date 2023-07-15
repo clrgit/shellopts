@@ -74,52 +74,17 @@ spec = %(
 
     cmd12!
 
-# cmd1.cmd4!
-#   --opt4
-#     Now, is this legal: 'cmd1 --opt1 cmd4 --opt4' ?
+  cmd1.cmd4!
+    --opt4
+      Now, is this legal: 'cmd1 --opt1 cmd4 --opt4' ?
 
   cmd2!
 
-# cmd1.cmd5!
-#   --opt5
-#     And are both of these legal: 'cmd1 cmd5 --opt5' and 'cmd2 --opt5
+  cmd1.cmd5!
+    --opt5
+      And are both of these legal: 'cmd1 cmd5 --opt5' and 'cmd2 --opt5
+
 )
-
-spec = %(
-  cmd1!
-  cmd2!
-
-  cmd3!
-)
-
-# TODO: Option parsing
-#spec = %(
-# -f=FILE @ own brief
-# -s,str=FILE @ another brief
-# -g=FILE -t,txt=FILE @ shared brief
-#   shared doc
-#)
-
-#spec = %(
-# -a 
-# 
-# -b -c # Shares brief and doc
-#
-# -d,e # Aliases
-#
-# -f # Shares doc and brief
-# -g
-#
-# -h -i @subgroup-brief
-# -j @option-brief
-# -k 
-#   @group-brief
-#)
-  
-spec = %(
-  cmd1.cmd2!
-)
-  
 
 lexer = ShellOpts::Lexer.new("main", spec)
 tokens = lexer.lex
@@ -134,6 +99,7 @@ spec = parser.parse
 
 analyzer = ShellOpts::Analyzer.new(spec)
 grammar, doc = analyzer.analyze
+
 
 puts "Grammar#dump(:debug)"
 indent { grammar.dump }
@@ -182,6 +148,30 @@ program.dump(format: :rspec)
 __END__
 
 
+# TODO: Option parsing
+#spec = %(
+# -f=FILE @ own brief
+# -s,str=FILE @ another brief
+# -g=FILE -t,txt=FILE @ shared brief
+#   shared doc
+#)
+
+#spec = %(
+# -a 
+# 
+# -b -c # Shares brief and doc
+#
+# -d,e # Aliases
+#
+# -f # Shares doc and brief
+# -g
+#
+# -h -i @subgroup-brief
+# -j @option-brief
+# -k 
+#   @group-brief
+#)
+  
 
 
 #SPEC = %(

@@ -74,41 +74,6 @@ module ShellOpts
       spec.filter(:qualified?).each { |cmd|
         cmd.command_group.size == 1 or analyzer_error cmd.token, "Qualified commands must be stand-alone"
       }
-
-      # TODO Check that qualified commands are singleton or have a shared prefix
-
-#     # Check that command groups with more than one command have no nested commands
-#     spec.pairs(Spec::CommandDefinition, Spec::CommandDefinition).each { |sup, sub|
-#       sup.subject.commands.size == 1 or 
-#           analyzer_error sub.token, "Commands can't be nested within multiple commands"
-#     }
-    end
-
-    # Helper method. Create command objects for qualifications
-    def ensure_command(group, qual, defn)
-      constrain group, Grammar::Group
-      constrain qual, Symbol
-      constrain defn, Spec::Node
-
-      puts "#ensure_command"
-      indent {
-        puts "group: #{group}"
-        puts "keys : #{group.keys.inspect}"
-        puts "qual : #{qual.inspect}"
-        puts "defn : #{defn.inspect}"
-
-      cmds = qual.to_s.sub(/!$/, "").split(".").map { :"#{_1}!" }
-      curr = grammar
-      for cmd in cmds
-        if !group.key?(cmd)
-          puts "create #{cmd.inspect}"
-          group = Grammar::Group.new(group, spec: defn)
-          Grammar::Command.new(group, cmd, spec: defn) if !curr.key?(cmd)
-        end
-        curr = curr[cmd]
-      end
-      curr
-      }
     end
 
     def analyze_commands
@@ -121,52 +86,26 @@ module ShellOpts
           @grammar = group = Grammar::Grammar.new(spec: main)
           Grammar::Program.new(group, name: main.name, spec: main)
 
-        # Remaining commands
+        # Qualified command. Qualified commands are always alone
+        elsif (cmd = defn.commands.first).qualified?
+          curr = grammar.program
+          cmd.path.each { |ident|
+            if curr.key?(ident)
+              curr = curr[ident]
+            else
+              group = Grammar::Group.new(curr.group, spec: cmd)
+              curr = Grammar::Command.new(group, ident, spec: cmd)
+            end
+          }
+          !group.nil? or analyzer_error defn.token, "Duplicate command: #{cmd.token.value}"
+
+        # Same-level unqualified commands
         else
-          # Collect commands
-          pure_cmds, qual_cmds = defn.commands.partition { |cmd| !cmd.qualified? }
-
-          # Collect same-level identifiers and create unqualified commands
-          if !pure_cmds.empty?
-            group = Grammar::Group.new(parent, spec: defn)
-            idents_hash = {}
-            pure_cmds.each { |cmd| # check for duplicates and collect idents
-              !group.key?(cmd.ident) or
-                  analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
-              Grammar::Command.new(group, cmd.ident, spec: cmd)
-              idents_hash[cmd.ident] = true
-            }
-            idents = idents_hash.keys # FIXME: Why?
-          end
-
-          # IDEA: Create a EmptyGroup class
-
-
-#         # Qualified commands: Ensure parent objects and then create command
-          qual_cmds.each { |cmd|
-            curr = grammar.program
-            cmd.path.each { |ident|
-              if curr.key?(ident)
-                curr = curr[ident]
-              else
-                group = Grammar::Group.new(curr.group, spec: cmd)
-                curr = Grammar::Command.new(group, ident, spec: cmd)
-              end
-            }
-
-
-
-#           exit
-            
-
-#         
-#           for 
-#
-#           qual_parent = ensure_command(group, cmd.qualification, defn)
-#           !qual_parent.key?(cmd.ident) or 
-#               analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
-#           command = Grammar::Command.new(qual_parent, cmd.ident, spec: defn)
-          } 
+          group = Grammar::Group.new(parent, spec: defn)
+          defn.commands.each { |cmd| # check for duplicates and collect idents
+            !parent.key?(cmd.ident) or analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
+            Grammar::Command.new(group, cmd.ident, spec: cmd)
+          }
         end
 
         # Collect sub-commands

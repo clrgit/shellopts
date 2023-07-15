@@ -171,21 +171,6 @@ describe "Analyzer" do
 
     end
 
-#   it "rejects commands nested within multiple commands - WHY?" do
-#     s = %(
-#       cmd1!
-#         cmd2!
-#     )
-#     expect { compile s }.not_to raise_error
-#
-#     s = %(
-#       cmd1!
-#       cmd2!
-#         cmd3!
-#     )
-#     expect { compile s }.to raise_error AnalyzerError
-#   end
-  
     it "rejects qualified commands that are not stand-alone" do
       s = %(
         cmd1!
@@ -226,16 +211,12 @@ describe "Analyzer" do
       )
       expect { compile s }.to raise_error AnalyzerError
 
-#     g = compile s
-#     p g.size
-#     exit
-
-#     s = %(
-#       cmd1!
-#         cmd2!
-#       cmd1.cmd2!
-#     )
-#     expect { compile s }.to raise_error AnalyzerError
+      s = %(
+        cmd1!
+          cmd2!
+        cmd1.cmd2!
+      )
+      expect { compile s }.to raise_error AnalyzerError
     end
     it "creates command objects" do
       s = %(
@@ -267,18 +248,18 @@ describe "Analyzer" do
           cmd2!
       )
     end
-#   it "creates intermediate only if needed command objects" do
-#     s = %(
-#       cmd1.cmd2!
-#       
-#       cmd1.cmd3!
-#     )
-#     check s, %(
-#       cmd1!
-#         cmd2!
-#         cmd3!
-#     )
-#   end
+    it "creates intermediate only if needed" do
+      s = %(
+        cmd1.cmd2!
+        
+        cmd1.cmd3!
+      )
+      check s, %(
+        cmd1!
+          cmd2!
+          cmd3!
+      )
+    end
   end
 
   describe "#analyze_options" do

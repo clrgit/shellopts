@@ -92,7 +92,10 @@ module ShellOpts
         super(parent, nil, **opts)
       end
 
-#     def dot(subcommand) = @subcommands.find { _1.ident == subcommand }
+      def key?(key) = values.find { _1.ident == key }
+      def keys = values.map(&:ident)
+      def [](key) = values.find { _1.ident == key }
+      def values = options + subcommands
     end
 
     # The top-level grammar object is a group
@@ -116,27 +119,10 @@ module ShellOpts
         super(parent, ident, name: name, **opts)
       end
 
-      # Interface to options, args, and commands
-      def [](key)
-        constrain key, Symbol
-        if key.to_s.end_with?("!")
-          subcommands.find { _1.ident == key }
-        else
-          group.key?(key) ? group[key] : super
-        end
-      end
-
-      def key?(key)
-        if key.to_s.end_with?("!")
-          super
-        else
-          group.key?(key) || super
-        end
-      end
-      
-      def keys = group.options.map(&:key) + super
-
-      def values = group.options + subcommands + super
+      def key?(key) = group.key?(key) || options.find { _1.key == key }
+      def keys = group.keys + options.map(&:key)
+      def [](key) = group.key?(key) ? group[key] : options.find { _1.key == key }
+      def values = group.values + options
     end
 
     class Program < Command

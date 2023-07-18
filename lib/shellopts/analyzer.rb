@@ -20,7 +20,7 @@ module ShellOpts
 
       analyze_commands
 #     exit
-#     analyze_options
+      analyze_options
 
       [@grammar, @doc]
     end
@@ -81,10 +81,10 @@ module ShellOpts
         # Handle top-level Program object
         if parent.nil?
           main = defn.command_group.commands.first
-          @grammar = group = Grammar::Grammar.new(spec: main)
-          Grammar::Program.new(group, name: main.name, spec: main)
+          defn.grammar = group = @grammar = Grammar::Grammar.new(spec: main)
+          t = Grammar::Program.new(group, name: main.name, spec: main)
 
-        # Qualified command. Qualified commands are always alone
+        # Qualified command. Qualified commands are always stand-alone
         elsif (cmd = defn.commands.first).qualified?
           curr = grammar.program
           cmd.path.each { |ident|
@@ -107,26 +107,31 @@ module ShellOpts
           }
         end
 
-        # Collect sub-commands
+        # Forward group to children
         group
       }
     end
 
     def analyze_options
-      puts
-      puts "#analyze_options"
-
-      indent {
-        spec.filter(Spec::Option) { |node|
-          p node
+      # Process free-standing options
+      spec.pairs(Spec::CommandDefinition, Spec::OptionDefinition).group.each { |cmd_def, opt_defs|
+        opt_defs.each { |opt_def|
+          opt_def.filter(Spec::Option) { |opt|
+            Grammar::GroupOption.new(cmd_def.grammar, spec: opt)
+          }
         }
+      }
+
+      # Process per-command options
+      spec.pairs(Spec::Command, Spec::Option) { |cmd, opt|
+        Grammar::CommandOption.new(cmd.grammar, spec: opt)
       }
     end
   end
 end
 
 __END__
-#       puts "commands: #{
+#       pu  ts "commands: #{
 
         puts "Grammar commands:"
         indent { 

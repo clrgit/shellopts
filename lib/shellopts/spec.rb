@@ -13,7 +13,8 @@ module ShellOpts
     class Node < Tree::Tree
       attr_reader :token
 
-      # Associated grammar object or nil. Initialized by the analyzer
+      # Associated grammar object or nil. Initialized by the analyzer, may be
+      # nil
       attr_accessor :grammar
 
       def initialize(parent, token, check: true)

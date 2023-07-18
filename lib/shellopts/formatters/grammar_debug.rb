@@ -33,6 +33,14 @@ module ShellOpts
             puts
             indent { groups.each { |grp| grp.dump } }
           end
+          print "options: "
+          if options.empty?
+            puts "[]"
+          else
+            puts
+            indent { options.each { |opt| opt.dump } }
+          end
+
         end
       end
 

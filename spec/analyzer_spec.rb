@@ -190,6 +190,8 @@ describe "Analyzer" do
   end
 
   describe "#analyze_commands" do
+    before(:all) { ShellOpts::Grammar::Format.set(:rspec_command) }
+
     it "checks for duplicate commands" do
       s = %(
         cmd1!
@@ -263,30 +265,41 @@ describe "Analyzer" do
   end
 
   describe "#analyze_options" do
-    it "creates option objects" do
+    before(:all) { ShellOpts::Grammar::Format.set(:rspec_option) }
+
+    def check_idx(s, id, val)
+      expect(compile(s)[id].name).to eq val
+    end
+
+    it "creates group options" do
       s = %(
-        --opt
+        --opt1
+
+        --opt2
+        --opt3
+
+        --opt4 --opt5
+
+        --opt6,opt7
+      )
+      check s, %(
+        --opt1
+        --opt2
+        --opt3
+        --opt4
+        --opt5
+        --opt6,opt7
       )
     end
 
-    it "creates option groups" do
-      s = %(
-        cmd!
-          --opt1
-
-          --opt2
-      )
-    end
-    it "creates option subgroups" do
-      s = %(
-        cmd!
-          --opt1
-          --opt2
-      )
-    end
     it "creates command options" do
       s = %(
-        cmd! --opt1 --opt2
+        cmd! --opt1
+          --opt2
+      )
+      check s, %(
+        cmd! --opt1
+          --opt2
       )
     end
   end

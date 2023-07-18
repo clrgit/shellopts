@@ -28,6 +28,8 @@ module ShellOpts
       @spec
     end
 
+    def self.parse(token) = self.new(tokens).parse
+
   protected
     SHORT_OPTION_NAME_RE = /[a-zA-Z0-9?]/
     LONG_OPTION_NAME_RE = /[a-zA-Z0-9][a-zA-Z0-9_-]*/

@@ -70,7 +70,7 @@ spec = %(
   cmd1!
     --opt1
 
-    cmd11!
+    cmd11! --opt11
 
     cmd12!
 
@@ -86,13 +86,41 @@ spec = %(
 
 )
 
+spec = %(
+  --opt0
+
+  --opt1
+
+  cmd0! --cmd0-opt
+  cmd00! --cmd00-opt
+    
+    --opt2
+
+  cmd1! --opt3 --opt4
+
+    --opt5
+
+  cmd2! --opt6
+)
+
+spec = %(
+  --opt1
+  --opt2
+  --opt3,opt4
+
+  cmd1! --opt5
+    --opt6
+
+    --opt7
+
+)
+
 lexer = ShellOpts::Lexer.new("main", spec)
 tokens = lexer.lex
-#pp tokens
 
-puts
 parser = ShellOpts::Parser.new(tokens)
 spec = parser.parse
+
 #spec.dump
 #puts
 #exit
@@ -100,30 +128,23 @@ spec = parser.parse
 analyzer = ShellOpts::Analyzer.new(spec)
 grammar, doc = analyzer.analyze
 
-puts
-#p grammar.children.map(&:class)
-#p grammar.children.last.ident
-#p grammar.keys
-#p grammar[:cmd1!]
+#puts "Grammar#dump(:debug)"
+#indent { grammar.dump }
+#puts
 #exit
 
-
-puts "Grammar#dump(:debug)"
-indent { grammar.dump }
-puts
+#puts "Grammar#dump(:rspec)"
+#ShellOpts::Grammar::Format.set :rspec
+#indent { grammar.dump }
+#puts
 #exit
 
-puts "Grammar#dump(:rspec)"
-ShellOpts::Grammar::Format.set :rspec
+puts "Grammar#dump(:rspec_option)"
+ShellOpts::Grammar::Format.set :rspec_option
 indent { grammar.dump }
 puts
-puts grammar[:cmd1!].ident
-puts grammar[:cmd1!].class
-puts grammar[:cmd1!][:cmd11!].ident
-puts grammar[:cmd1!][:cmd11!].class
-puts grammar[:!].ident
-puts grammar[:!].class
 exit
+
 
 #p grammar.groups.size
 #p grammar.subcommands.map(&:ident)

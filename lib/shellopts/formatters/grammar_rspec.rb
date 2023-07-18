@@ -1,7 +1,48 @@
 
 module ShellOpts
   module Grammar
+    # Dumps object details
     module Format::RSpec
+      include ShellOpts::Grammar
+      include ShellOpts::Format
+
+      refine Node do
+        def dump_header = puts ident
+        def dump_children = children.each { |child| child.dump }
+        def dump_tail = nil
+        def dump
+          dump_header
+          indent { dump_children }
+          dump_tail
+        end
+      end
+
+      refine Group do
+        def dump_header = puts "group ("
+        def dump_children
+          commands.each(&:dump)
+          options.each(&:dump)
+          groups.each(&:dump)
+        end
+        def dump_tail = puts ")"
+      end
+
+      refine Command do
+        def dump_header = puts ident
+      end
+
+      refine Option do
+        def dump_header = puts name
+      end
+
+      class Formatter
+        using Format::RSpec
+        def format(obj) = obj.dump
+      end
+    end
+
+    # Dumps command structure
+    module Format::RSpecCommand
       include ShellOpts::Grammar
       include ShellOpts::Format
 
@@ -20,7 +61,47 @@ module ShellOpts
       end
 
       class Formatter
-        using Format::RSpec
+        using Format::RSpecCommand
+        def format(obj) = obj.dump
+      end
+    end
+
+    # Dumps command structure
+    module Format::RSpecOption
+      include ShellOpts::Grammar
+      include ShellOpts::Format
+
+      refine Node do
+        def dump_header = nil
+        def dump_children = children.each { |child| child.dump }
+        def dump
+          dump_header
+          indent { dump_children }
+        end
+      end
+
+      refine Group do
+        def dump
+          commands.each(&:dump)
+          indent { groups.each(&:dump) }
+        end
+      end
+
+      refine Command do
+        def dump_header
+          puts "#{ident} #{command_options.map(&:name).join(" ")}"
+        end
+        def dump_children
+          group.options.each(&:dump)
+        end
+      end
+
+      refine Option do
+        def dump_header = puts [name, *idents[1..]].join(",")
+      end
+
+      class Formatter
+        using Format::RSpecOption
         def format(obj) = obj.dump
       end
     end

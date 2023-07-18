@@ -77,10 +77,12 @@ module ShellOpts
     class Command < Node
       alias_method :group, :parent
 
-      # #subcommands and #groups are convenience methods
+      def command_options = children.select { |c| c.is_a? Option }
+      def command_args = children.select { |c| c.is_a? ArgSpec }
+
+      def options = group.options + command_options
+      def args = group.args + command_args
       def subcommands = group.subcommands
-      def options = group.options + children.select { |c| c.is_a? Option }
-      def args = group.args + children.select { |c| c.is_a? ArgSpec }
       def groups = group.groups
 
       def initialize(parent, ident, name: nil, **opts)
@@ -98,9 +100,9 @@ module ShellOpts
     class Program < Command
       IDENT = :!
 
-      def initialize(parent, name: nil, spec: nil, **opts)
+      def initialize(parent, name: nil, **opts)
         name ||= File.basename($PROGRAM_NAME)
-        super(parent, IDENT, name: name, spec: nil, **opts)
+        super(parent, IDENT, name: name, **opts)
       end
     end
 

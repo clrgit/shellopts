@@ -82,7 +82,7 @@ module ShellOpts
         if parent.nil?
           main = defn.command_group.commands.first
           defn.grammar = group = @grammar = Grammar::Grammar.new(spec: main)
-          t = Grammar::Program.new(group, name: main.name, spec: main)
+          program = Grammar::Program.new(group, name: main.name, spec: main)
 
         # Qualified command. Qualified commands are always stand-alone
         elsif (cmd = defn.commands.first).qualified?
@@ -126,16 +126,47 @@ module ShellOpts
       spec.pairs(Spec::Command, Spec::Option) { |cmd, opt|
         Grammar::CommandOption.new(cmd.grammar, spec: opt)
       }
+
+      # Create arguments
+      grammar.filter(Grammar::Option).each { |option|
+        opt = option.spec
+        if opt.argument?
+          arg = opt.argument
+          argument = Grammar::Arg.new(option, arg.name.to_sym, arg.type, spec: opt) 
+        end
+      }
     end
 
     def analyze_args
-      spec.filter(Spec::ArgSpec).each { |arg_spec|
-        command = arg_spec.command.grammar
+      spec.pairs(Spec::CommandDefinition, Spec::ArgSpec) { |cmd_defn, arg_spec|
+        command = cmd_defn.grammar
         arg_spec.args.each { |arg|
-          Grammar::Arg.new(command, arg.name.to_sym, spec: arg)
+          Grammar::Arg.new(command, arg.name.to_sym, arg.type, spec: arg)
         }
       }
     end
+
+
+#   def analyze_args
+#     spec.filter(Spec::ArgSpec).each { |arg_spec|
+#       p arg_spec.class
+#       case arg_spec.parent
+#         when Spec::Description
+#           command = arg_spec.parent.grammar
+#           puts "..........."
+#           p arg_spec.parent.class
+#           p arg_spec.parent.parent.class
+#           p arg_spec.parent.parent.grammar
+#           p command
+#           constrain command, Grammar::Command
+#         when Spec::Command
+#           command = arg_spec.parent
+#       end
+#       arg_spec.args.each { |arg|
+#         Grammar::Arg.new(command, arg.name.to_sym, arg.type, spec: arg)
+#       }
+#     }
+#   end
   end
 end
 

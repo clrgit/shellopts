@@ -110,7 +110,7 @@ module ShellOpts
       refine Option do
         def dump_header
           print [name, *idents[1..]].join(",")
-          print "=#{argument_name}:#{argument_type&.name}" if argument?
+          print "=#{argument.name}:#{argument.type&.name}" if argument?
           puts
         end 
       end

@@ -77,6 +77,8 @@ require_relative 'shellopts/format.rb'
 require_relative 'shellopts/formatters/spec.rb'
 require_relative 'shellopts/formatters/grammar.rb'
 
+require_relative 'shellopts/args.rb'
+
 #require_relative 'shellopts/type.rb'
 
 

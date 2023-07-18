@@ -138,6 +138,19 @@ spec = %(
 #spec = %(
 # cmd! -- ARG
 #)
+#
+#spec = %(
+# -a
+# -b
+#)
+#
+#spec = %(
+# --opt=EFILE
+#)
+
+spec = %(
+  ++ ARG
+)
 
 lexer = ShellOpts::Lexer.new("main", spec)
 tokens = lexer.lex

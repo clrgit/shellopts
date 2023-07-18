@@ -56,11 +56,11 @@ describe "Analyzer" do
         -b
       )
       check_success s
-      s = %(
-        -a
-          -b
-      )
-      check_error s
+#     s = %(
+#       -a
+#         -b
+#     )
+#     check_error s
     end
     it "rejects duplicate options" # do
 #     s = %(

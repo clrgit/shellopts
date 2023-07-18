@@ -116,7 +116,7 @@ module ShellOpts
       def commands = children.select { |c| c.is_a?(Command) && !c.is_a?(Group) }
       def subcommands = groups.map(&:commands).flatten
       def options = children.select { |c| c.is_a? Option }
-      def args = children.select { |c| c.is_a? ArgSpec }
+      def args = children.select { |c| c.is_a? Arg }
       def groups = children.select { |c| c.is_a? Group }
 
       def initialize(parent, **opts)
@@ -161,11 +161,13 @@ module ShellOpts
     class Arg < Node
       attr_reader :arg
 
-      forward_to :spec, :name, :type
+      attr_reader :type
 
-      def intialize(parent, ident, **opts)
+      def initialize(parent, ident, type, **opts)
         constrain parent, Command, Option
+        constrain type, Type::Type
         super(parent, ident, **opts)
+        @type = type
       end
     end
 
@@ -176,17 +178,14 @@ module ShellOpts
       # Has to come before alias_method below
       forward_to :spec, :name, :names, :short_names, :long_names, 
                         :ident, :idents, :short_idents, :long_idents, 
-                        :repeatable?, :optional?, :argument?, 
-                        :argument_name, :argument_type
+                        :repeatable?, :optional?
 
       # Override Node#literal to include '-' or '--'
       alias_method :literal, :name
       alias_method :literals, :names
 
-      def arg
-        @children.size <= 1 or raise InternalError, "More than one child"
-        @chidren.first
-      end
+      def argument = children.first
+      def argument? = !children.empty?
 
       def initialize(parent, spec: nil, **opts)
         constrain parent, Command

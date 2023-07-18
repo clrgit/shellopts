@@ -138,6 +138,10 @@ module ShellOpts
     class ArgSpec < Node
       alias_method :command, :parent
       alias_method :args, :children
+#     def initialize(parent, token, **opts)
+#       constrain parent, Command
+#       super
+#     end
       def self.accepts = [Arg]
     end
 
@@ -275,27 +279,32 @@ module ShellOpts
       def repeatable? = @repeatable
       def optional? = @optional
 
-      def argument? = !argument_type.nil?
-      attr_reader :argument_name
-      attr_reader :argument_type
+      def argument? = !argument.nil?
+      def argument = @children.first
+
+#     attr_reader :argument
+#     attr_reader :argument_name
+#     attr_reader :argument_type
     
       # Associated Grammar::Option object. Initialize by the analyzer
       alias_method :option, :grammar
     
-      def initialize(parent, token, idents, repeatable, optional, argument_name, argument_type)
+      def initialize(parent, token, idents, repeatable, optional)
         constrain parent, OptionSubGroup, Command
         constrain idents, [Symbol]
         constrain repeatable, true, false
         constrain optional, true, false
-        constrain argument_name, String, nil
-        constrain argument_type, Type::Type, nil
+#       constrain argument, Arg, nil
+#       constrain argument_name, String, nil
+#       constrain argument_type, Type::Type, nil
         super(parent, token)
 
         @idents = idents
         @repeatable = repeatable
         @optional = optional
-        @argument_name = argument_name
-        @argument_type = argument_type
+#       @argument = argument
+#       @argument_name = argument_name
+#       @argument_type = argument_type
 
         @names = []
         @short_names = []
@@ -321,6 +330,8 @@ module ShellOpts
     
       def to_s = token.value
       def self.accepts = [Brief]
+
+      def self.accepts = [Arg]
     end
 
     # A command group is a list of continuous commands without blank lines in

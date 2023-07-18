@@ -57,6 +57,13 @@ module ShellOpts
       def convert(value) value.to_f end
     end
 
+    class EnumType < Type
+      attr_reader :values
+      def initialize(values) @values = values.dup end
+      def match?(name, literal) value?(literal) or set_message "Illegal value in #{name}: '#{literal}'" end
+      def value?(value) @values.include?(value) end
+    end
+
     class FileType < Type
       KINDS = [:file, :dir, :path, :efile, :edir, :epath, :nfile, :ndir, :npath, :ifile, :ofile]
       
@@ -182,13 +189,6 @@ module ShellOpts
           end
         end
       end
-    end
-
-    class EnumType < Type
-      attr_reader :values
-      def initialize(values) @values = values.dup end
-      def match?(name, literal) value?(literal) or set_message "Illegal value in #{name}: '#{literal}'" end
-      def value?(value) @values.include?(value) end
     end
   end
 end

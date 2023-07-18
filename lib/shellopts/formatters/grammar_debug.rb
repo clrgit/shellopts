@@ -12,13 +12,6 @@ module ShellOpts
         end
       end
 
-#     refine Arg do
-#       def dump_children
-#         puts "name: #{name}"
-#         puts "type: #{type.name}" 
-#       end
-#     end
-
       refine Option do
         def dump_header = puts idents.map(&:inspect).join(", ") + " (#{self.class.name})"
       end
@@ -27,18 +20,18 @@ module ShellOpts
         def dump_header = puts ident.inspect + " (#{self.class.name})"
         def dump_children
           print "options: "
-          if options.empty?
+          if command_options.empty?
             puts "[]"
           else
             puts
-            indent { options.each { |opt| opt.dump } }
+            indent { command_options.each { |opt| opt.dump } }
           end
           print "args: "
-          if args.empty?
+          if command_args.empty?
             puts "[]"
           else
             puts
-            indent { args.each { |arg| arg.dump } }
+            indent { command_args.each { |arg| arg.dump } }
           end
         end
       end

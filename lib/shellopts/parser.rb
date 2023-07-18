@@ -114,6 +114,7 @@ module ShellOpts
       end
 
       tokens.consume(:blank, nil, nil)
+
       if l.call(token)
         descr = Spec::Description.new(parent, token)
         parse_node(descr) while l.call(token)
@@ -166,67 +167,57 @@ module ShellOpts
 
     def parse_option(parent)
       constrain parent, Spec::Command, Spec::OptionSubGroup
-#     constrain token.kind, :option
-      tokens.consume(:option, token.lineno, :>=, token.charno) { |option|
-        option.source =~ /^(-|--|\+|\+\+)(#{OPTION_NAME_LIST_RE})(?:=(.+?)(\?)?)?$/ or 
-            parser_error option, "Illegal option: #{option.source.inspect}"
+      tokens.consume(:option, token.lineno, :>=, token.charno) { |tok|
+        tok.source =~ /^(-|--|\+|\+\+)(#{OPTION_NAME_LIST_RE})(?:=(.+?)(\?)?)?$/ or 
+            parser_error tok, "Illegal tok: #{tok.source.inspect}"
         initial = $1
         names = $2
         arg = $3
         optional = !arg.nil? && !$4.nil?
-        repeatable = %w(+ ++).include?(initial)
         idents = names.split(",").map(&:to_sym)
-        argument_name, argument_type = parse_arg(arg)
-        Spec::Option.new(parent, option, idents, repeatable, optional, argument_name, argument_type) 
+        repeatable = %w(+ ++).include?(initial)
+        option = Spec::Option.new(parent, tok, idents, repeatable, optional) 
+        parse_argument(option, tok, arg) if !arg.nil?
       }
     end
 
-    def parse_arg(arg)
+    def parse_argument(parent, token, arg)
+      return if arg.nil?
+
       named = true
-      if arg.nil?
-        argument_name = nil
-        argument_type = nil
-      else
-        if arg =~ /^([^:]+)(?::(.*))/
-          argument_name = $1
-          named = true
-          arg = $2
-        elsif arg =~ /^:(.*)/
-          arg = $1
-          named = false
-        end
-
-        case arg
-          when "", nil
-            argument_name ||= "STR"
-            argument_type = Type::StringType.new
-          when "#"
-            argument_name ||= "INT"
-            argument_type = Type::IntegerType.new
-          when "$"
-            argument_name ||= "NUM"
-            argument_type = Type::FloatType.new
-          when "FILE", "DIR", "PATH", "EFILE", "EDIR", "EPATH", "NFILE", "NDIR", "NPATH", "IFILE", "OFILE"
-            argument_name ||= arg.sub(/^(?:E|N|I|O)/, "")
-            argument_type = Type::FileType.new(arg.downcase.to_sym)
-          when /,/
-            argument_name ||= arg
-            argument_type = Type::EnumType.new(arg.split(","))
-          else
-            named && argument_name.nil? or parser_error option, "Illegal type expression: #{arg.inspect}"
-            argument_name = arg
-            argument_type = Type::StringType.new
-        end
+      if arg =~ /^([^:]+)(?::(.*))/
+        argument_name = $1
+        named = true
+        arg = $2
+      elsif arg =~ /^:(.*)/
+        arg = $1
+        named = false
       end
-      [argument_name, argument_type]
-    end
 
-    def parse_command_arg(token, arg)
-      name, type = parse_arg(arg)
-      !name.nil? or parser_error token, "Missing argument name"
-      [name, type]
-    end
+      case arg
+        when "", nil
+          argument_name ||= "STR"
+          argument_type = Type::StringType.new
+        when "#"
+          argument_name ||= "INT"
+          argument_type = Type::IntegerType.new
+        when "$"
+          argument_name ||= "NUM"
+          argument_type = Type::FloatType.new
+        when "FILE", "DIR", "PATH", "EFILE", "EDIR", "EPATH", "NFILE", "NDIR", "NPATH", "IFILE", "OFILE"
+          argument_name ||= arg.sub(/^(?:E|N|I|O)/, "")
+          argument_type = Type::FileType.new(arg.downcase.to_sym)
+        when /,/
+          argument_name ||= arg
+          argument_type = Type::EnumType.new(arg.split(","))
+        else
+          named && argument_name.nil? or parser_error token, "Illegal type expression: #{arg.inspect}"
+          argument_name = arg
+          argument_type = Type::StringType.new
+      end
 
+      Spec::Arg.new(parent, token, argument_name, argument_type)
+    end
 
     def parse_command_definition(parent)
       defn = Spec::CommandDefinition.new(parent, token)
@@ -235,9 +226,11 @@ module ShellOpts
     end
 
     def parse_program(defn)
+#     parse_command_group(defn)
       group = Spec::CommandGroup.new(defn, defn.token)
       command = Spec::Program.new(group, defn.token)
       parse_description(defn)
+#     parse_description(command)
     end
 
     def parse_command_group(parent)
@@ -247,7 +240,7 @@ module ShellOpts
         tokens.consume([:option, :arg_descr, :arg_spec, :brief], command.lineno, nil) { |t|
           if t.kind == :option # Special handling because these options does not belong to a group
             tokens.unshift t
-            parse_option(cmd)
+            parse_option(cmd) # FIXME: Why not parse_node(cmd) ?
           else
             tokens.unshift t
             parse_node(cmd)
@@ -257,11 +250,10 @@ module ShellOpts
     end
 
     def parse_arg_spec(parent)
-      constrain parent, Spec::Command
+#     constrain parent, Spec::Command
       spec = Spec::ArgSpec.new(parent, tokens.shift)
-      tokens.consume(:arg, token.lineno, nil) { |t| 
-        name, type = parse_command_arg(t, t.value)
-        Spec::Arg.new(spec, t, name, type) 
+      tokens.consume(:arg, token.lineno, nil) { |token| 
+        parse_argument(spec, token, token.value)
       }
     end
 

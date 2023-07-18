@@ -2,19 +2,19 @@ module ShellOpts
   module Type
     class Type
       # Name of type
-      def name() self.class.to_s.sub(/.*::/, "").sub(/Argument/, "") end
+      def name = self.class.to_s.sub(/.*::/, "").sub(/Type$/, "")
 
-      # Return truish if value literal (String) match the type. Returns false
+      # Return truish if +literal+ (String) match the type. Returns false
       # and set #message if the value doesn't match. <name> is used to
       # construct the error message and is the name/alias the user specified on
       # the command line
-      def match?(name, literal) true end
+      def match?(name, literal) true end # FIXME: Why not an abstract method?
 
       # Error message if match? returned false. Note that this method is not
       # safe for concurrent processing
       attr_reader :message
 
-      # Return true if .value is an "instance" of self. Ie. an Integer object
+      # Return true if +value+ is an "instance" of self. Ie. an Integer object
       # if type is an IntegerType
       def value?(value) true end
 
@@ -58,10 +58,12 @@ module ShellOpts
     end
 
     class FileType < Type
+      KINDS = [:file, :dir, :path, :efile, :edir, :epath, :nfile, :ndir, :npath, :ifile, :ofile]
+      
       attr_reader :kind
 
       def initialize(kind)
-        constrain kind, :file, :dir, :path, :efile, :edir, :epath, :nfile, :ndir, :npath, :ifile, :ofile
+        constrain kind, *KINDS
         @kind = kind 
       end
 

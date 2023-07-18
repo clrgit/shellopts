@@ -18,7 +18,8 @@ module ShellOpts
     # uppercase letters. This makes it possible to say +opts.FILE_ARGUMENT+
     # because it can't conflict with a single letter uppercase options and long
     # options are always downcased internally (TODO). Rather primitive for now
-    ARG_RE = /^[A-Z0-9_-]{2,}$/
+#   ARG_RE = /^[A-Z0-9_-]{2,}$/
+    ARG_RE = /^[A-Z0-9_-]{2,}(?::.*)?$/
 
     SINGLE_LINE_WORDS = %w(-- ++ @)
 

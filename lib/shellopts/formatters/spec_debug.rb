@@ -53,6 +53,13 @@ module ShellOpts
         def body = puts lines
       end
 
+#     refine Arg do
+#       def body
+#         puts "name: #{name.inspect}"
+#         puts "type: #{type.name}"
+#       end
+#     end
+
       class Formatter
         using Format::Short
         def format(obj) = obj.dump

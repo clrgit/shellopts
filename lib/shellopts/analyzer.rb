@@ -19,8 +19,9 @@ module ShellOpts
       check_commands
 
       analyze_commands
-#     exit
       analyze_options
+      analyze_command_args
+      analyze_option_args
 
       [@grammar, @doc]
     end
@@ -126,6 +127,18 @@ module ShellOpts
       spec.pairs(Spec::Command, Spec::Option) { |cmd, opt|
         Grammar::CommandOption.new(cmd.grammar, spec: opt)
       }
+    end
+
+    def analyze_command_args
+#     spec.filter(Spec::CommandArgSpec).each { |arg_spec|
+#       p arg_spec.command
+#       p arg_spec.command.grammar
+#       puts
+#       
+#     }
+    end
+
+    def analyze_option_args
     end
   end
 end

@@ -74,6 +74,7 @@ module ShellOpts
       @@grammar = nil
     end
 
+    # TODO: Make Command a subclass of Group
     class Command < Node
       alias_method :group, :parent
 

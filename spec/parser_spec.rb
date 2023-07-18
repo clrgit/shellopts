@@ -2,6 +2,8 @@
 include ShellOpts
 
 describe "Parser" do
+  before(:all) { ShellOpts::Grammar::Format.set(:rspec_option) }
+
   # Parse 's' and return a dump of the parse tree
   def parse(s) 
     lexer = Lexer.new("main", s)
@@ -163,12 +165,12 @@ describe "Parser" do
       end
     end
 
-    context "arg_spec" do
+    context "arg_specs" do
       it "applies to main" do
         s = "++ ARG"
         check s, %(
           ++
-            ARG
+            ARG:String
         )
       end
       it "applies to a command" do
@@ -177,7 +179,7 @@ describe "Parser" do
           group
             cmd!
               ++
-                ARG
+                ARG:String
         )
       end
       it "applies to a command group" do
@@ -189,7 +191,7 @@ describe "Parser" do
           group
             cmd!
             ++ 
-              ARG
+              ARG:String
         )
       end
       it "can be applied multiple times" do
@@ -199,9 +201,9 @@ describe "Parser" do
         )
         check s, %(
           ++
-            ARG1
+            ARG1:String
           ++ 
-            ARG2
+            ARG2:String
         )
       end
 
@@ -209,14 +211,69 @@ describe "Parser" do
         s = "++ ARG1 ARG2 ARG3"
         check s, %(
           ++
-            ARG1
-            ARG2
-            ARG3
+            ARG1:String
+            ARG2:String
+            ARG3:String
         )
       end
     end
 
-    context "arg_descr" do
+    context "args" do
+      context "computes name" do
+        it "raises if name is missing" do
+          s = "++ :#"
+          expect { compile s }.to raise_error LexerError
+        end
+        it "uses type name as default" do
+          s = "++ EFILE"
+          check s, %(
+            ++
+              FILE:File
+          )
+        end
+      end
+      context "computes type" do
+        it "maps to String by default" do
+          s = "++ VALUE"
+          check s, %(
+            ++
+              VALUE:String
+          )
+        end
+        it "maps # to Integer" do
+          s = "++ VALUE:#"
+          check s, %(
+            ++ 
+              VALUE:Integer
+          )
+        end
+        it "maps $ to Float" do
+          s = "++ VALUE:$"
+          check s, %(
+            ++ 
+              VALUE:Float
+          )
+        end
+        it "maps , to Enum" do
+          s = "++ VALUE:a,b"
+          check s, %(
+            ++ 
+              VALUE:Enum
+          )
+        end
+        it "maps file keywords File" do
+          for kind in ShellOpts::Type::FileType::KINDS
+            s = "++ VALUE:#{kind.to_s.upcase}"
+          check s, %(
+            ++ 
+              VALUE:File
+          )
+          end
+        end
+      end
+    end
+
+    context "arg_descrs" do
       it "applies to main" do
         s = "-- AN ARG"
         check s, %(

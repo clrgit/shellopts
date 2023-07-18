@@ -173,50 +173,60 @@ module ShellOpts
         initial = $1
         names = $2
         arg = $3
-        optional = !$4.nil?
+        optional = !arg.nil? && !$4.nil?
         repeatable = %w(+ ++).include?(initial)
         idents = names.split(",").map(&:to_sym)
-
-        named = true
-        if arg.nil?
-          argument_name = nil
-          argument_type = nil
-        else
-          if arg =~ /^([^:]+)(?::(.*))/
-            argument_name = $1
-            named = true
-            arg = $2
-          elsif arg =~ /^:(.*)/
-            arg = $1
-            named = false
-          end
-
-          case arg
-            when "", nil
-              argument_name ||= "VAL"
-              argument_type = Type::StringType.new
-            when "#"
-              argument_name ||= "INT"
-              argument_type = Type::IntegerType.new
-            when "$"
-              argument_name ||= "NUM"
-              argument_type = Type::FloatType.new
-            when "FILE", "DIR", "PATH", "EFILE", "EDIR", "EPATH", "NFILE", "NDIR", "NPATH", "IFILE", "OFILE"
-              argument_name ||= arg.sub(/^(?:E|N|I|O)/, "")
-              argument_type = Type::FileType.new(arg.downcase.to_sym)
-            when /,/
-              argument_name ||= arg
-              argument_type = Type::EnumType.new(arg.split(","))
-            else
-              named && argument_name.nil? or parser_error option, "Illegal type expression: #{arg.inspect}"
-              argument_name = arg
-              argument_type = Type::StringType.new
-          end
-          optional = !optional.nil?
-        end
+        argument_name, argument_type = parse_arg(arg)
         Spec::Option.new(parent, option, idents, repeatable, optional, argument_name, argument_type) 
       }
     end
+
+    def parse_arg(arg)
+      named = true
+      if arg.nil?
+        argument_name = nil
+        argument_type = nil
+      else
+        if arg =~ /^([^:]+)(?::(.*))/
+          argument_name = $1
+          named = true
+          arg = $2
+        elsif arg =~ /^:(.*)/
+          arg = $1
+          named = false
+        end
+
+        case arg
+          when "", nil
+            argument_name ||= "STR"
+            argument_type = Type::StringType.new
+          when "#"
+            argument_name ||= "INT"
+            argument_type = Type::IntegerType.new
+          when "$"
+            argument_name ||= "NUM"
+            argument_type = Type::FloatType.new
+          when "FILE", "DIR", "PATH", "EFILE", "EDIR", "EPATH", "NFILE", "NDIR", "NPATH", "IFILE", "OFILE"
+            argument_name ||= arg.sub(/^(?:E|N|I|O)/, "")
+            argument_type = Type::FileType.new(arg.downcase.to_sym)
+          when /,/
+            argument_name ||= arg
+            argument_type = Type::EnumType.new(arg.split(","))
+          else
+            named && argument_name.nil? or parser_error option, "Illegal type expression: #{arg.inspect}"
+            argument_name = arg
+            argument_type = Type::StringType.new
+        end
+      end
+      [argument_name, argument_type]
+    end
+
+    def parse_command_arg(token, arg)
+      name, type = parse_arg(arg)
+      !name.nil? or parser_error token, "Missing argument name"
+      [name, type]
+    end
+
 
     def parse_command_definition(parent)
       defn = Spec::CommandDefinition.new(parent, token)
@@ -238,7 +248,6 @@ module ShellOpts
           if t.kind == :option # Special handling because these options does not belong to a group
             tokens.unshift t
             parse_option(cmd)
-#           Spec::Option.new(cmd, t)
           else
             tokens.unshift t
             parse_node(cmd)
@@ -249,7 +258,10 @@ module ShellOpts
 
     def parse_arg_spec(parent)
       spec = Spec::ArgSpec.new(parent, tokens.shift)
-      tokens.consume(:arg, token.lineno, nil) { |t| Spec::Arg.new(spec, t) }
+      tokens.consume(:arg, token.lineno, nil) { |t| 
+        name, type = parse_command_arg(t, t.value)
+        Spec::Arg.new(spec, t, name, type) 
+      }
     end
 
     def parse_arg_descr(parent)
@@ -266,7 +278,6 @@ module ShellOpts
         parse_description(list_item)
       }
     end
-
   end
 end
 

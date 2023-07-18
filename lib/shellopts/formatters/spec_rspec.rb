@@ -44,6 +44,10 @@ module ShellOpts
         def head = "subgroup"
       end
 
+      refine Arg do
+        def head = "#{name}:#{type.name}"
+      end
+
       refine ArgDescr do
         def head = "-- " + token.value
       end

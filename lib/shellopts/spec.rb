@@ -17,7 +17,7 @@ module ShellOpts
       # nil
       attr_accessor :grammar
 
-      def initialize(parent, token, check: true)
+      def initialize(parent, token)
         constrain parent, Node, nil
         constrain token, Token
         super(parent)
@@ -140,8 +140,17 @@ module ShellOpts
     end
 
     class Arg < Node
+      attr_reader :name
+      attr_reader :type
+
+      def initialize(parent, token, name, type)
+        super(parent, token)
+        @name, @type = name, type
+      end
     end
 
+    # An ArgDescr is a free-text description of the arguments. It is not parsed
+    # as an expression but is used in the documentation
     class ArgDescr < Node
     end
 
@@ -271,14 +280,14 @@ module ShellOpts
       # Associated Grammar::Option object. Initialize by the analyzer
       alias_method :option, :grammar
     
-      def initialize(parent, token, idents, repeatable, optional, argument_name, argument_type, check: false)
+      def initialize(parent, token, idents, repeatable, optional, argument_name, argument_type)
         constrain parent, OptionSubGroup, Command
         constrain idents, [Symbol]
         constrain repeatable, true, false
         constrain optional, true, false
         constrain argument_name, String, nil
         constrain argument_type, Type::Type, nil
-        super(parent, token, check: check)
+        super(parent, token)
 
         @idents = idents
         @repeatable = repeatable
@@ -340,9 +349,9 @@ module ShellOpts
       # Associated Grammar::Command object. Initialized by the analyzer
       attr_accessor :command 
 
-      def initialize(parent, token, check: false)
+      def initialize(parent, token)
         constrain parent, CommandGroup
-        super(parent, token, check: check)
+        super(parent, token)
         @supercommand = nil
         @subcommands = []
         @command = nil

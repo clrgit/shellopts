@@ -115,23 +115,32 @@ spec = %(
 
 )
 
+# TODO
+#spec = %(
+# cmd1! ++ NAME:EFILE
+#)
+
+spec = %(
+  cmd1! ++ EFILE NAME
+)
+
 lexer = ShellOpts::Lexer.new("main", spec)
 tokens = lexer.lex
 
 parser = ShellOpts::Parser.new(tokens)
 spec = parser.parse
 
-#spec.dump
-#puts
+spec.dump
+puts
 #exit
 
 analyzer = ShellOpts::Analyzer.new(spec)
 grammar, doc = analyzer.analyze
 
-#puts "Grammar#dump(:debug)"
-#indent { grammar.dump }
-#puts
-#exit
+puts "Grammar#dump(:debug)"
+indent { grammar.dump }
+puts
+exit
 
 #puts "Grammar#dump(:rspec)"
 #ShellOpts::Grammar::Format.set :rspec
@@ -139,11 +148,11 @@ grammar, doc = analyzer.analyze
 #puts
 #exit
 
-puts "Grammar#dump(:rspec_option)"
-ShellOpts::Grammar::Format.set :rspec_option
-indent { grammar.dump }
-puts
-exit
+#puts "Grammar#dump(:rspec_option)"
+#ShellOpts::Grammar::Format.set :rspec_option
+#indent { grammar.dump }
+#puts
+#exit
 
 
 #p grammar.groups.size

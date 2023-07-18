@@ -25,6 +25,11 @@ describe "Analyzer" do
     @grammar
   end
 
+  using Ext::StringIO::Redirect
+  def render(node)
+    StringIO.redirect(:stdout) { node.dump }
+  end
+
   # Compile 's' and check that the result matches 'r'. #check removes the first
   # line that contains the '!' declaration to save some typing
   def check(s, r)
@@ -32,10 +37,12 @@ describe "Analyzer" do
     expect(undent s).to eq undent r
   end
 
-  using Ext::StringIO::Redirect
+  def check_error(s, klass = AnalyzerError)
+    expect { compile(s) }.to raise_error klass
+  end
 
-  def render(node)
-    StringIO.redirect(:stdout) { node.dump }
+  def check_success(s)
+    expect { compile(s) }.not_to raise_error
   end
 
   describe "#analyze" do
@@ -48,42 +55,35 @@ describe "Analyzer" do
         -a
         -b
       )
-      expect { compile s }.not_to raise_error
+      check_success s
       s = %(
         -a
           -b
       )
-      expect { compile s }.to raise_error AnalyzerError
+      check_error s
     end
     it "rejects duplicate options" # do
 #     s = %(
 #       -a -a
 #     )
-#     expect { compile s }.to raise_error AnalyzerError
+#     check_error s
 #     s = %(
 #       -a
 #       -a
 #     )
-#     expect { compile s }.to raise_error AnalyzerError
+#     check_error s
 #   end
     it "collapses '-' and '_'" # do
-      # TODO
-      #   check_error %(
-      #     ...
-      #   )
-      #   check_success %(
-      #     ...
-      #   )
 #     s = %(
 #       --opt-value
 #       --opt_another
 #     )
-#     expect { compile s }.not_to raise_error
+#     check_success s
 #     s = %(
 #       --opt-value
 #       --opt_value
 #     )
-#     expect { compile s }.to raise_error AnalyzerError
+#     check_error s
 #   end
   end
 
@@ -94,7 +94,8 @@ describe "Analyzer" do
         cmd2!
           @brief
       )
-      expect { compile s }.not_to raise_error
+      check_success s
+#     check_success s
 
       # This is not an error because brief2 the default brief
       s = %(
@@ -102,14 +103,14 @@ describe "Analyzer" do
         cmd2! @brief1
           @brief2
       )
-      expect { compile s }.not_to raise_error
+      check_success s
 
       s = %(
         cmd!
           @brief1
           @brief2
       )
-      expect { compile s }.to raise_error AnalyzerError
+      check_error s
 
     end
     it "rejects duplicate option briefs" do
@@ -118,7 +119,7 @@ describe "Analyzer" do
         -b
           @brief
       )
-      expect { compile s }.not_to raise_error
+      check_success s
 
       # This is not an error because brief2 the default brief
       s = %(
@@ -126,14 +127,14 @@ describe "Analyzer" do
         -b @brief1
           @brief2
       )
-      expect { compile s }.not_to raise_error
+      check_success s
 
       s = %(
         -a 
           @brief
           @brief
       )
-      expect { compile s }.to raise_error AnalyzerError
+      check_error s
     end
   end
 
@@ -143,14 +144,14 @@ describe "Analyzer" do
         cmd!
           -- ARG
       )
-      expect { compile s }.not_to raise_error
+      check_success s
 
       s = %(
         cmd!
           -- ARG1
           -- ARG2
       )
-      expect { compile s }.to raise_error AnalyzerError
+      check_error s
     end
   end
 
@@ -160,14 +161,14 @@ describe "Analyzer" do
         cmd!
           --option
       )
-      expect { compile s }.not_to raise_error
+      check_success s
 
       s = %(
         cmd!
           --option
             cmd2!
       )
-      expect { compile s }.to raise_error AnalyzerError
+      check_error s
 
     end
 
@@ -177,7 +178,7 @@ describe "Analyzer" do
           
         cmd1.cmd2!
       )
-      expect { compile s }.not_to raise_error
+      check_success s
 
       s = %(
         cmd1!
@@ -185,7 +186,7 @@ describe "Analyzer" do
         cmd2!
         cmd1.cmd3!
       )
-      expect { compile s }.to raise_error AnalyzerError
+      check_error s
     end
   end
 
@@ -198,27 +199,27 @@ describe "Analyzer" do
           cmd1!
         cmd2!
       )
-      expect { compile s }.not_to raise_error
+      check_success s
 
       s = %(
         cmd1!
         cmd1!
       )
-      expect { compile s }.to raise_error AnalyzerError
+      check_error s
 
       s = %(
         cmd1!
           cmd1!
           cmd1!
       )
-      expect { compile s }.to raise_error AnalyzerError
+      check_error s
 
       s = %(
         cmd1!
           cmd2!
         cmd1.cmd2!
       )
-      expect { compile s }.to raise_error AnalyzerError
+      check_error s
     end
     it "creates command objects" do
       s = %(
@@ -267,10 +268,6 @@ describe "Analyzer" do
   describe "#analyze_options" do
     before(:all) { ShellOpts::Grammar::Format.set(:rspec_option) }
 
-    def check_idx(s, id, val)
-      expect(compile(s)[id].name).to eq val
-    end
-
     it "creates group options" do
       s = %(
         --opt1
@@ -302,6 +299,31 @@ describe "Analyzer" do
           --opt2
       )
     end
+
+    it "creates arguments" do
+      s = %(
+        --opt=EFILE
+      )
+      check s, %(
+        --opt=FILE:File
+      )
+    end
+  end
+
+  describe "#analyze_args" do
+    before(:all) { ShellOpts::Grammar::Format.set(:rspec_command) }
+
+    it "creates arguments" do
+      s = %(
+        cmd! ++ ARG
+      )
+      check s, %(
+        cmd!
+          ARG:String
+      )
+    end
+
+    it "handles variants"
   end
 end
 

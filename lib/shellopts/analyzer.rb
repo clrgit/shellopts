@@ -20,8 +20,7 @@ module ShellOpts
 
       analyze_commands
       analyze_options
-      analyze_command_args
-      analyze_option_args
+      analyze_args
 
       [@grammar, @doc]
     end
@@ -129,16 +128,13 @@ module ShellOpts
       }
     end
 
-    def analyze_command_args
-#     spec.filter(Spec::CommandArgSpec).each { |arg_spec|
-#       p arg_spec.command
-#       p arg_spec.command.grammar
-#       puts
-#       
-#     }
-    end
-
-    def analyze_option_args
+    def analyze_args
+      spec.filter(Spec::ArgSpec).each { |arg_spec|
+        command = arg_spec.command.grammar
+        arg_spec.args.each { |arg|
+          Grammar::Arg.new(command, arg.name.to_sym, spec: arg)
+        }
+      }
     end
   end
 end

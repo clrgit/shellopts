@@ -136,6 +136,8 @@ module ShellOpts
     end
 
     class ArgSpec < Node
+      alias_method :command, :parent
+      alias_method :args, :children
       def self.accepts = [Arg]
     end
 
@@ -273,7 +275,7 @@ module ShellOpts
       def repeatable? = @repeatable
       def optional? = @optional
 
-      def argument? = argument_type.nil?
+      def argument? = !argument_type.nil?
       attr_reader :argument_name
       attr_reader :argument_type
     

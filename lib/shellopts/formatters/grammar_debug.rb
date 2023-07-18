@@ -43,6 +43,10 @@ module ShellOpts
         end
       end
 
+      refine Arg do
+        def dump_header = puts "#{name}: #{type.name} (#{self.class.name})"
+      end
+
       refine Group do
         def dump_children
 #         puts "children: #{children.size}"

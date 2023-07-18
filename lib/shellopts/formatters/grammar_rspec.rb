@@ -17,6 +17,10 @@ module ShellOpts
         end
       end
 
+      refine Arg do
+        def dump_header = puts "#{name}:#{type.name}"
+      end
+
       refine Group do
         def dump_header = puts "group ("
         def dump_children
@@ -55,9 +59,16 @@ module ShellOpts
         end
       end
 
+      refine Arg do
+        def dump_header = puts "#{name}:#{type.name}"
+      end
+
       refine Group do
         def dump_header = puts commands.map(&:ident).join(", ")
-        def dump_children = groups.each(&:dump)
+        def dump_children
+          commands.map(&:args).flatten.each(&:dump)
+          groups.each(&:dump)
+        end
       end
 
       class Formatter
@@ -97,7 +108,11 @@ module ShellOpts
       end
 
       refine Option do
-        def dump_header = puts [name, *idents[1..]].join(",")
+        def dump_header
+          print [name, *idents[1..]].join(",")
+          print "=#{argument_name}:#{argument_type&.name}" if argument?
+          puts
+        end 
       end
 
       class Formatter
@@ -106,6 +121,8 @@ module ShellOpts
       end
     end
   end
+
+
 end
 
 __END__

@@ -53,12 +53,9 @@ module ShellOpts
         def body = puts lines
       end
 
-#     refine Arg do
-#       def body
-#         puts "name: #{name.inspect}"
-#         puts "type: #{type.name}"
-#       end
-#     end
+      refine Arg do
+        def head = "#{name}, #{type.name}"
+      end
 
       class Formatter
         using Format::Short

@@ -206,7 +206,6 @@ describe "Parser" do
             ARG2:String
         )
       end
-
       it "takes a number of arguments" do
         s = "++ ARG1 ARG2 ARG3"
         check s, %(
@@ -290,7 +289,6 @@ describe "Parser" do
               -- AN ARG
         )
       end
-
       it "applies to a command group" do
         s = %(
           cmd1!
@@ -304,7 +302,6 @@ describe "Parser" do
             -- AN ARG
         )
       end
-
       it "can be applied multiple times" do
         s = %(
           -- ARG1 -- ARG2

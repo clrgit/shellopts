@@ -257,6 +257,7 @@ module ShellOpts
     end
 
     def parse_arg_spec(parent)
+      constrain parent, Spec::Command
       spec = Spec::ArgSpec.new(parent, tokens.shift)
       tokens.consume(:arg, token.lineno, nil) { |t| 
         name, type = parse_command_arg(t, t.value)

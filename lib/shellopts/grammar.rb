@@ -79,7 +79,7 @@ module ShellOpts
       alias_method :group, :parent
 
       def command_options = children.select { |c| c.is_a? Option }
-      def command_args = children.select { |c| c.is_a? ArgSpec }
+      def command_args = children.select { |c| c.is_a? Arg } # FIXME: Ignores variants
 
       def options = group.options + command_options
       def args = group.args + command_args
@@ -161,10 +161,11 @@ module ShellOpts
     class Arg < Node
       attr_reader :arg
 
-      def intialize(parent, ident, arg, **opts)
+      forward_to :spec, :name, :type
+
+      def intialize(parent, ident, **opts)
         constrain parent, Command, Option
         super(parent, ident, **opts)
-        @arg = arg
       end
     end
 
@@ -175,7 +176,8 @@ module ShellOpts
       # Has to come before alias_method below
       forward_to :spec, :name, :names, :short_names, :long_names, 
                         :ident, :idents, :short_idents, :long_idents, 
-                        :repeatable?, :optional?, :argument_name, :argument_type
+                        :repeatable?, :optional?, :argument?, 
+                        :argument_name, :argument_type
 
       # Override Node#literal to include '-' or '--'
       alias_method :literal, :name

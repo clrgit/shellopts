@@ -120,20 +120,21 @@ spec = %(
 # cmd1! ++ NAME:EFILE
 #)
 
-spec = %(
-  cmd1! ++ EFILE NAME
+#spec = %(
+# cmd1! ++ EFILE NAME
+#
+# cmd2! ++ VALUE:#
+#)
 
-  cmd2! ++ VALUE:#
-)
 #spec = %(
 # cmd1! ++ NAME:EFILE
 #)
 
-spec = %(
-  cmd1! ++ EFILE NAME
-
-  cmd2! ++ VALUE:#
-)
+#spec = %(
+# cmd1! ++ EFILE NAME
+#
+# cmd2! ++ VALUE:#
+#)
 
 #spec = %(
 # cmd! -- ARG
@@ -144,13 +145,22 @@ spec = %(
 # -b
 #)
 #
-#spec = %(
-# --opt=EFILE
-#)
+spec = %(
+  --opt=EFILE
+)
 
 spec = %(
-  ++ ARG
+  ++ ARG0
+
+  cmd0!
+  cmd1! ++ ARG1
+  cmd2! ++ ARG2
+    ++ ARG3 # <- make this act as default
 )
+
+#spec = %(
+# ++ ARG
+#)
 
 lexer = ShellOpts::Lexer.new("main", spec)
 tokens = lexer.lex
@@ -187,6 +197,15 @@ ShellOpts::Grammar::Format.set :rspec_command
 indent { grammar.dump }
 puts
 #exit
+
+puts "Grammar#dump(:rspec_arg)"
+ShellOpts::Grammar::Format.set :rspec_arg
+indent { grammar.dump }
+puts
+#exit
+
+
+
 
 
 

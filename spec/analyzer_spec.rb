@@ -26,14 +26,17 @@ describe "Analyzer" do
   end
 
   using Ext::StringIO::Redirect
-  def render(node)
-    StringIO.redirect(:stdout) { node.dump }
+  def render(node, strip: true)
+    s = StringIO.redirect(:stdout) { node.dump }
+    s.sub!(/^.*?!\s*\n/m, "") if strip
+    s
   end
 
   # Compile 's' and check that the result matches 'r'. #check removes the first
   # line that contains the '!' declaration to save some typing
-  def check(s, r)
-    s = render(compile(s)).sub(/^.*?\n/, "")
+  def check(s, r, strip: true)
+#   s = render(compile(s)).sub(/^.*?\n/, "")
+    s = render(compile(s), strip: strip)
     expect(undent s).to eq undent r
   end
 
@@ -95,7 +98,6 @@ describe "Analyzer" do
           @brief
       )
       check_success s
-#     check_success s
 
       # This is not an error because brief2 the default brief
       s = %(
@@ -311,15 +313,39 @@ describe "Analyzer" do
   end
 
   describe "#analyze_args" do
-    before(:all) { ShellOpts::Grammar::Format.set(:rspec_command) }
+    before(:all) { ShellOpts::Grammar::Format.set(:rspec_arg) }
 
-    it "creates arguments" do
+    it "create program arguments" do
+      s = %(
+        ++ ARG
+      )
+
+      check s, %(
+        group main ++ ARG:String
+          !
+      ), strip: false
+    end
+
+    it "creates command arguments" do
       s = %(
         cmd! ++ ARG
       )
+
       check s, %(
+        group cmd
+          cmd!
+            ARG:String
+      )
+    end
+
+    it "creates group arguments" do
+      s = %(
         cmd!
-          ARG:String
+          ++ ARG
+      )
+      check s, %(
+        group cmd ++ ARG:String
+          cmd!
       )
     end
 

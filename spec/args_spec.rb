@@ -34,7 +34,7 @@ describe "Args" do
       end
 
       context "when arg < 0" do
-        it "returns an array of extracted elements from the end" do
+        it "returns an array of elements extracted from the end" do
           expect(a.extract(-2)).to eq %w(c d)
           expect(a).to eq %w(a b)
         end

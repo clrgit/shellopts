@@ -91,6 +91,10 @@ module ShellOpts
     class Description < Node
       alias_method :definition, :parent
       alias_method :elements, :children
+
+      # Only not-nil for option and command definitions
+      def grammar = definition.grammar
+
       def self.accepts = [Node] # Anything can go into a description. FIXME
     end
 

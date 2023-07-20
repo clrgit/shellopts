@@ -82,7 +82,7 @@ module ShellOpts
       def command_args = children.select { |c| c.is_a? Arg } # FIXME: Ignores variants
 
       def options = group.options + command_options
-      def args = group.args + command_args
+      def args = command_args # Args are not concatenated with group's args
       def subcommands = group.subcommands
       def groups = group.groups
 

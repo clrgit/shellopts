@@ -81,7 +81,7 @@ module ShellOpts
         # Handle top-level Program object
         if parent.nil?
           main = defn.command_group.commands.first
-          defn.grammar = group = @grammar = Grammar::Grammar.new(spec: main)
+          group = @grammar = Grammar::Grammar.new(spec: main)
           program = Grammar::Program.new(group, name: main.name, spec: main)
 
         # Qualified command. Qualified commands are always stand-alone
@@ -107,13 +107,13 @@ module ShellOpts
           }
         end
 
-        # Forward group to children
-        group
+        # Assign grammar and forward to children
+        defn.grammar = group
       }
     end
 
     def analyze_options
-      # Process free-standing options
+      # Process free-standing options. These are attached to the command group
       spec.pairs(Spec::CommandDefinition, Spec::OptionDefinition).group.each { |cmd_def, opt_defs|
         opt_defs.each { |opt_def|
           opt_def.filter(Spec::Option) { |opt|
@@ -122,12 +122,12 @@ module ShellOpts
         }
       }
 
-      # Process per-command options
+      # Process per-command options. These are attached to the command
       spec.pairs(Spec::Command, Spec::Option) { |cmd, opt|
         Grammar::CommandOption.new(cmd.grammar, spec: opt)
       }
 
-      # Create arguments
+      # Create option arguments
       grammar.filter(Grammar::Option).each { |option|
         opt = option.spec
         if opt.argument?
@@ -138,35 +138,13 @@ module ShellOpts
     end
 
     def analyze_args
-      spec.pairs(Spec::CommandDefinition, Spec::ArgSpec) { |cmd_defn, arg_spec|
-        command = cmd_defn.grammar
+      spec.filter(Spec::ArgSpec) { |arg_spec|
+        parent = arg_spec.parent.grammar
         arg_spec.args.each { |arg|
-          Grammar::Arg.new(command, arg.name.to_sym, arg.type, spec: arg)
+          Grammar::Arg.new(parent, arg.name.to_sym, arg.type, spec: arg)
         }
       }
     end
-
-
-#   def analyze_args
-#     spec.filter(Spec::ArgSpec).each { |arg_spec|
-#       p arg_spec.class
-#       case arg_spec.parent
-#         when Spec::Description
-#           command = arg_spec.parent.grammar
-#           puts "..........."
-#           p arg_spec.parent.class
-#           p arg_spec.parent.parent.class
-#           p arg_spec.parent.parent.grammar
-#           p command
-#           constrain command, Grammar::Command
-#         when Spec::Command
-#           command = arg_spec.parent
-#       end
-#       arg_spec.args.each { |arg|
-#         Grammar::Arg.new(command, arg.name.to_sym, arg.type, spec: arg)
-#       }
-#     }
-#   end
   end
 end
 

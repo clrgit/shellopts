@@ -22,7 +22,7 @@ module ShellOpts
       end
 
       refine Group do
-        def dump_header = puts "group ("
+        def dump_header = puts "group #{commands.map(&:name).join("+") } ("
         def dump_children
           commands.each(&:dump)
           options.each(&:dump)
@@ -45,7 +45,7 @@ module ShellOpts
       end
     end
 
-    # Dumps command structure
+    # Dumps commands
     module Format::RSpecCommand
       include ShellOpts::Grammar
       include ShellOpts::Format
@@ -77,7 +77,7 @@ module ShellOpts
       end
     end
 
-    # Dumps command structure
+    # Dumps options
     module Format::RSpecOption
       include ShellOpts::Grammar
       include ShellOpts::Format
@@ -120,9 +120,54 @@ module ShellOpts
         def format(obj) = obj.dump
       end
     end
+
+    # Dumps args
+    module Format::RSpecArg
+      include ShellOpts::Grammar
+      include ShellOpts::Format
+
+      refine Node do
+        def dump_header = puts ident
+        def dump_children = children.each { |child| child.dump }
+        def dump
+          dump_header
+          indent { dump_children }
+        end
+      end
+
+      refine Arg do
+        def str_header = "#{name}:#{type.name}"
+        def dump_header = puts str_header
+      end
+
+      refine Group do
+        def dump_header
+          print "group #{commands.map(&:name).join(",") }" +
+                (args.empty? ? "" : " ++ " + args.map(&:str_header).join(" "))
+          puts
+        end
+
+        def dump_children
+          commands.each(&:dump)
+          options.each(&:dump)
+          groups.each(&:dump)
+        end
+      end
+
+      refine Command do
+        def dump_header = puts ident
+      end
+
+      refine Option do
+        def dump_header = puts name
+      end
+
+      class Formatter
+        using Format::RSpecArg
+        def format(obj) = obj.dump
+      end
+    end
   end
-
-
 end
 
 __END__

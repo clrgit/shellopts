@@ -7,7 +7,7 @@ raise if !defined? ShellOpts::Grammar
 module ShellOpts
   module Grammar
     module Format
-      FORMATS = [:debug, :rspec, :rspec_command, :rspec_option]
+      FORMATS = [:debug, :rspec, :rspec_command, :rspec_option, :rspec_arg]
 
       def self.set(format)
         constrain format, *FORMATS
@@ -32,6 +32,7 @@ module ShellOpts
               when :rspec; Format::RSpec::Formatter.new
               when :rspec_command; Format::RSpecCommand::Formatter.new
               when :rspec_option; Format::RSpecOption::Formatter.new
+              when :rspec_arg; Format::RSpecArg::Formatter.new
             else
               raise 
             end

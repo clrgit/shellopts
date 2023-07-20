@@ -1,4 +1,6 @@
 #!/usr/bin/bash
 
-rspec spec/ext/{follow,stringio,tree}_spec.rb spec/{line,type,lexer,parser,analyzer,args}_spec.rb
+rspec --fail-fast \
+    spec/ext/{follow,stringio,tree}_spec.rb \
+    spec/{line,type,lexer,parser,analyzer,args}_spec.rb
 

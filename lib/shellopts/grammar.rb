@@ -1,15 +1,22 @@
 module ShellOpts
   # TODO
-  #   Problems with ident/lookup/initialization: Option #parse determines the
-  #   ident but that runs after Option#initialize so we can't link up with
-  #   parent in #initialize :-(
+  #   o Create Grammar::ArgSpec objects. They're ignore right now (are they necessary?)
+  #
+  #   o Still relevant?
+  #     
+  #     Problems with ident/lookup/initialization: Option #parse determines the
+  #     ident but that runs after Option#initialize so we can't link up with
+  #     parent in #initialize :-(
 
   # Canonical name:
   #   Options 
   #     The name of the first long option if present and otherwise the name of
   #     the first short option
   #   Commands
-  #     The first name in a list of aliases
+  #     The first name in a list of aliases (aliases are not implemented so it
+  #     is just its name). Command groups are unnamed
+  #   Arguments
+  #     The index ? Not implemented, yet
   #
   module Grammar
     def self.grammar = Node.grammar
@@ -160,7 +167,6 @@ module ShellOpts
 
     class Arg < Node
       attr_reader :arg
-
       attr_reader :type
 
       def initialize(parent, ident, type, **opts)
@@ -205,5 +211,4 @@ module ShellOpts
     end
   end
 end
-
 

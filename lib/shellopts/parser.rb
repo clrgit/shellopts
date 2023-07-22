@@ -36,6 +36,8 @@ module ShellOpts
     OPTION_NAME_RE=/(?:#{SHORT_OPTION_NAME_RE}|#{LONG_OPTION_NAME_RE})/
     OPTION_NAME_LIST_RE = /#{OPTION_NAME_RE}(?:,#{OPTION_NAME_RE})*/
 
+    RESERVED_NAME_RE = /^__.*__$/
+
     # Queue of tokens (TokenQueue object)
     attr_reader :tokens
 
@@ -169,12 +171,13 @@ module ShellOpts
       constrain parent, Spec::Command, Spec::OptionSubGroup
       tokens.consume(:option, token.lineno, :>=, token.charno) { |tok|
         tok.source =~ /^(-|--|\+|\+\+)(#{OPTION_NAME_LIST_RE})(?:=(.+?)(\?)?)?$/ or 
-            parser_error tok, "Illegal tok: #{tok.source.inspect}"
+            parser_error tok, "Illegal token: #{tok.source.inspect}"
         initial = $1
-        names = $2
+        names = $2.split(",")
         arg = $3
         optional = !arg.nil? && !$4.nil?
-        idents = names.split(",").map(&:to_sym)
+        names.each { |name| name !~ RESERVED_NAME_RE or parser_error token, "Reserved name: #{name}" }
+        idents = names.map(&:to_sym)
         repeatable = %w(+ ++).include?(initial)
         option = Spec::Option.new(parent, tok, idents, repeatable, optional) 
         parse_argument(option, tok, arg) if !arg.nil?

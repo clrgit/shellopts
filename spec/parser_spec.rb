@@ -28,8 +28,20 @@ describe "Parser" do
     expect(compile s).to eq undent r
   end
 
+  def check_success(s)
+    expect { parse(s) }.not_to raise_error
+  end
+
+  def check_error(s)
+    expect { parse(s) }.to raise_error ParserError
+  end
+
   describe "#parse" do
     context "options" do
+      it "rejects reserved option names" do
+        s = "--__instance_eval__"
+        check_error(s)
+      end
       it "creates an option group and subgroup around an option" do
         s = "-a"
         check s, %(
@@ -536,7 +548,7 @@ describe "Parser" do
             NESTED
               Nested
         )
-        expect { parse(s) }.to raise_error ParserError
+        check_error(s)
       end
 
       it "unindented sections are not nested" do
@@ -564,7 +576,7 @@ describe "Parser" do
           *name*
             Text
         )
-        expect { parse(s) }.to raise_error ParserError
+        check_error(s)
       end
 
       it "applies to non-indented sections" do

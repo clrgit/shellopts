@@ -1,4 +1,17 @@
 
+require 'set'
+
+require 'indented_io'
+
+require 'constrain'
+include Constrain
+
+require 'follow'
+include Follow
+
+require_relative 'shellopts/ext/forward_to.rb'
+include ForwardTo
+
 module ShellOpts
   # Base error class
   #
@@ -43,17 +56,6 @@ module ShellOpts
 
   def self.internal_error(token, message) raise InternalError, token, message end
 end
-
-require 'indented_io'
-
-require 'constrain'
-include Constrain
-
-require 'follow'
-include Follow
-
-require_relative 'shellopts/ext/forward_to.rb'
-include ForwardTo
 
 require_relative 'shellopts/ext/array.rb'
 require_relative 'shellopts/ext/class.rb'

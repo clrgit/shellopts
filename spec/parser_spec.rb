@@ -194,18 +194,6 @@ describe "Parser" do
               ARG:String
         )
       end
-      it "can be applied multiple times" do
-        s = %(
-          ++ ARG1
-          ++ ARG2
-        )
-        check s, %(
-          ++
-            ARG1:String
-          ++ 
-            ARG2:String
-        )
-      end
       it "takes a number of arguments" do
         s = "++ ARG1 ARG2 ARG3"
         check s, %(
@@ -214,6 +202,13 @@ describe "Parser" do
             ARG2:String
             ARG3:String
         )
+      end
+      it "can only be applied once (for now)" do
+        s = %(
+          ++ ARG1
+          ++ ARG2
+        )
+        expect { compile s }.to raise_error LexerError
       end
     end
 

@@ -44,7 +44,7 @@ module ShellOpts
 
     def parser_error(token, message) = raise ParserError, token, message
 
-    # Saves some typing
+    # Saves some typing. Maps from token kind to Parser method
     PARSER_MAP = {
       section: :parse_section,
       subsection: :parse_subsection,
@@ -63,7 +63,7 @@ module ShellOpts
       if PARSER_MAP.key?(token.kind)
         self.send(PARSER_MAP[token.kind], parent)
       else
-        raise NotImplementedError, "Missing handler for token kind '#{token.kind}'"
+        raise NotImplementedError, "No handler for '#{token.kind}' token"
       end
     end
 

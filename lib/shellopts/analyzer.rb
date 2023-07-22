@@ -15,6 +15,7 @@ module ShellOpts
       # Pre-checks
       check_options
       check_briefs
+      check_arg_specs
       check_arg_descrs
       check_commands
 
@@ -52,6 +53,14 @@ module ShellOpts
       spec.filter([Spec::CommandDefinition, Spec::OptionDefinition]) { |defn|
         defn.description.children.select { _1.is_a? Spec::Brief }.size <= 1 or 
             analyzer_error defn.token, "Duplicate brief definition"
+      }
+    end
+
+    def check_arg_specs
+      h = Set.new
+      spec.filter(Spec::ArgSpec) { |arg_spec|
+        !h.include?(arg_spec.parent) or analyzer_error arg_spec.token, "Duplicate argument specification"
+        h.add arg_spec.parent
       }
     end
 

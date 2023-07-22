@@ -140,6 +140,16 @@ describe "Analyzer" do
     end
   end
 
+  describe "#check_arg_specs" do
+    it "rejects duplicate arg_specs" do
+      s = %(
+        ++ ARG1
+        ++ ARG2
+      )
+      check_error s
+    end
+  end
+
   describe "#check_arg_descrs" do
     it "rejects duplicate arg_descrs" do
       s = %(

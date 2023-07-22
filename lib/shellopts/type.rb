@@ -8,7 +8,7 @@ module ShellOpts
       # and set #message if the value doesn't match. <name> is used to
       # construct the error message and is the name/alias the user specified on
       # the command line
-      def match?(name, literal) true end # FIXME: Why not an abstract method?
+      def match?(name, literal) = true # FIXME: Why not an abstract method?
 
       # Error message if match? returned false. Note that this method is not
       # safe for concurrent processing
@@ -16,14 +16,14 @@ module ShellOpts
 
       # Return true if +value+ is an "instance" of self. Ie. an Integer object
       # if type is an IntegerType
-      def value?(value) true end
+      def value?(value) = true
 
       # Convert value to Ruby type. This method can also be used to translate
       # special keywords
-      def convert(value) value end
+      def convert(value) = value
 
       # String representation. Equal to #name
-      def to_s() name end
+      def to_s() = name
 
     protected
       # it is important that #set_message return false
@@ -42,8 +42,8 @@ module ShellOpts
             set_message "Illegal integer value in #{name}: #{literal}" 
       end
 
-      def value?(value) value.is_a?(Integer) end
-      def convert(value) value.to_i end
+      def value?(value) = value.is_a?(Integer)
+      def convert(value) = value.to_i
     end
 
     class FloatType < Type
@@ -53,8 +53,8 @@ module ShellOpts
             set_message "Illegal decimal value in #{name}: #{literal}"
       end
 
-      def value?(value) value.is_a?(Numeric) end
-      def convert(value) value.to_f end
+      def value?(value) = value.is_a?(Numeric)
+      def convert(value) = value.to_f
     end
 
     class EnumType < Type

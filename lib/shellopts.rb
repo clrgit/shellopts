@@ -57,12 +57,14 @@ module ShellOpts
   def self.internal_error(token, message) raise InternalError, token, message end
 end
 
+# Helper classes
 require_relative 'shellopts/ext/array.rb'
 require_relative 'shellopts/ext/class.rb'
 require_relative 'shellopts/ext/stack.rb'
 require_relative 'shellopts/ext/stringio.rb'
 require_relative 'shellopts/ext/tree.rb'
 
+# Datastructures
 require_relative 'shellopts/line.rb'
 require_relative 'shellopts/token.rb'
 require_relative 'shellopts/token_queue.rb'
@@ -70,16 +72,20 @@ require_relative 'shellopts/type.rb'
 require_relative 'shellopts/spec.rb'
 require_relative 'shellopts/grammar.rb'
 require_relative 'shellopts/doc.rb'
+require_relative 'shellopts/program.rb'
+require_relative 'shellopts/args.rb'
 
+# Processors
 require_relative 'shellopts/lexer.rb'
 require_relative 'shellopts/parser.rb'
 require_relative 'shellopts/analyzer.rb'
+require_relative 'shellopts/interpreter.rb'
 
+# Formatters
 require_relative 'shellopts/format.rb'
 require_relative 'shellopts/formatters/spec.rb'
 require_relative 'shellopts/formatters/grammar.rb'
 
-require_relative 'shellopts/args.rb'
 
 #require_relative 'shellopts/type.rb'
 

@@ -5,7 +5,7 @@ module ShellOpts
     attr_reader :args
 
     def initialize(grammar, argv, float: true, exception: false)
-      constrain grammar, Grammar::Program
+      constrain grammar, Grammar::Grammar
       constrain argv, [String]
       @grammar, @argv = grammar, argv.dup
       @float, @exception = float, exception
@@ -40,6 +40,9 @@ module ShellOpts
     end
 
   protected
+    # Remaining arguments. Is consumed by #interpret
+    attr_reader :argv
+
     # Lookup option in the command hierarchy and return pair of command and
     # option associated command. Raise if not found
     #

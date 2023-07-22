@@ -229,6 +229,7 @@ describe "Analyzer" do
       s = %(
         cmd1!
           cmd2!
+
         cmd1.cmd2!
       )
       check_error s

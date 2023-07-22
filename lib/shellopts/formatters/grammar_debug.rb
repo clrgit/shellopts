@@ -20,18 +20,18 @@ module ShellOpts
         def dump_header = puts ident.inspect + " (#{self.class.name})"
         def dump_children
           print "options: "
-          if command_options.empty?
+          if options.empty?
             puts "[]"
           else
             puts
-            indent { command_options.each { |opt| opt.dump } }
+            indent { options.each { |opt| opt.dump } }
           end
           print "args: "
-          if command_args.empty?
+          if args.empty?
             puts "[]"
           else
             puts
-            indent { command_args.each { |arg| arg.dump } }
+            indent { args.each { |arg| arg.dump } }
           end
         end
       end

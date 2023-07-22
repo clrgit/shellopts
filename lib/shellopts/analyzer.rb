@@ -85,34 +85,35 @@ module ShellOpts
 
     def analyze_commands
       spec.accumulate(Spec::CommandDefinition, nil) { |parent,defn|
-        group = nil # Return value, defined below
+        group = nil # Forward value, defined below
 
         # Handle top-level Program object
         if parent.nil?
           main = defn.command_group.commands.first
-          group = @grammar = Grammar::Grammar.new(spec: main)
-          program = Grammar::Program.new(group, name: main.name, spec: main)
+          group = @grammar = Grammar::Grammar.new(main)
+          program = Grammar::Program.new(group, spec, name: main.name)
 
-        # Qualified command. Qualified commands are always stand-alone
+        # Qualified command. Qualified commands are always stand-alone. TODO:
+        # Create a QualifiedCommand class
         elsif (cmd = defn.commands.first).qualified?
-          curr = grammar.program
+          group = @grammar
+          command = nil
           cmd.path.each { |ident|
-            if curr.key?(ident)
-              curr = curr[ident]
+            if match = group.groups.find { _1.key?(ident) }
+              group = match
             else
-              group = Grammar::Group.new(curr.group, spec: cmd)
-              curr = Grammar::Command.new(group, ident, spec: cmd)
+              group = Grammar::Group.new(group, group.groups.size, cmd)
+              command = Grammar::Command.new(group, ident, cmd)
             end
           }
-
-          !group.nil? or analyzer_error defn.token, "Duplicate command: #{cmd.token.value}"
+          !command.nil? or analyzer_error defn.token, "Duplicate command: #{cmd.token.value}"
 
         # Same-level unqualified commands
         else
-          group = Grammar::Group.new(parent, spec: defn)
+          group = Grammar::Group.new(parent, parent.groups.size, defn)
           defn.commands.each { |cmd| # check for duplicates and collect idents
-            !parent.key?(cmd.ident) or analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
-            Grammar::Command.new(group, cmd.ident, spec: cmd)
+            !group.key?(cmd.ident) or analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
+            Grammar::Command.new(group, cmd.ident, cmd)
           }
         end
 
@@ -126,14 +127,14 @@ module ShellOpts
       spec.pairs(Spec::CommandDefinition, Spec::OptionDefinition).group.each { |cmd_def, opt_defs|
         opt_defs.each { |opt_def|
           opt_def.filter(Spec::Option) { |opt|
-            Grammar::GroupOption.new(cmd_def.grammar, spec: opt)
+            Grammar::Option.new(cmd_def.grammar, opt)
           }
         }
       }
 
       # Process per-command options. These are attached to the command
       spec.pairs(Spec::Command, Spec::Option) { |cmd, opt|
-        Grammar::CommandOption.new(cmd.grammar, spec: opt)
+        Grammar::Option.new(cmd.grammar, opt)
       }
 
       # Create option arguments
@@ -141,7 +142,7 @@ module ShellOpts
         opt = option.spec
         if opt.argument?
           arg = opt.argument
-          argument = Grammar::Arg.new(option, arg.name.to_sym, arg.type, spec: opt) 
+          argument = Grammar::Arg.new(option, arg.name.to_sym, arg.type, opt) 
         end
       }
     end
@@ -150,7 +151,7 @@ module ShellOpts
       spec.filter(Spec::ArgSpec) { |arg_spec|
         parent = arg_spec.parent.grammar
         arg_spec.args.each { |arg|
-          Grammar::Arg.new(parent, arg.name.to_sym, arg.type, spec: arg)
+          Grammar::Arg.new(parent, arg.name.to_sym, arg.type, arg)
         }
       }
     end

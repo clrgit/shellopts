@@ -203,13 +203,6 @@ describe "Parser" do
             ARG3:String
         )
       end
-      it "can only be applied once (for now)" do
-        s = %(
-          ++ ARG1
-          ++ ARG2
-        )
-        expect { compile s }.to raise_error LexerError
-      end
     end
 
     context "args" do

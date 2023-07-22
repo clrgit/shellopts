@@ -100,7 +100,7 @@ module ShellOpts
 
       refine Command do
         def dump_header
-          puts "#{ident} #{command_options.map(&:name).join(" ")}"
+          puts "#{ident} #{options.map(&:name).join(" ")}"
         end
         def dump_children
           group.options.each(&:dump)

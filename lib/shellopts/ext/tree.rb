@@ -66,16 +66,11 @@ module Tree
     attr_reader :parent
 
     # List of child nodes
-#   attr_reader :children
     def children = abstract_method
 
     # Create a new node and attach it to the parent
     def initialize(parent, *key)
-#     super
       (@parent = parent)&.attach(self, *key)
-
-#     @children = []
-#     @parent.children << self if @parent
     end
 
     # True if the node doesn't contain any children

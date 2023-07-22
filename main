@@ -162,6 +162,40 @@ spec = %(
 # ++ ARG
 #)
 
+spec = %(
+  -A,B
+  -a -b @ -a and -b brief
+  -c @ -c brief
+    Describes -a, -b, and -c
+
+  -d 
+    @ -d brief
+    Describes -d
+
+  cmd1! -e @ cmd1 brief
+  cmd1_alias! --special-option
+    @default cmd1 brief
+
+    Command description
+
+    cmd11! -f
+      Some text
+
+      @ cmd11 brief
+
+      Some more text
+
+      -g -h #@ grief
+      -i
+        Describes -g, -h, and -i
+
+      -j=FILE
+        Describes -j
+
+  cmd2! ++ ARG
+    Finally
+)
+
 lexer = ShellOpts::Lexer.new("main", spec)
 tokens = lexer.lex
 
@@ -180,10 +214,10 @@ indent { grammar.dump }
 puts
 #exit
 
-puts "Grammar#dump(:rspec)"
-ShellOpts::Grammar::Format.set :rspec
-indent { grammar.dump }
-puts
+#puts "Grammar#dump(:rspec)"
+#ShellOpts::Grammar::Format.set :rspec
+#indent { grammar.dump }
+#puts
 #exit
 
 #puts "Grammar#dump(:rspec_option)"
@@ -192,16 +226,16 @@ puts
 #puts
 #exit
 
-puts "Grammar#dump(:rspec_command)"
-ShellOpts::Grammar::Format.set :rspec_command
-indent { grammar.dump }
-puts
+#puts "Grammar#dump(:rspec_command)"
+#ShellOpts::Grammar::Format.set :rspec_command
+#indent { grammar.dump }
+#puts
 #exit
 
-puts "Grammar#dump(:rspec_arg)"
-ShellOpts::Grammar::Format.set :rspec_arg
-indent { grammar.dump }
-puts
+#puts "Grammar#dump(:rspec_arg)"
+#ShellOpts::Grammar::Format.set :rspec_arg
+#indent { grammar.dump }
+#puts
 #exit
 
 

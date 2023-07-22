@@ -1,13 +1,4 @@
 module ShellOpts
-  # TODO
-  #   o Create Grammar::ArgSpec objects. They're ignore right now (are they necessary?)
-  #
-  #   o Still relevant?
-  #     
-  #     Problems with ident/lookup/initialization: Option #parse determines the
-  #     ident but that runs after Option#initialize so we can't link up with
-  #     parent in #initialize :-(
-
   # Canonical name:
   #   Options 
   #     The name of the first long option if present and otherwise the name of
@@ -15,13 +6,16 @@ module ShellOpts
   #   Commands
   #     The first name in a list of aliases (aliases are not implemented so it
   #     is just its name). Command groups are unnamed
+  #   Groups
+  #     The index of the group within its parent group
   #   Arguments
-  #     The index ? Not implemented, yet
+  #     Either the Option's name or the index of the argument within its parent
+  #     command
   #
   module Grammar
     def self.grammar = Node.grammar
 
-    class Node < Tree::Set # TODO Make Node a Tree::Tree node
+    class Node < Tree::Set
       # Display-name of object (String). Defaults to #ident with special
       # characters removed. Group names are the subcommands' names concatenated
       # with '+'
@@ -69,9 +63,6 @@ module ShellOpts
         super(parent)
         spec.grammar = self if spec
       end
-
-      # Access node by relative UID. Eg. main.dot(option_name) or main.dot("[3].FILE")
-      # def dot(relative_uid) = Node[[self.uid, relative_uid].compact.join(".").sub("!.", ".")]
 
       # Top-level grammar node
       def self.grammar = @@grammar

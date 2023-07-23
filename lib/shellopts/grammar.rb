@@ -1,4 +1,6 @@
 module ShellOpts
+
+
   # Canonical name:
   #   Options 
   #     The name of the first long option if present and otherwise the name of
@@ -92,13 +94,15 @@ module ShellOpts
       @@grammar = nil
     end
 
+    # A grammar object acts like a map of symbol/option pairs and
+    # integer/argument pairs
     class Command < Node
       alias_method :group, :parent
 
       # True if command can be called on the command line. Qualified commands
       # where the parent commands are not defined individually are not callable
       # Default true
-      attr_reader :callable
+      attr_reader :callable # <- FIXME That's why the class hierarchy is wrong
 
       # List of options
       def options = children.select { |c| c.is_a? Option }
@@ -171,7 +175,7 @@ module ShellOpts
       def program = commands.first
       def initialize(spec, **opts) = super(nil, nil, spec, **opts)
 
-      def dot(expr) = program.dot(expr)
+      def dot(expr) = expr == :! ? program : program.dot(expr)
     end
 
     class Arg < Node

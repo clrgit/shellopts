@@ -276,6 +276,18 @@ describe "Analyzer" do
           cmd3!
       )
     end
+    it "marks intermediate commands as not-callable" do
+      s = %(
+        cmd1!
+
+        cmd1.cmd2!
+      )
+      expect(compile(s)[0][:cmd1!].callable).to eq true
+      s = %(
+        cmd1.cmd2!
+      )
+      expect(compile(s)[0][:cmd1!].callable).to eq false
+    end
   end
 
   describe "#analyze_options" do

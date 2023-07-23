@@ -82,15 +82,21 @@ module ShellOpts
     class Command < Node
       alias_method :group, :parent
 
+      # True if command can be called on the command line. Qualified commands
+      # where the parent commands are not defined individually are not callable
+      # Default true
+      attr_reader :callable
+
       # List of options
       def options = children.select { |c| c.is_a? Option }
 
       # List of arguments
       def args = children.select { |c| c.is_a? Arg }
 
-      def initialize(parent, ident, spec, name: nil, **opts)
+      def initialize(parent, ident, spec, name: nil, callable: true, **opts)
         constrain parent, Group, nil
         name ||= ident.to_s[0..-2]
+        @callable = callable
         super(parent, ident, spec, name: name, **opts)
       end
     end

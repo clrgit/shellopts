@@ -103,7 +103,7 @@ module ShellOpts
               group = match
             else
               group = Grammar::Group.new(group, group.groups.size, cmd)
-              command = Grammar::Command.new(group, ident, cmd)
+              command = Grammar::Command.new(group, ident, cmd, callable: false)
             end
           }
           !command.nil? or analyzer_error defn.token, "Duplicate command: #{cmd.token.value}"

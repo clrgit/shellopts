@@ -1,11 +1,11 @@
 
 module ShellOpts
   class Analyzer
+    attr_reader :ast
     attr_reader :grammar
-    attr_reader :spec
 
-    def initialize(spec)
-      @spec = spec
+    def initialize(ast)
+      @ast = ast
     end
 
     def validate
@@ -26,7 +26,7 @@ module ShellOpts
       [@grammar, @doc]
     end
 
-    def self.analyze(spec) = self.new(spec).analyze
+    def self.analyze(ast) = self.new(ast).analyze
 
     def analyzer_error(token, message) = self.class.analyzer_error(token, message)
 
@@ -35,66 +35,66 @@ module ShellOpts
     end
 
   protected
-    # List of classes derived from Spec::Node (incl. Spec::Node)
+    # List of classes derived from Ast::Node (incl. Ast::Node)
     def spec_classes
-      @spec_classes ||= Spec::Node.descendants(this: true)
+      @spec_classes ||= Ast::Node.descendants(this: true)
     end
 
-    # Return list of Spec classes that accepts objects of the given class
+    # Return list of Ast classes that accepts objects of the given class
     def accepts(klass)
       spec_classes.select { |klasses| klasses.accepts.any? { |k| k >= klass } }
     end
 
     def check_options
-      spec.pairs(Spec::OptionDefinition, Spec::OptionDefinition) { |first, last|
+      ast.pairs(Ast::OptionDefinition, Ast::OptionDefinition) { |first, last|
         analyzer_error last.token, "Options can't be nested within an option"
       }
     end
 
     def check_briefs
-      spec.filter([Spec::CommandDefinition, Spec::OptionDefinition]) { |defn|
-        defn.description.children.select { _1.is_a? Spec::Brief }.size <= 1 or 
+      ast.filter([Ast::CommandDefinition, Ast::OptionDefinition]) { |defn|
+        defn.description.children.select { _1.is_a? Ast::Brief }.size <= 1 or 
             analyzer_error defn.token, "Duplicate brief definition"
       }
     end
 
     def check_arg_specs
       h = Set.new
-      spec.filter(Spec::ArgSpec) { |arg_spec|
+      ast.filter(Ast::ArgSpec) { |arg_spec|
         !h.include?(arg_spec.parent) or analyzer_error arg_spec.token, "Duplicate argument specification"
         h.add arg_spec.parent
       }
     end
 
     def check_arg_descrs
-      spec.pairs(Spec::Definition, Spec::ArgDescr).group.each { |_, children|
+      ast.pairs(Ast::Definition, Ast::ArgDescr).group.each { |_, children|
         children.size <= 1 or analyzer_error children[1].token, "Multiple argument descriptions"
       }
     end
 
     def check_commands
       # Check that commands are not nested within options
-      spec.pairs(Spec::OptionDefinition, Spec::Command).each { |defn, cmd|
+      ast.pairs(Ast::OptionDefinition, Ast::Command).each { |defn, cmd|
         analyzer_error cmd.token, "Commands can't be nested within an option"
       }
 
       # Check that dotted commands are stand-alone. This may be relaxed later
       is_qualified = lambda { |node| node.qualified? }
-      spec.filter(:qualified?).each { |cmd|
+      ast.filter(:qualified?).each { |cmd|
         cmd.command_group.size == 1 or analyzer_error cmd.token, "Qualified commands must be stand-alone"
       }
     end
 
     def analyze_commands
       qualified_commands = []
-      spec.accumulate(Spec::CommandDefinition, nil) { |parent,defn|
+      ast.accumulate(Ast::CommandDefinition, nil) { |parent,defn|
         group = nil # Forward value, defined below
 
         # Handle top-level Program object
         if parent.nil?
           main = defn.command_group.commands.first
           group = @grammar = Grammar::Grammar.new(main)
-          program = Grammar::Program.new(group, spec, name: main.name)
+          program = Grammar::Program.new(group, ast, name: main.name)
 
         # Collect qualified commands
         elsif (cmd = defn.commands.first).qualified?
@@ -133,22 +133,22 @@ module ShellOpts
 
     def analyze_options
       # Process free-standing options. These are attached to the command group
-      spec.pairs(Spec::CommandDefinition, Spec::OptionDefinition).group.each { |cmd_def, opt_defs|
+      ast.pairs(Ast::CommandDefinition, Ast::OptionDefinition).group.each { |cmd_def, opt_defs|
         opt_defs.each { |opt_def|
-          opt_def.filter(Spec::Option) { |opt|
+          opt_def.filter(Ast::Option) { |opt|
             Grammar::Option.new(cmd_def.grammar, opt)
           }
         }
       }
 
       # Process per-command options. These are attached to the command
-      spec.pairs(Spec::Command, Spec::Option) { |cmd, opt|
+      ast.pairs(Ast::Command, Ast::Option) { |cmd, opt|
         Grammar::Option.new(cmd.grammar, opt)
       }
 
       # Create option arguments
       grammar.filter(Grammar::Option).each { |option|
-        opt = option.spec
+        opt = option.ast
         if opt.argument?
           arg = opt.argument
           argument = Grammar::Arg.new(option, arg.name.to_sym, arg.type, opt) 
@@ -157,7 +157,7 @@ module ShellOpts
     end
 
     def analyze_args
-      spec.filter(Spec::ArgSpec) { |arg_spec|
+      ast.filter(Ast::ArgSpec) { |arg_spec|
         parent = arg_spec.parent.grammar
         arg_spec.args.each { |arg|
           Grammar::Arg.new(parent, arg.name.to_sym, arg.type, arg)

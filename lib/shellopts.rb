@@ -59,8 +59,8 @@ module ShellOpts
   def self.options(source, argv)
     constrain src, String
     tokens = ShellOpts::Lexer.lex("main", spec)
-    spec = ShellOpts::Parser.parse(tokens)
-    grammar, doc = ShellOpts::Analyzer.analyze(spec)
+    ast = ShellOpts::Parser.parse(tokens)
+    grammar, doc = ShellOpts::Analyzer.analyze(ast)
     ShellOpts::Interpreter.interpret(grammar, argv, exception: true)
   end
 
@@ -79,7 +79,7 @@ require_relative 'shellopts/line.rb'
 require_relative 'shellopts/token.rb'
 require_relative 'shellopts/token_queue.rb'
 require_relative 'shellopts/type.rb'
-require_relative 'shellopts/spec.rb'
+require_relative 'shellopts/ast.rb'
 require_relative 'shellopts/grammar.rb'
 require_relative 'shellopts/doc.rb'
 require_relative 'shellopts/program.rb'
@@ -93,7 +93,7 @@ require_relative 'shellopts/interpreter.rb'
 
 # Formatters
 require_relative 'shellopts/format.rb'
-require_relative 'shellopts/formatters/spec.rb'
+require_relative 'shellopts/formatters/ast.rb' # TODO
 require_relative 'shellopts/formatters/grammar.rb'
 
 

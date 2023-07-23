@@ -2,8 +2,8 @@
 include ShellOpts
 
 describe "Analyzer" do
-  def spec
-    @spec
+  def ast
+    @ast
   end
 
   def grammar
@@ -19,8 +19,8 @@ describe "Analyzer" do
     lexer = Lexer.new("main", s)
     tokens = lexer.lex
     parser = Parser.new(tokens)
-    @spec = parser.parse
-    analyzer = Analyzer.new(spec)
+    @ast = parser.parse
+    analyzer = Analyzer.new(ast)
     @grammar, @doc = analyzer.analyze
     @grammar
   end

@@ -1,7 +1,7 @@
 module ShellOpts
-  module Spec
+  module Ast
     module Format::RSpec
-      include ShellOpts::Spec
+      include ShellOpts::Ast
 
       # Classes where #head is defined as +token.value+, otherwise it defaults to nil
       VALUE_HEAD_CLASSES = [Option, Command, ArgSpec, Arg, Section, Bullet]

@@ -14,7 +14,7 @@ module ShellOpts
     using Ext::Array::ShiftWhile
     using Ext::Array::PopWhile
 
-    # The resulting Spec::Program object
+    # The resulting Ast::Program object
     attr_reader :program
 
     def initialize(tokens)
@@ -22,10 +22,10 @@ module ShellOpts
       @tokens = TokenQueue.new tokens
     end
 
-    # Parse tokens and return Spec::Spec object
+    # Parse tokens and return Ast::Ast object
     def parse
       parse_spec
-      @spec
+      @ast
     end
 
     def self.parse(tokens) = self.new(tokens).parse
@@ -70,32 +70,32 @@ module ShellOpts
     end
 
     def parse_spec
-      @spec = Spec::Spec.new(tokens.shift) # Also creates a command group with a program object
-      parse_program(@spec)
+      @ast = Ast::Ast.new(tokens.shift) # Also creates a command group with a program object
+      parse_program(@ast)
     end
 
     def parse_section(parent)
-      constrain parent, Spec::Description
-      parent.definition.is_a?(Spec::Spec) or parser_error token, "Sections can't be nested"
+      constrain parent, Ast::Description
+      parent.definition.is_a?(Ast::Ast) or parser_error token, "Sections can't be nested"
       
-      defn = Spec::Definition.new(parent, token)
+      defn = Ast::Definition.new(parent, token)
       if Lexer::SECTION_ALIASES.key? token.value
-        section = Spec::BuiltinSection.new(defn, tokens.shift)
+        section = Ast::BuiltinSection.new(defn, tokens.shift)
         if section.name == "SYNOPSIS"
-          descr = Spec::Description.new(defn, token)
+          descr = Ast::Description.new(defn, token)
           parse_lines(descr)
           return # The SYNOPSIS section consume all lines
         end
       else
-        section = Spec::Section.new(defn, tokens.shift, nil)
+        section = Ast::Section.new(defn, tokens.shift, nil)
       end
       parse_description(defn, breakon: [:section])
     end
 
     def parse_subsection(parent)
-      !parent.definition.is_a?(Spec::Spec) or parser_error token, "Subsections can't be on the top level"
-      defn = Spec::Definition.new(parent, token)
-      section = Spec::SubSection.new(defn, tokens.shift, nil)
+      !parent.definition.is_a?(Ast::Ast) or parser_error token, "Subsections can't be on the top level"
+      defn = Ast::Definition.new(parent, token)
+      section = Ast::SubSection.new(defn, tokens.shift, nil)
       tokens.consume(:blank, nil, token.charno)
       parse_description(defn, breakon: [:section, :subsection])
     end
@@ -118,10 +118,10 @@ module ShellOpts
       tokens.consume(:blank, nil, nil)
 
       if l.call(token)
-        descr = Spec::Description.new(parent, token)
+        descr = Ast::Description.new(parent, token)
         parse_node(descr) while l.call(token)
       else
-        Spec::EmptyDescription.new(parent)
+        Ast::EmptyDescription.new(parent)
       end
     end
 
@@ -132,43 +132,43 @@ module ShellOpts
     def parse_text(parent)
       t = token
       lines = tokens.consume(:text, nil, t.charno, &:value)
-      Spec::Paragraph.new(parent, t, lines)
+      Ast::Paragraph.new(parent, t, lines)
     end
 
     def parse_lines(parent, blanks: false)
       t = token
       kinds = [:text] + (blanks ? [:blank] : [])
       lines = tokens.consume(kinds, nil, :>=, t.charno, &:value)
-      Spec::Lines.new(parent, t, lines) if !lines.empty?
+      Ast::Lines.new(parent, t, lines) if !lines.empty?
     end
 
     def parse_code(parent)
-      Spec::Code.new(parent, tokens.shift)
+      Ast::Code.new(parent, tokens.shift)
     end
 
     def parse_brief(parent)
-      Spec::Brief.new(parent, tokens.shift)
+      Ast::Brief.new(parent, tokens.shift)
     end
 
     def parse_option_definition(parent)
-      defn = Spec::OptionDefinition.new(parent, token)
+      defn = Ast::OptionDefinition.new(parent, token)
       parse_option_group(defn)
       parse_description(defn)
     end
 
     def parse_option_group(parent)
       constrain token.kind, :option
-      group = Spec::OptionGroup.new(parent, parent.token)
+      group = Ast::OptionGroup.new(parent, parent.token)
       tokens.consume(:option, nil, token.charno) { |option|
-        subgroup = Spec::OptionSubGroup.new(group, option)
+        subgroup = Ast::OptionSubGroup.new(group, option)
         tokens.unshift option
         parse_option(subgroup)
-        tokens.consume(:brief, option.lineno, nil) { |brief| Spec::Brief.new(subgroup, brief) }
+        tokens.consume(:brief, option.lineno, nil) { |brief| Ast::Brief.new(subgroup, brief) }
       }
     end
 
     def parse_option(parent)
-      constrain parent, Spec::Command, Spec::OptionSubGroup
+      constrain parent, Ast::Command, Ast::OptionSubGroup
       tokens.consume(:option, token.lineno, :>=, token.charno) { |tok|
         tok.source =~ /^(-|--|\+|\+\+)(#{OPTION_NAME_LIST_RE})(?:=(.+?)(\?)?)?$/ or 
             parser_error tok, "Illegal token: #{tok.source.inspect}"
@@ -179,7 +179,7 @@ module ShellOpts
         names.each { |name| name !~ RESERVED_NAME_RE or parser_error token, "Reserved name: #{name}" }
         idents = names.map(&:to_sym)
         repeatable = %w(+ ++).include?(initial)
-        option = Spec::Option.new(parent, tok, idents, repeatable, optional) 
+        option = Ast::Option.new(parent, tok, idents, repeatable, optional) 
         parse_argument(option, tok, arg) if !arg.nil?
       }
     end
@@ -219,27 +219,27 @@ module ShellOpts
           argument_type = Type::StringType.new
       end
 
-      Spec::Arg.new(parent, token, argument_name, argument_type)
+      Ast::Arg.new(parent, token, argument_name, argument_type)
     end
 
     def parse_command_definition(parent)
-      defn = Spec::CommandDefinition.new(parent, token)
+      defn = Ast::CommandDefinition.new(parent, token)
       parse_command_group(defn)
       parse_description(defn)
     end
 
     def parse_program(defn)
 #     parse_command_group(defn)
-      group = Spec::CommandGroup.new(defn, defn.token)
-      command = Spec::Program.new(group, defn.token)
+      group = Ast::CommandGroup.new(defn, defn.token)
+      command = Ast::Program.new(group, defn.token)
       parse_description(defn)
 #     parse_description(command)
     end
 
     def parse_command_group(parent)
-      group = Spec::CommandGroup.new(parent, parent.token)
+      group = Ast::CommandGroup.new(parent, parent.token)
       tokens.consume(:command, nil, token.charno) { |command|
-        cmd = Spec::Command.new(group, command)
+        cmd = Ast::Command.new(group, command)
         tokens.consume([:option, :arg_descr, :arg_spec, :brief], command.lineno, nil) { |t|
           if t.kind == :option # Special handling because these options does not belong to a group
             tokens.unshift t
@@ -253,24 +253,24 @@ module ShellOpts
     end
 
     def parse_arg_spec(parent)
-#     constrain parent, Spec::Command
-      spec = Spec::ArgSpec.new(parent, tokens.shift)
+#     constrain parent, Ast::Command
+      spec = Ast::ArgSpec.new(parent, tokens.shift)
       tokens.consume(:arg, token.lineno, nil) { |token| 
         parse_argument(spec, token, token.value)
       }
     end
 
     def parse_arg_descr(parent)
-      Spec::ArgDescr.new(parent, tokens.shift)
+      Ast::ArgDescr.new(parent, tokens.shift)
     end
 
     def parse_list(parent)
-      list = Spec::List.new(parent, token)
+      list = Ast::List.new(parent, token)
       tokens.consume(:bullet, nil, token.charno) { |t|
         t.value == list.bullet or 
             parser_error t, "Can't change bullet type to '#{t.value} in list of '#{list.bullet}' bullets"
-        list_item = Spec::ListItem.new(list, t)
-        Spec::Bullet.new(list_item, t)
+        list_item = Ast::ListItem.new(list, t)
+        Ast::Bullet.new(list_item, t)
         parse_description(list_item)
       }
     end

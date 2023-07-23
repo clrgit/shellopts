@@ -20,9 +20,9 @@ module ShellOpts
     end
 
     class Node
-      # Main format switcher for Spec objects. It instantiates a formatter
+      # Main format switcher for Ast objects. It instantiates a formatter
       # object from a class corresponding to the :format argument and let it
-      # handle the output. The formatter class refines Spec, augmenting its
+      # handle the output. The formatter class refines Ast, augmenting its
       # classes with methods to do the actual output
       def dump(format: nil)
         constrain format, *Format::FORMATS, nil

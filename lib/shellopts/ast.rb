@@ -1,15 +1,15 @@
 module ShellOpts
-  # The Spec module models the document structure. It is created by the parser
+  # The Ast module models the document structure. It is created by the parser
   # and later split into a Grammar and a Doc object by the analyzer
   #
   # A document consists of nested definitions that are composed of a subject
   # and a definition of that subject.  Subjects are commands, options,
   # sections, and list items and can contain nested definitions.
   #
-  # The top-level node is a Spec definition with a command group of exactly one
+  # The top-level node is a Ast definition with a command group of exactly one
   # Program element as subject
   #
-  module Spec
+  module Ast
     class Node < Tree::Tree
       attr_reader :token
 
@@ -56,7 +56,7 @@ module ShellOpts
       def commands = subject.commands
     end
 
-    class Spec < CommandDefinition
+    class Ast < CommandDefinition
       def name = token.value
       def program = subject.commands.first
       def commands = [program]

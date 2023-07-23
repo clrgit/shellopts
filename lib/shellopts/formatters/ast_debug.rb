@@ -1,7 +1,7 @@
 module ShellOpts
-  module Spec
+  module Ast
     module Format::Short
-      include ShellOpts::Spec
+      include ShellOpts::Ast
 
       # Classes where #head is defined as nil, otherwise it defaults to +token.value+
       NIL_HEAD_CLASSES = [

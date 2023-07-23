@@ -19,7 +19,7 @@ module ShellOpts
       # Initialize a Doc object. It also sets the #doc attribute on the grammar
       def initialize(grammar, descr)
         constrain grammar, Grammar::Node
-        constrain descr, Spec::Description, nil
+        constrain descr, Ast::Description, nil
         @grammar = grammar
         @descr = descr
         @grammar.doc = self
@@ -31,18 +31,18 @@ module ShellOpts
 
       def initialize(grammar, descr)
         constrain grammar, Grammar::Option
-        constrain descr, Spec::OptionGroup
+        constrain descr, Ast::OptionGroup
         super
       end
     end
 
     class Command < Node
       alias_method :command, :grammar
-      attr_accessor :arg_descr # Spec::Line object. Initialized by the parser
+      attr_accessor :arg_descr # Ast::Line object. Initialized by the parser
 
       def intialize(grammar, descr)
         constrain grammar, Grammar::Command
-        constrain descr, Spec::CommandGroup
+        constrain descr, Ast::CommandGroup
         super
       end
     end
@@ -58,7 +58,7 @@ module ShellOpts
 
 #   class ArgSpec < Node # Doubtful
 #     def initialize(grammar)
-#       constrain grammar, Grammar::Spec
+#       constrain grammar, Grammar::Ast
 #       super(grammar, nil)
 #     end
 #   end

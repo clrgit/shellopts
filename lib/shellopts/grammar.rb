@@ -41,29 +41,29 @@ module ShellOpts
       # Alias literals. Must include #literal
       attr_reader :literals
 
-      # Associated Spec node
-      attr_reader :spec
+      # Associated Ast node
+      attr_reader :ast
 
       # Associated Doc::Node object. Initialized by #analyzer
       attr_accessor :doc 
 
-      # The associated token. A shorthand for +spec.token+
-      forward_to :spec, :token
+      # The associated token. A shorthand for +ast.token+
+      forward_to :ast, :token
 
-      def initialize(parent, ident, spec, name: nil, literal: nil)
+      def initialize(parent, ident, ast, name: nil, literal: nil)
         constrain parent, Node, nil
         constrain !parent.nil? || self.is_a?(Grammar), true
         constrain ident, Symbol, Integer, nil
         constrain !ident.nil? || self.is_a?(Grammar), true
-        constrain spec, Spec::Node
+        constrain ast, Ast::Node
         @name = name || ident&.to_s
         @ident = ident
         @idents = [ident].compact
-        @spec = spec
+        @ast = ast
         @literal = literal || @name
         @literals = [@literal]
         super(parent)
-        spec.grammar = self if spec
+        ast.grammar = self if ast
       end
 
       # Top-level grammar node
@@ -110,11 +110,11 @@ module ShellOpts
       # List of arguments
       def args = children.select { |c| c.is_a? Arg }
 
-      def initialize(parent, ident, spec, name: nil, callable: true, **opts)
+      def initialize(parent, ident, ast, name: nil, callable: true, **opts)
         constrain parent, Group, nil
         name ||= ident.to_s[0..-2]
         @callable = callable
-        super(parent, ident, spec, name: name, **opts)
+        super(parent, ident, ast, name: name, **opts)
       end
 
     protected
@@ -141,10 +141,10 @@ module ShellOpts
 
     class Program < Command
       IDENT = :!
-      def initialize(parent, spec, name: nil, **opts)
+      def initialize(parent, ast, name: nil, **opts)
         constrain parent, Grammar
         name ||= File.basename($PROGRAM_NAME)
-        super(parent, IDENT, spec, name: name, **opts)
+        super(parent, IDENT, ast, name: name, **opts)
       end
     end
 
@@ -159,10 +159,10 @@ module ShellOpts
       # Subgroups
       def groups = children.select { |c| c.is_a? Group }
 
-      def initialize(parent, ident, spec, **opts)
+      def initialize(parent, ident, ast, **opts)
         constrain ident, Integer, nil
         constrain !ident.nil? || self.is_a?(Grammar)
-        super #(parent, ident, spec, **opts)
+        super #(parent, ident, ast, **opts)
       end
 
       # Subcommands. Sub-commands are the commands of the sub-groups
@@ -173,7 +173,7 @@ module ShellOpts
     # The top-level grammar object is a group
     class Grammar < Group
       def program = commands.first
-      def initialize(spec, **opts) = super(nil, nil, spec, **opts)
+      def initialize(ast, **opts) = super(nil, nil, ast, **opts)
 
       def dot(expr) = expr == :! ? program : program.dot(expr)
     end
@@ -181,19 +181,19 @@ module ShellOpts
     class Arg < Node
       attr_reader :type
 
-      def initialize(parent, ident, type, spec, **opts)
+      def initialize(parent, ident, type, ast, **opts)
         constrain parent, Command, Option
         constrain ident, Symbol, Integer
         constrain type, Type::Type
-        constrain spec, Spec::Node
-        super(parent, ident, spec, **opts)
+        constrain ast, Ast::Node
+        super(parent, ident, ast, **opts)
         @type = type
       end
     end
 
     class Option < Node
       # Has to come before alias_method below
-      forward_to :spec, :name, :names, :short_names, :long_names, 
+      forward_to :ast, :name, :names, :short_names, :long_names, 
                         :ident, :idents, :short_idents, :long_idents, 
                         :repeatable?, :optional?
 
@@ -204,10 +204,10 @@ module ShellOpts
       def argument = children.first
       def argument? = !children.empty?
 
-      def initialize(parent, spec, **opts)
+      def initialize(parent, ast, **opts)
         constrain parent, Command
-        constrain spec, Spec::Option
-        super(parent, spec.ident, spec, **opts)
+        constrain ast, Ast::Option
+        super(parent, ast.ident, ast, **opts)
       end
     end
   end

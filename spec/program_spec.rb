@@ -1,9 +1,9 @@
 
-include ShellOpts
+#include ShellOpts
 
 describe "Command" do
   describe "#[]" do
-    let(:opts) { ShellOpts::ShellOpts.process(spec, args).first }
+    let(:opts) { ShellOpts.options(spec, args).first }
 
     context "when the key is an option" do
       let(:spec) { "-a -A cmd1! -b -B cmd1.cmd2! -c -C" }
@@ -61,7 +61,7 @@ describe "Command" do
     let(:spec) { "" }
     let(:argv) { [] }
     let(:opts) { 
-      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts, args = ShellOpts::ShellOpts.options(spec, argv)
       opts
     }
 
@@ -178,7 +178,7 @@ describe "Command" do
     let(:opts) { 
       spec = "cmd1! cmd2!"
       argv = %w(cmd1)
-      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts, args = ShellOpts::ShellOpts.options(spec, argv)
       opts
     }
 
@@ -191,7 +191,7 @@ describe "Command" do
     let(:opts) { 
       spec = "cmd1! cmd2!"
       argv = %w(cmd1)
-      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts, args = ShellOpts::ShellOpts.options(spec, argv)
       opts
     }
 
@@ -204,7 +204,7 @@ describe "Command" do
     let(:argv) { %w(cmd1 cmd2) }
     let(:opts) { 
       spec = "cmd1! cmd2!"
-      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts, args = ShellOpts::ShellOpts.options(spec, argv)
       opts
     }
 
@@ -225,7 +225,7 @@ describe "Command" do
     let(:argv) { %w(cmd1 cmd2) }
     let(:opts) { 
       spec = "cmd1! cmd1.cmd2!"
-      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts, args = ShellOpts::ShellOpts.options(spec, argv)
       opts
     }
 
@@ -247,7 +247,7 @@ describe "Command" do
     let(:spec) { "-a -b -c=VAR -d=VAR -e=VAR? -f=VAR? -g=VAR?" }
     let(:argv) { %w(-a -cCVAR -eEVAR -f) }
     let(:opts) { 
-      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts, args = ShellOpts::ShellOpts.options(spec, argv)
       opts
     }
     let(:hash) { opts.to_h }
@@ -296,7 +296,7 @@ describe "Command" do
         end
         context "when the option has an optional argument" do
           def hash(a = argv)
-            opts, args = ShellOpts.process(spec, a)
+            opts, args = ShellOpts.options(spec, a)
             opts.to_h
           end
 
@@ -320,7 +320,7 @@ describe "Command" do
     let(:spec) { "-a -b -c=VAR -d=VAR -e=VAR? -f=VAR? -g=VAR?" }
     let(:argv) { %w(-a -cCVAR -eEVAR -f) }
     let(:opts) { 
-      opts, args = ShellOpts::ShellOpts.process(spec, argv)
+      opts, args = ShellOpts::ShellOpts.options(spec, argv)
       opts
     }
     let(:hash) { opts.to_h? }
@@ -369,7 +369,7 @@ describe "Command" do
         end
         context "when the option has an optional argument" do
           def hash(a = argv)
-            opts, args = ShellOpts.process(spec, a)
+            opts, args = ShellOpts.options(spec, a)
             opts.to_h
           end
 
@@ -393,7 +393,7 @@ describe "Command" do
 #   let(:opts) { 
 #     spec = "-a -b=VAL -c"
 #     argv = %w(-a -bvalue)
-#     opts, args = ShellOpts::ShellOpts.process(spec, argv)
+#     opts, args = ShellOpts::ShellOpts.options(spec, argv)
 #     opts
 #   }
 #

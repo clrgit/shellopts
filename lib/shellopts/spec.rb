@@ -72,7 +72,6 @@ module ShellOpts
       def options = option_group.filter(Option)
     end
 
-
     # A subject is something that can be described. It always belongs to a
     # description that in turn always has a description
     class Subject < Node

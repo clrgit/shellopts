@@ -54,6 +54,16 @@ module ShellOpts
   # Internal errors. These are caused by bugs in the ShellOpts library
   class InternalError < ShellOptsError; end
 
+  # Returns a tuple of a ShellOpts::Command object and a ShellOpts::Args object
+  # of the command line arguments 
+  def self.options(source, argv)
+    constrain src, String
+    tokens = ShellOpts::Lexer.lex("main", spec)
+    spec = ShellOpts::Parser.parse(tokens)
+    grammar, doc = ShellOpts::Analyzer.analyze(spec)
+    ShellOpts::Interpreter.interpret(grammar, argv, exception: true)
+  end
+
   def self.internal_error(token, message) raise InternalError, token, message end
 end
 

@@ -196,23 +196,63 @@ spec = %(
     Finally
 )
 
-lexer = ShellOpts::Lexer.new("main", spec)
-tokens = lexer.lex
-
-parser = ShellOpts::Parser.new(tokens)
-spec = parser.parse
-
-spec.dump
-puts
+#lexer = ShellOpts::Lexer.new("main", spec)
+#tokens = lexer.lex
+#
+#parser = ShellOpts::Parser.new(tokens)
+#spec = parser.parse
+#
+#spec.dump
+#puts
 #exit
 
-analyzer = ShellOpts::Analyzer.new(spec)
-grammar, doc = analyzer.analyze
-
-puts "Grammar#dump(:debug)"
-indent { grammar.dump }
-puts
+#analyzer = ShellOpts::Analyzer.new(spec)
+#grammar, doc = analyzer.analyze
+#
+#puts "Grammar#dump(:debug)"
+#indent { grammar.dump }
+#puts
 #exit
+
+#p grammar.dot(:!)
+#p grammar.dot(:cmd1!)
+#p grammar.dot(:"cmd1.e")
+#
+#p grammar.dot(:"cmd1_alias!")
+#
+#p grammar.dot(:"cmd2!")
+#p grammar.dot(:"cmd2[0]")
+
+def compile(s)
+  tokens = ShellOpts::Lexer.lex("main", s)
+  spec = ShellOpts::Parser.parse(tokens)
+  grammar, doc = ShellOpts::Analyzer.analyze(spec)
+  grammar
+end
+
+spec = %(
+  -a
+
+  -b
+
+  cmd1!
+
+  cmd2!
+)
+
+args = "-a cmd1"
+argv = args.split(" ")
+
+grammar = compile(spec)
+interpreter = ShellOpts::Interpreter.new(grammar, argv, exception: true)
+interpreter.interpret
+
+
+
+
+
+
+
 
 #puts "Grammar#dump(:rspec)"
 #ShellOpts::Grammar::Format.set :rspec

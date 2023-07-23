@@ -2,8 +2,62 @@
 # TODO: Create a BasicShellOptsObject with is_a? and operators defined
 #
 module ShellOpts
-  # Command represents a program or a subcommand. It is derived from
-  # BasicObject to have only a minimum of inherited member methods.
+  # The Command class implements a program or a command. Options and
+  # subcommands can be accessed by their identifiers using #[] or through
+  # individual member methods
+  #
+  # The following methods are created dynamically for each declared option
+  # with an attribute name
+  #
+  #   <identifier>(default = nil)
+  #   <identifier>=(value)
+  #   <identifier>?()
+  #
+  # Corresponding #[] methods
+  #   
+  #   opts[:<identifier>] || default
+  #   opts[:<identifier>] = value
+  #   opts.key?(:<identifier>)
+  #
+  # The default value is used if the option or its value is missing
+  #
+  # Commands are accessible using a '!' method, this also allows a command and an
+  # option to have the same name
+  #
+  #   <identifier>!()
+  #
+  # or alternatively
+  #
+  #   opts[:<identifier>!]
+  #
+  # the default identifier is nil and maps to the actual subcommand:
+  #
+  #   opts[]
+  #
+  # The command method returns nil if the command is not present. Use
+  # #subcommand to get the actual subcommand
+  #
+  # Command is derived from BasicObject and have only a minimum of built-in
+  # member methods that are reserved names. If an option name conflicts with a
+  # reserved name, the option can only be accessed using #[]. Command defines
+  # #subcommand but it can be overridden, in that case the subcommand is only
+  # available using #[], eg. 'opts[]'
+  #
+  # Other Command member methods are named using a '__<identifier>__'
+  # convention that are illegal option and comman names so they'll never
+  # conflict
+  #
+  #
+  #
+  # The following names are reseved option names
+  #
+  #   ...
+  #
+  # There is only one reserved command name: 'subcommand'
+  # 
+  #
+  #
+  #
   #
   # The names of the inherited methods can't be used as options or
   # command names. They are: instance_eval, instance_exec method_missing,
@@ -49,18 +103,87 @@ module ShellOpts
         singleton_method_removed singleton_method_undefined
     )
 
-    # These methods can be overridden by an option or a command (this constant
-    # is not used - it is just for informational purposes)
-    OVERRIDEABLE_METHOD_NAMES = %w(
-        subcommand subcommand! subcommands subcommands! supercommand!
-    )
-
     # Redefine ::new to call #__initialize__
     def self.new(grammar)
       object = super()
       object.__send__(:__initialize__, grammar)
       object
     end
+
+#     # 
+#     def split_uid(uid)
+#       exprs = uid.to_s.gsub(/\./, "!.").split(/\./)
+#       exprs.map { |expr| expr =~ /^(.*)\[(.*)\]$/ ? ["#$1!".to_sym, $2.to_i] : expr.to_sym }.flatten
+#     end
+#
+#     # Syntax
+#     #   command[integer] <- argument
+#     #   command.command!
+#     #   command.option
+#     #
+#     #   cmd1!
+#     #   cmd2!
+#     #     --gryf
+#     #     gryf!
+#     #
+#     #   cmd3!
+#     #
+#     #   cmd2!
+#     #   cmd1.cmd2!
+#
+#     def dot(uid)
+#       split_uid(uid).inject(self) { |object, expr|
+#         if expr.is_a?(Integer)
+#           object.is_a?(Command) or raise
+#           object.args[expr]
+#         elsif object.is_a?(Grammar) && expr == :!
+#           object.program
+#         elsif object.is_a?(Group)
+#           object.subcommand?(expr) or raise
+#           object.groups.find { |group| group.key?(expr) }[expr]
+#         elsif object.is_a?(Command)
+#           object.key?(expr) or raise
+#           object[expr]
+#         else
+#           raise
+#         end
+#       }
+#     end
+
+#   def split_uid(uid)
+#     exprs = uid.to_s.gsub(/\./, "!.").split(/\./)
+#     exprs.map { |expr| expr =~ /^(.*)\[(.*)\]$/ ? ["#$1!".to_sym, $2.to_i] : expr.to_sym }.flatten
+#   end
+#
+#   def dot(uid)
+#     split_uid(uid).inject(self) { |object, expr|
+#       if object.is_a?(Command)
+#         if expr.is_a?(Integer)
+#           raise NotImplemented
+#         else
+#           case object.grammar
+#             when Grammar::Group
+#               
+#             when Grammar::Command
+#           else
+#             raise
+#           end
+#
+#           object.grammar.subcommand?(expr) or raise
+#           object[expr]
+#         end
+#       if expr.is_a?(Integer)
+#         object.is_a?(Command) or raise
+#       elsif object.is_a?(Command)
+#         case object.grammar
+#           when Command
+#           when Option
+#             raise
+#         end
+#     }
+#   end
+      
+
 
     # Returns the command or option object identified by the UID if present and
     # otherwise nil. Returns a possibly empty array of option objects if the
@@ -69,7 +192,30 @@ module ShellOpts
     # The +key+ is the symbolic UID of the object. Eg. :command.option or
     # :command.subcommand!
     #
-    def [](uid)
+    # TODO: uid = nil (the default) is the subcommand if present and otherwise nil
+    #
+    def [](uid = nil)
+      !uid.nil? or return __subcommand__
+
+      names = uid.to_s.gsub(/\./, "!.").split(/\./)
+      idents = names.map(&:to_sym)
+
+      names.inject(self) { |cmd, name|
+#       if name.end_with?("!")
+          
+        case name
+          when /!$/
+            return nil if cmd.__subcommand__ != ident
+            cmd = cmd.__subcommand__!
+          else
+            opt = cmd.__option_hash__[ident]
+            opt.nil? && cmd.__grammar__[ident].repeatable? ? [] : opt
+        end
+            
+        
+      }
+      
+
       __grammar__.key?(uid) or ::Kernel.raise ::ArgumentError, "'#{uid}' is not a valid UID"
       idents = uid.to_s.gsub(/\./, "!.").split(/\./).map(&:to_sym)
       idents.inject(self) { |cmd, ident|
@@ -82,6 +228,9 @@ module ShellOpts
             opt.nil? && cmd.__grammar__[ident].repeatable? ? [] : opt
         end
       }
+    end
+
+    def key?(ident)
     end
 
     # Returns a hash from option ident to value
@@ -114,8 +263,16 @@ module ShellOpts
     #     when :do_that!; prog.do_that.operation
     #   end
     #
-    # Note: Can be overridden by option, in that case use #__subcommand__ or
-    # ShellOpts.subcommand(object) instead
+    # The #subcommand/#subcommand! methods can be overridden by an option or a
+    # command, in that case use #__subcommand__ or #[]:
+    #
+    #   prog, args = ShellOpts.parse("--subcommand subcommand!", ARGV)
+    #   case prog[]
+    #     when :subcommand!; ...
+    #       prog[:subcommand] # option
+    #       prog[:subcommand!] # command
+    #       prog.__subcommand__ # command
+    #   end
     #
     def subcommand() __subcommand__ end
 
@@ -129,20 +286,20 @@ module ShellOpts
     #
     def subcommand!() __subcommand__! end
 
-    # Returns the concatenated identifier of subcommands (eg. :cmd.subcmd!)
-    def subcommands() __subcommands__ end
+#   # Returns the concatenated identifier of subcommands (eg. :cmd.subcmd!)
+#   def subcommands() __subcommands__ end
+#
+#   # Returns the subcommands in an array. This doesn't include the top-level
+#   # program object
+#   def subcommands!() __subcommands__! end
 
-    # Returns the subcommands in an array. This doesn't include the top-level
-    # program object
-    def subcommands!() __subcommands__! end
-
-    # The parent command or nil. Initialized by #add_command
-    #
-    # Note: Can be overridden by a subcommand declaration (but not an
-    # option), in that case use #__supercommand__! or
-    # ShellOpts.supercommand!(object) instead
-    #
-    def supercommand!() __supercommand__ end
+#   # The parent command or nil. Initialized by #add_command
+#   #
+#   # Note: Can be overridden by a subcommand declaration (but not an
+#   # option), in that case use #__supercommand__! or
+#   # ShellOpts.supercommand!(object) instead
+#   #
+#   def supercommand!() __supercommand__ end
 
     # UID of command/program (String)
     def __uid__() @__grammar__.uid end
@@ -156,21 +313,22 @@ module ShellOpts
     # Grammar object
     attr_reader :__grammar__
 
-    # Hash from identifier to value. Can be Integer, Float, or String depending
-    # on the option's type. Repeated options options without arguments have the
-    # number of occurences as value, repeated option with arguments have the
-    # array of values as value
+    # Map from option identifier to value. Repeated options options without
+    # arguments have the number of occurences as value, repeated option with
+    # arguments have the array of values as value
     attr_reader :__option_values__
 
-    # List of Option objects for the subcommand in the same order as
-    # given by the user but note that options are reordered to come after
-    # their associated subcommand if float is true. Repeated options are not
-    # collapsed
+    # List of Option objects for the subcommand in the same order as given by
+    # the user but with options moved after their associated subcommand when
+    # float is true. Repeated options are not collapsed
     attr_reader :__option_list__
 
     # Map from identifier to option object or to a list of option objects if
     # the option is repeatable
     attr_reader :__option_hash__
+
+    # True if ident is a present option
+    def __option__?(ident) = __option_hash__.key?(ident)
 
     # The parent command or nil. Initialized by #add_command
     attr_accessor :__supercommand__
@@ -183,15 +341,18 @@ module ShellOpts
     # The actual subcommand object or nil if not present
     def __subcommand__!() @__subcommand__ end
 
-    # Implementation of the #subcommands method
-    def __subcommands__()
-      __subcommands__!.last&.__uid__&.to_sym
-    end
+    # True if ident is the actual subcommand
+    def __subcommand__?(ident) = __subcommand__&.__ident__ == ident
 
-    # Implementation of the #subcommands! method
-    def __subcommands__!()
-      ::Algorithm.follow(self.__subcommand__!, :__subcommand__!).to_a
-    end
+#   # Implementation of the #subcommands method
+#   def __subcommands__()
+#     __subcommands__!.last&.__uid__&.to_sym
+#   end
+#
+#   # Implementation of the #subcommands! method
+#   def __subcommands__!()
+#     ::Algorithm.follow(self.__subcommand__!, :__subcommand__!).to_a
+#   end
 
   private
     def __initialize__(grammar)
@@ -199,7 +360,6 @@ module ShellOpts
       @__option_values__ = {}
       @__option_list__ = [] 
       @__option_hash__ = {}
-      @__option_values__ = {}
       @__subcommand__ = nil
 
       __define_option_methods__
@@ -207,10 +367,11 @@ module ShellOpts
 
     def __define_option_methods__
       @__grammar__.options.each { |opt|
+        ::Kernel.p opt
         if !opt.repeatable?
           self.instance_eval %(
-            def #{opt.attr}?() 
-              @__option_values__.key?(:#{opt.attr}) 
+            def #{opt.ident}?() 
+              @__option_values__.key?(:#{opt.ident}) 
             end
           )
         end
@@ -218,14 +379,14 @@ module ShellOpts
         if opt.repeatable?
           if opt.argument?
             self.instance_eval %(
-              def #{opt.attr}?() 
-                (@__option_values__[:#{opt.attr}]&.size || 0) > 0 
+              def #{opt.ident}?() 
+                (@__option_values__[:#{opt.ident}]&.size || 0) > 0 
               end
             )
             self.instance_eval %(
-              def #{opt.attr}(default = [])
-                if @__option_values__.key?(:#{opt.attr}) 
-                  @__option_values__[:#{opt.attr}]
+              def #{opt.ident}(default = [])
+                if @__option_values__.key?(:#{opt.ident}) 
+                  @__option_values__[:#{opt.ident}]
                 else
                   default
                 end
@@ -233,16 +394,16 @@ module ShellOpts
             )
           else
             self.instance_eval %(
-              def #{opt.attr}?() 
-                (@__option_values__[:#{opt.attr}] || 0) > 0 
+              def #{opt.ident}?() 
+                (@__option_values__[:#{opt.ident}] || 0) > 0 
               end
             )
             self.instance_eval %(
-              def #{opt.attr}(default = 0) 
-                if default > 0 && (@__option_values__[:#{opt.attr}] || 0) == 0
+              def #{opt.ident}(default = 0) 
+                if default > 0 && (@__option_values__[:#{opt.ident}] || 0) == 0
                   default
                 else
-                  @__option_values__[:#{opt.attr}] || 0
+                  @__option_values__[:#{opt.ident}] || 0
                 end
               end
             )
@@ -250,9 +411,9 @@ module ShellOpts
 
         elsif opt.argument?
           self.instance_eval %(
-            def #{opt.attr}(default = nil)
-              if @__option_values__.key?(:#{opt.attr}) 
-                @__option_values__[:#{opt.attr}]
+            def #{opt.ident}(default = nil)
+              if @__option_values__.key?(:#{opt.ident}) 
+                @__option_values__[:#{opt.ident}]
               else
                 default
               end
@@ -261,18 +422,18 @@ module ShellOpts
 
         else
           self.instance_eval %(
-            def #{opt.attr}() 
-              @__option_values__.key?(:#{opt.attr}) 
+            def #{opt.ident}() 
+              @__option_values__.key?(:#{opt.ident}) 
             end
           )
         end
       }
 
       @__grammar__.commands.each { |cmd|
-        next if cmd.attr.nil?
+        next if cmd.ident.nil?
         self.instance_eval %(
-          def #{cmd.attr}() 
-            :#{cmd.attr} == __subcommand__ ? __subcommand__! : nil
+          def #{cmd.ident}() 
+            :#{cmd.ident} == __subcommand__ ? __subcommand__! : nil
           end
         )
       }

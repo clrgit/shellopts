@@ -26,6 +26,8 @@ module ShellOpts
       [@grammar, @doc]
     end
 
+    def self.analyze(spec) = self.new(spec).analyze
+
     def analyzer_error(token, message) = self.class.analyzer_error(token, message)
 
     def self.analyzer_error(token, message)

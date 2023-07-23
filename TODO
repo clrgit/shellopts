@@ -1,4 +1,6 @@
 
+o Rename Spec to Ast
+o Rename Interpreter to Generator
 o Use pandoc: https://unix.stackexchange.com/a/375035
 o User man page location: https://unix.stackexchange.com/a/90762
 o Assigner methods for options

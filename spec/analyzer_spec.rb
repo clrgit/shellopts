@@ -282,11 +282,12 @@ describe "Analyzer" do
 
         cmd1.cmd2!
       )
-      expect(compile(s)[0][:cmd1!].callable).to eq true
+      expect(compile(s).dot(:cmd1!).callable).to eq true
       s = %(
         cmd1.cmd2!
       )
-      expect(compile(s)[0][:cmd1!].callable).to eq false
+      expect(compile(s).dot("cmd1!").callable).to eq false
+      expect(compile(s).dot("cmd1.cmd2!").callable).to eq false
     end
   end
 

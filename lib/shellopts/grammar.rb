@@ -70,9 +70,22 @@ module ShellOpts
       # Limit error output
       def inspect = "#{token&.value} (#{self.class})"
 
+      def dot(expr) # TODO: Tests
+        constrain expr, Symbol, String
+        expr
+          .to_s.gsub(/\./, "!.")
+          .split(/\./)
+          .map { |expr| expr =~ /^(.*)\[(.*)\]$/ ? ["#$1!".to_sym, $2.to_i] : expr.to_sym }
+          .flatten
+          .inject(self) { |node, expr| node.dot_eval(expr) }
+      end
+
     protected
       # Used by Tree
       def key = ident
+
+      def dot_eval(expr) = expr_error expr
+      def expr_error(expr) = raise ArgumentError, "Illegal expression: #{expr.inspect}"
 
     private
       # Top-level Grammar object. Initialized in Grammar#initialize
@@ -98,6 +111,27 @@ module ShellOpts
         name ||= ident.to_s[0..-2]
         @callable = callable
         super(parent, ident, spec, name: name, **opts)
+      end
+
+    protected
+      def dot_eval(expr)
+        constrain expr, Symbol, Integer
+        case expr
+          when Symbol
+            if group.subcommand?(expr) # subcommand or group-option
+              group.subcommands.find { |cmd| cmd.ident == expr }
+            elsif self.key?(expr) # command-option
+              self[expr]
+            else
+              expr_error expr
+            end
+          when Integer
+            if (0...args.size).include?(expr) # args
+              args[expr]
+            else
+              expr_error expr
+            end
+        end
       end
     end
 
@@ -136,6 +170,8 @@ module ShellOpts
     class Grammar < Group
       def program = commands.first
       def initialize(spec, **opts) = super(nil, nil, spec, **opts)
+
+      def dot(expr) = program.dot(expr)
     end
 
     class Arg < Node

@@ -84,6 +84,7 @@ module ShellOpts
     end
 
     def analyze_commands
+      qualified_commands = []
       spec.accumulate(Spec::CommandDefinition, nil) { |parent,defn|
         group = nil # Forward value, defined below
 
@@ -93,32 +94,38 @@ module ShellOpts
           group = @grammar = Grammar::Grammar.new(main)
           program = Grammar::Program.new(group, spec, name: main.name)
 
-        # Qualified command. Qualified commands are always stand-alone. TODO:
-        # Create a QualifiedCommand class
+        # Collect qualified commands
         elsif (cmd = defn.commands.first).qualified?
-          group = @grammar
-          command = nil
-          cmd.path.each { |ident|
-            if match = group.groups.find { _1.key?(ident) }
-              group = match
-            else
-              group = Grammar::Group.new(group, group.groups.size, cmd)
-              command = Grammar::Command.new(group, ident, cmd, callable: false)
-            end
-          }
-          !command.nil? or analyzer_error defn.token, "Duplicate command: #{cmd.token.value}"
+          qualified_commands << [parent, defn, cmd]
 
         # Same-level unqualified commands
         else
           group = Grammar::Group.new(parent, parent.groups.size, defn)
           defn.commands.each { |cmd| # check for duplicates and collect idents
-            !group.key?(cmd.ident) or analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
+            !parent.subcommand?(cmd.ident) or analyzer_error cmd.token, "Duplicate command: #{cmd.name}"
             Grammar::Command.new(group, cmd.ident, cmd)
           }
         end
 
         # Assign grammar and forward to children
         defn.grammar = group
+      }
+
+      # Qualified commands are initialized after unqualified commands because
+      # otherwise they could create non-callable commands that would later
+      # conflict a callable command
+      qualified_commands.each { |parent, defn, cmd|
+        group = @grammar
+        command = nil
+        cmd.path.each { |ident|
+          if match = group.groups.find { _1.key?(ident) }
+            group = match
+          else
+            group = Grammar::Group.new(group, group.groups.size, cmd)
+            command = Grammar::Command.new(group, ident, cmd, callable: false)
+          end
+        }
+        !command.nil? or analyzer_error defn.token, "Duplicate command: #{cmd.token.value}"
       }
     end
 

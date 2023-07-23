@@ -58,7 +58,6 @@ describe "Analyzer" do
         -a
         -b
       )
-      check_success s
 #     s = %(
 #       -a
 #         -b
@@ -92,148 +91,168 @@ describe "Analyzer" do
 
   describe "#check_briefs" do
     it "rejects duplicate command briefs" do
-      s = %(
+      check_success %(
         cmd1! @brief1
         cmd2!
           @brief
       )
-      check_success s
 
       # This is not an error because brief2 the default brief
-      s = %(
+      check_success %(
         cmd1!
         cmd2! @brief1
           @brief2
       )
-      check_success s
 
-      s = %(
+      check_error %(
         cmd!
           @brief1
           @brief2
       )
-      check_error s
-
     end
     it "rejects duplicate option briefs" do
-      s = %(
+      check_success %(
         -a @brief
         -b
           @brief
       )
-      check_success s
 
       # This is not an error because brief2 the default brief
-      s = %(
+      check_success %(
         -a
         -b @brief1
           @brief2
       )
-      check_success s
 
-      s = %(
+      check_error %(
         -a 
           @brief
           @brief
       )
-      check_error s
     end
   end
 
   describe "#check_arg_specs" do
     it "rejects duplicate arg_specs" do
-      s = %(
+      check_error %(
         ++ ARG1
         ++ ARG2
       )
-      check_error s
     end
   end
 
   describe "#check_arg_descrs" do
     it "rejects duplicate arg_descrs" do
-      s = %(
+      check_success %(
         cmd!
           -- ARG
       )
-      check_success s
 
-      s = %(
+      check_error %(
         cmd!
           -- ARG1
           -- ARG2
       )
-      check_error s
     end
   end
 
   describe "#check_commands" do
     it "rejects commands nested within options" do
-      s = %(
+      check_success %(
         cmd!
           --option
       )
-      check_success s
 
-      s = %(
+      check_error %(
         cmd!
           --option
             cmd2!
       )
-      check_error s
 
     end
 
     it "rejects qualified commands that are not stand-alone" do
-      s = %(
+      check_success %(
         cmd1!
           
         cmd1.cmd2!
       )
-      check_success s
 
-      s = %(
+      check_error %(
         cmd1!
 
         cmd2!
         cmd1.cmd3!
       )
-      check_error s
     end
   end
 
   describe "#analyze_commands" do
     before(:all) { ShellOpts::Grammar::Format.set(:rspec_command) }
 
-    it "checks for duplicate commands" do
-      s = %(
+    it "checks for duplicate commands in groups" do
+      check_success %(
         cmd1!
           cmd1!
         cmd2!
       )
-      check_success s
 
-      s = %(
+      check_error %(
         cmd1!
         cmd1!
       )
-      check_error s
 
-      s = %(
+      check_error %(
         cmd1!
           cmd1!
           cmd1!
       )
-      check_error s
 
-      s = %(
+      check_error %(
+        cmd1!
+          cmd2!
+        cmd1.cmd2!
+      )
+    end
+
+    it "checks for duplicate commands across groups" do
+      check_success %(
+        cmd1!
+          cmd1!
+
+        cmd2!
+      )
+
+      check_error %(
+        cmd1!
+
+        cmd1!
+      )
+
+      check_error %(
+        cmd1!
+          cmd2!
+
+        cmd1!
+          cmd2!
+      )
+    end
+
+    it "checks for duplicate qualified commands" do
+      check_success %(
+        cmd1!
+          cmd2!
+
+        cmd1!.cmd3!
+      )
+      check_error %(
         cmd1!
           cmd2!
 
         cmd1.cmd2!
       )
-      check_error s
     end
+
     it "creates command objects" do
       s = %(
         cmd1!
@@ -264,7 +283,18 @@ describe "Analyzer" do
           cmd2!
       )
     end
-    it "creates intermediate only if needed" do
+
+    it "creates intermediate object only if needed" do
+      s = %(
+        cmd1.cmd2!
+
+        cmd1!
+      )
+      check s, %(
+        cmd1!
+          cmd2!
+      )
+
       s = %(
         cmd1.cmd2!
         

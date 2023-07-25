@@ -36,7 +36,7 @@ module ShellOpts
       def accepts = self.class.accepts
 
       def attach(child)
-        accept?(child.class) or raise ArgumentError
+        accept?(child.class) or raise ArgumentError, child.class
         super
       end
     end
@@ -56,7 +56,7 @@ module ShellOpts
       def commands = subject.commands
     end
 
-    class Ast < CommandDefinition
+    class Spec < CommandDefinition
       def name = token.value
       def program = subject.commands.first
       def commands = [program]

@@ -17,14 +17,19 @@ module ShellOpts
     # The resulting Ast::Program object
     attr_reader :program
 
-    def initialize(tokens)
+    def initialize(tokens, oneline: false)
       constrain tokens, [Token]
       @tokens = TokenQueue.new tokens
+      @oneline = oneline
     end
 
-    # Parse tokens and return Ast::Ast object
+    # Parse tokens and return Ast::Spec object
     def parse
-      parse_spec
+      if @oneline
+        parse_oneline
+      else
+        parse_multiline
+      end
       @ast
     end
 
@@ -69,14 +74,62 @@ module ShellOpts
       end
     end
 
-    def parse_spec
-      @ast = Ast::Ast.new(tokens.shift) # Also creates a command group with a program object
+    def parse_oneline
+      token = tokens.shift
+      @ast = Ast::Spec.new(token) # Also creates a command group with a program object
+
+      command_group = Ast::CommandGroup.new(@ast, token)
+      command = Ast::Program.new(command_group, token)
+      descr = Ast::Description.new(@ast, token)
+
+      tokens.consume(nil, nil, nil) { |token|
+        indent {
+        case token.kind
+          when :option
+            parse_oneline_option(descr, token)
+          when :command
+            parse_oneline_command(descr, token)
+          when :arg_spec
+            raise NotImplemented
+          when :arg_descr
+            raise NotImplemented
+          when :brief
+            raise NotImplemented
+        else
+          parser_error token, "Illegal syntax"
+        end
+        }
+
+      }
+      tokens.empty? or parser_error tokens.head, "Unexpected token"
+    end
+
+    def parse_oneline_option(parent, token)
+      constrain parent, Ast::Description
+      defn = Ast::OptionDefinition.new(parent, token)
+      descr = Ast::Description.new(defn, token)
+      group = Ast::OptionGroup.new(defn, token)
+      subgroup = Ast::OptionSubGroup.new(group, token)
+      parse_option_token(subgroup, token)
+    end
+
+    def parse_oneline_command(parent, token)
+      constrain parent, Ast::Description
+      defn = Ast::CommandDefinition.new(parent, token)
+      group = Ast::CommandGroup.new(defn, token)
+      cmd = Ast::Command.new(group, token)
+      descr = Ast::Description.new(defn, token)
+      tokens.consume(:option, nil, nil) { |token| parse_oneline_option(descr, token) }
+    end
+
+    def parse_multiline
+      @ast = Ast::Spec.new(tokens.shift) # Also creates a command group with a program object
       parse_program(@ast)
     end
 
     def parse_section(parent)
       constrain parent, Ast::Description
-      parent.definition.is_a?(Ast::Ast) or parser_error token, "Sections can't be nested"
+      parent.definition.is_a?(Ast::Spec) or parser_error token, "Sections can't be nested"
       
       defn = Ast::Definition.new(parent, token)
       if Lexer::SECTION_ALIASES.key? token.value
@@ -93,7 +146,7 @@ module ShellOpts
     end
 
     def parse_subsection(parent)
-      !parent.definition.is_a?(Ast::Ast) or parser_error token, "Subsections can't be on the top level"
+      !parent.definition.is_a?(Ast::Spec) or parser_error token, "Subsections can't be on the top level"
       defn = Ast::Definition.new(parent, token)
       section = Ast::SubSection.new(defn, tokens.shift, nil)
       tokens.consume(:blank, nil, token.charno)
@@ -169,19 +222,22 @@ module ShellOpts
 
     def parse_option(parent)
       constrain parent, Ast::Command, Ast::OptionSubGroup
-      tokens.consume(:option, token.lineno, :>=, token.charno) { |tok|
-        tok.source =~ /^(-|--|\+|\+\+)(#{OPTION_NAME_LIST_RE})(?:=(.+?)(\?)?)?$/ or 
-            parser_error tok, "Illegal token: #{tok.source.inspect}"
-        initial = $1
-        names = $2.split(",")
-        arg = $3
-        optional = !arg.nil? && !$4.nil?
-        names.each { |name| name !~ RESERVED_NAME_RE or parser_error token, "Reserved name: #{name}" }
-        idents = names.map(&:to_sym)
-        repeatable = %w(+ ++).include?(initial)
-        option = Ast::Option.new(parent, tok, idents, repeatable, optional) 
-        parse_argument(option, tok, arg) if !arg.nil?
-      }
+      tokens.consume(:option, token.lineno, :>=, token.charno) { |token| parse_option_token(parent, token) }
+    end
+
+    def parse_option_token(parent, token)
+      token.source =~ /^(-|--|\+|\+\+)(#{OPTION_NAME_LIST_RE})(?:=(.+?)(\?)?)?$/ or 
+          parser_error token, "Illegal option: #{token.source.inspect}"
+      initial = $1
+      names = $2.split(",")
+      arg = $3
+      optional = !arg.nil? && !$4.nil?
+      names.each { |name| name !~ RESERVED_NAME_RE or parser_error token, "Reserved name: #{name}" }
+      idents = names.map(&:to_sym)
+      repeatable = %w(+ ++).include?(initial)
+      option = Ast::Option.new(parent, token, idents, repeatable, optional) 
+      parse_argument(option, token, arg) if !arg.nil?
+      option
     end
 
     def parse_argument(parent, token, arg)
@@ -229,11 +285,9 @@ module ShellOpts
     end
 
     def parse_program(defn)
-#     parse_command_group(defn)
       group = Ast::CommandGroup.new(defn, defn.token)
       command = Ast::Program.new(group, defn.token)
       parse_description(defn)
-#     parse_description(command)
     end
 
     def parse_command_group(parent)
@@ -253,7 +307,6 @@ module ShellOpts
     end
 
     def parse_arg_spec(parent)
-#     constrain parent, Ast::Command
       spec = Ast::ArgSpec.new(parent, tokens.shift)
       tokens.consume(:arg, token.lineno, nil) { |token| 
         parse_argument(spec, token, token.value)
@@ -276,20 +329,4 @@ module ShellOpts
     end
   end
 end
-
-#           # TODO TODO TODO Move to #parse_option
-#           option = parse_option
-#           option_doc = option.doc
-#           push_node option
-#
-#           # Collect following options with the same indent
-#           next_token = @tokens.first
-#           while next_token.charno == token.charno && next_token.kind == :option
-#             token = @tokens.shift
-#             next_token = @token.first
-#             option = Option.parse(cmds.top, token)
-#             group << option
-#           end
-#
-#           nodes.push option
 

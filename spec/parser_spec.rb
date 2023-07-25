@@ -37,664 +37,668 @@ describe "Parser" do
   end
 
   describe "#parse" do
-    context "options" do
-      it "rejects reserved option names" do
-        s = "--__instance_eval__"
-        check_error(s)
-      end
-      it "creates an option group and subgroup around an option" do
-        s = "-a"
-        check s, %(
-          group
-            subgroup
-              -a
-        )
-      end
-      it "creates a subgroup around single-line list of options" do
-        s = "-a -b"
-        check s, %(
-          group
-            subgroup
-              -a
-              -b
-        )
-      end
-      it "creates a group around a multi-line list of options" do
-        s = %(
-          -a
-          -b
-        )
-        check s, %(
-          group
-            subgroup
-              -a
-            subgroup
-              -b
-        )
-      end
-      it "can mix single-line and multi-line lists" do
-        s = %(
-          -a -b
-          -c
-          -d
-        )
-        check s, %(
-          group
-            subgroup
-              -a
-              -b
-            subgroup
-              -c
-            subgroup
-              -d
-        )
-      end
-      it "creates an option group around each continous list of options" do
-        s = %(
-          -a
-          -b
-
-          -c
-        )
-        check s, %(
-          group
-            subgroup
-              -a
-            subgroup
-              -b
-          group
-            subgroup
-              -c
-        )
-      end
-      it "accepts list of options" # do
-#       s = %(
-#         -a,b
-#         -c,d=FILE
-#       )
-#       check s, %(
-#         group
-#           subgroup
-#             -a
-#             -b
-#           subgroup
-#             -c
-#             -d
-#       )
-#     end
-      it "takes a description" do
-        s = %(
-          -a
-            Description
-        )
-        check s, %(
-          group
-            subgroup
-              -a
-            Description
-        )
-      end
-      it "applies to commands" do
-        s = %(
-          cmd! -a
-        )
-        check s, %(
-          group
-            cmd!
-              -a
-        )
-      end
+    context "it parses oneline specs with" do
     end
+    context "it parses multiline specs with" do
+      context "options" do
+        it "rejects reserved option names" do
+          s = "--__instance_eval__"
+          check_error(s)
+        end
+        it "creates an option group and subgroup around an option" do
+          s = "-a"
+          check s, %(
+            group
+              subgroup
+                -a
+          )
+        end
+        it "creates a subgroup around single-line list of options" do
+          s = "-a -b"
+          check s, %(
+            group
+              subgroup
+                -a
+                -b
+          )
+        end
+        it "creates a group around a multi-line list of options" do
+          s = %(
+            -a
+            -b
+          )
+          check s, %(
+            group
+              subgroup
+                -a
+              subgroup
+                -b
+          )
+        end
+        it "can mix single-line and multi-line lists" do
+          s = %(
+            -a -b
+            -c
+            -d
+          )
+          check s, %(
+            group
+              subgroup
+                -a
+                -b
+              subgroup
+                -c
+              subgroup
+                -d
+          )
+        end
+        it "creates an option group around each continous list of options" do
+          s = %(
+            -a
+            -b
 
-    context "commands" do
-      it "creates a command group around a command" do
-        s = %(
-          cmd1!
-
-          cmd2!
-        )
-        check s, %(
-          group
-            cmd1!
-          group
-            cmd2!
-        )
+            -c
+          )
+          check s, %(
+            group
+              subgroup
+                -a
+              subgroup
+                -b
+            group
+              subgroup
+                -c
+          )
+        end
+        it "accepts list of options" # do
+  #       s = %(
+  #         -a,b
+  #         -c,d=FILE
+  #       )
+  #       check s, %(
+  #         group
+  #           subgroup
+  #             -a
+  #             -b
+  #           subgroup
+  #             -c
+  #             -d
+  #       )
+  #     end
+        it "takes a description" do
+          s = %(
+            -a
+              Description
+          )
+          check s, %(
+            group
+              subgroup
+                -a
+              Description
+          )
+        end
+        it "applies to commands" do
+          s = %(
+            cmd! -a
+          )
+          check s, %(
+            group
+              cmd!
+                -a
+          )
+        end
       end
-      it "creates a command group around a multi-line list of commands" do
-        s = %(
-          cmd1!
-          cmd2!
 
-          cmd3!
-        )
-        check s, %(
-          group
+      context "commands" do
+        it "creates a command group around a command" do
+          s = %(
+            cmd1!
+
+            cmd2!
+          )
+          check s, %(
+            group
+              cmd1!
+            group
+              cmd2!
+          )
+        end
+        it "creates a command group around a multi-line list of commands" do
+          s = %(
             cmd1!
             cmd2!
-          group
+
             cmd3!
-        )
+          )
+          check s, %(
+            group
+              cmd1!
+              cmd2!
+            group
+              cmd3!
+          )
+        end
       end
-    end
 
-    context "arg_specs" do
-      it "applies to main" do
-        s = "++ ARG"
-        check s, %(
-          ++
-            ARG:String
-        )
-      end
-      it "applies to a command" do
-        s = "cmd! ++ ARG"
-        check s, %(
-          group
-            cmd!
-              ++
-                ARG:String
-        )
-      end
-      it "applies to a command group" do
-        s = %(
-          cmd!
-            ++ ARG
-        )
-        check s, %(
-          group
-            cmd!
-            ++ 
+      context "arg_specs" do
+        it "applies to main" do
+          s = "++ ARG"
+          check s, %(
+            ++
               ARG:String
-        )
+          )
+        end
+        it "applies to a command" do
+          s = "cmd! ++ ARG"
+          check s, %(
+            group
+              cmd!
+                ++
+                  ARG:String
+          )
+        end
+        it "applies to a command group" do
+          s = %(
+            cmd!
+              ++ ARG
+          )
+          check s, %(
+            group
+              cmd!
+              ++ 
+                ARG:String
+          )
+        end
+        it "takes a number of arguments" do
+          s = "++ ARG1 ARG2 ARG3"
+          check s, %(
+            ++
+              ARG1:String
+              ARG2:String
+              ARG3:String
+          )
+        end
       end
-      it "takes a number of arguments" do
-        s = "++ ARG1 ARG2 ARG3"
-        check s, %(
-          ++
-            ARG1:String
-            ARG2:String
-            ARG3:String
-        )
-      end
-    end
 
-    context "args" do
-      context "computes name" do
-        it "raises if name is missing" do
-          s = "++ :#"
-          expect { compile s }.to raise_error LexerError
+      context "args" do
+        context "computes name" do
+          it "raises if name is missing" do
+            s = "++ :#"
+            expect { compile s }.to raise_error LexerError
+          end
+          it "uses type name as default" do
+            s = "++ EFILE"
+            check s, %(
+              ++
+                FILE:File
+            )
+          end
         end
-        it "uses type name as default" do
-          s = "++ EFILE"
-          check s, %(
-            ++
-              FILE:File
-          )
-        end
-      end
-      context "computes type" do
-        it "maps to String by default" do
-          s = "++ VALUE"
-          check s, %(
-            ++
-              VALUE:String
-          )
-        end
-        it "maps # to Integer" do
-          s = "++ VALUE:#"
-          check s, %(
-            ++ 
-              VALUE:Integer
-          )
-        end
-        it "maps $ to Float" do
-          s = "++ VALUE:$"
-          check s, %(
-            ++ 
-              VALUE:Float
-          )
-        end
-        it "maps , to Enum" do
-          s = "++ VALUE:a,b"
-          check s, %(
-            ++ 
-              VALUE:Enum
-          )
-        end
-        it "maps file keywords File" do
-          for kind in ShellOpts::Type::FileType::KINDS
-            s = "++ VALUE:#{kind.to_s.upcase}"
-          check s, %(
-            ++ 
-              VALUE:File
-          )
+        context "computes type" do
+          it "maps to String by default" do
+            s = "++ VALUE"
+            check s, %(
+              ++
+                VALUE:String
+            )
+          end
+          it "maps # to Integer" do
+            s = "++ VALUE:#"
+            check s, %(
+              ++ 
+                VALUE:Integer
+            )
+          end
+          it "maps $ to Float" do
+            s = "++ VALUE:$"
+            check s, %(
+              ++ 
+                VALUE:Float
+            )
+          end
+          it "maps , to Enum" do
+            s = "++ VALUE:a,b"
+            check s, %(
+              ++ 
+                VALUE:Enum
+            )
+          end
+          it "maps file keywords File" do
+            for kind in ShellOpts::Type::FileType::KINDS
+              s = "++ VALUE:#{kind.to_s.upcase}"
+            check s, %(
+              ++ 
+                VALUE:File
+            )
+            end
           end
         end
       end
-    end
 
-    context "arg_descrs" do
-      it "applies to main" do
-        s = "-- AN ARG"
-        check s, %(
-          -- AN ARG
-        )
-      end
-      it "applies to a command" do
-        s = %(
-          cmd! -- AN ARG
-        )
-        check s, %(
-          group
-            cmd!
-              -- AN ARG
-        )
-      end
-      it "applies to a command group" do
-        s = %(
-          cmd1!
-          cmd2!
+      context "arg_descrs" do
+        it "applies to main" do
+          s = "-- AN ARG"
+          check s, %(
             -- AN ARG
-        )
-        check s, %(
-          group
+          )
+        end
+        it "applies to a command" do
+          s = %(
+            cmd! -- AN ARG
+          )
+          check s, %(
+            group
+              cmd!
+                -- AN ARG
+          )
+        end
+        it "applies to a command group" do
+          s = %(
             cmd1!
             cmd2!
-            -- AN ARG
-        )
-      end
-      it "can be applied multiple times" do
-        s = %(
-          -- ARG1 -- ARG2
-          -- ARG3
-          -- ARG4
-        )
-        check s, %(
-            -- ARG1
-            -- ARG2
+              -- AN ARG
+          )
+          check s, %(
+            group
+              cmd1!
+              cmd2!
+              -- AN ARG
+          )
+        end
+        it "can be applied multiple times" do
+          s = %(
+            -- ARG1 -- ARG2
             -- ARG3
             -- ARG4
-        )
+          )
+          check s, %(
+              -- ARG1
+              -- ARG2
+              -- ARG3
+              -- ARG4
+          )
+        end
       end
-    end
 
-    context "briefs" do
-      it "applies to main" do
-        s = "@brief"
-        check s, %(
-          @brief
-        )
-      end
-      it "applies to an option" do
-        s = %(
-          -a @ brief
-        )
-        check s, %(
-          group
-            subgroup
-              -a
-              @brief
-        )
-      end
-      it "applies to an option group" do
-        s = %(
-          -a 
-            @ brief
-        )
-        check s, %(
-          group
-            subgroup
-              -a
+      context "briefs" do
+        it "applies to main" do
+          s = "@brief"
+          check s, %(
             @brief
-        )
-      end
-      it "applies to a single-line list of options as a group brief" do
-        s = %(
-          -a -b @brief
-        )
-        check s, %(
-          group
-            subgroup
-              -a
-              -b
-              @brief
-        )
-      end
-      it "applies to a mix of single- and multi-line options" do
-        s = %(
-          -a -b @brief1
-          -c
-            @brief2
-        )
-        check s, %(
-          group
-            subgroup
-              -a
-              -b
-              @brief1
-            subgroup
-              -c
-            @brief2
-        )
-      end
-      it "applies to a command" do
-        s = %(
-          cmd! @brief
-        )
-        check s, %(
-          group
-            cmd!
-              @brief
-        )
-      end
-
-      it "applies to a command group" do
-        s = %(
-          cmd! 
-            @brief
-        )
-        check s, %(
-          group
-            cmd!
-            @brief
-        )
-      end
-      
-      it "can be applied multiple times" do
-        s = %(
-          -a
-            @brief1
-            @brief2
-          cmd!
-            @brief3
-            @brief4
-        )
-        check s, %(
-          group
-            subgroup
-              -a
-            @brief1
-            @brief2
-          group
-            cmd!
-            @brief3
-            @brief4
-        )
-      end
-      it "handles default briefs" do
-        s = %(
-          cmd1! @ cmd1 brief
-          cmd2!
-            @default cmd brief
-        )
-        check s, %(
-          group
-            cmd1!
-              @cmd1 brief
-            cmd2!
-            @default cmd brief
-        )
-      end
-    end
-
-    context "code" do
-      it "applies to descriptions" do
-        s = %(
-          Text
-
-            code()
-        )
-        check s, %(
-          Text
-          ()    
-            code()
-        )
-      end
-      it "can't be the first element in the parent" do
-        s = %(
-          code()
-        )
-        check s, %(
-          code()
-        )
-      end
-    end
-
-    context "texts" do
-      it "applies to option groups" do
-        s = %(
-          -a -b
-            Single-line options
-
-          -c
-          -d
-            Multi-line options
-
-          Free 
-          text
-
-          More free text
-        )
-        check s, %(
-          group
-            subgroup
-              -a
-              -b
-            Single-line options
-          group
-            subgroup
-              -c
-            subgroup
-              -d
-            Multi-line options
-          Free text
-          More free text
-        )
-      end
-      it "applies to command groups" do
-        s = %(
-          cmd!
-            A text
-        )
-        check s, %(
-          group
-            cmd!
-            A text
-        )
-      end
-    end
-
-    context "sections" do
-      it "applies to main" do
-        s = %(
-          NAME
-            Text
-        )
-        check s, %(
-          NAME
-            Text
-        )
-      end
-
-      it "threat synopsis like a list of lines" do
-        s = %(
-          SYNOPSIS
-            a list
-            of lines
-        )
-        check s, %(
-          SYNOPSIS
-            a list
-            of lines
-        )
-      end
-
-      it "can have unindented content if followed by a blank" do
-        s = %(
-          NAME
-
-          Text
-        )
-        check s, %(
-          NAME
-            Text
-        )
-      end
-
-      it "can't be nested" do
-        s = %(
-          NAME
-            Text
-
-            NESTED
-              Nested
-        )
-        check_error(s)
-      end
-
-      it "unindented sections are not nested" do
-        s = %(
-          NAME
-
-          name
-
-          OTHER
-
-          other
-        )
-        check s, %(
-          NAME
-            name
-          OTHER
-            other
-        )
-      end
-    end
-
-    context "subsections" do
-      it "doesn't apply to main" do
-        s = %(
-          *name*
-            Text
-        )
-        check_error(s)
-      end
-
-      it "applies to non-indented sections" do
-        s = %(
-          SECTION
-
-          *sub*
-            text
-        )
-        check s, %(
-          SECTION
-            *sub*
-              text
-        )
-      end
-
-      it "can have unindented context" do
-        s = %(
-          SECTION
-            *name*
-
-            Text
-
-            *other*
-
-            Other
-        )
-        check s, %(
-          SECTION
-            *name*
-              Text
-            *other*
-              Other
-        )
-      end
-
-      it "can be nested" do
-        s = %(
-          NAME
-            Name
-
-            *Sub*
-              sub
-
-              *Subsub*
-                subsub
-        )
-        check s, %(
-          NAME
-            Name
-            *Sub*
-              sub
-              *Subsub*
-                subsub
-        )
-      end
-
-      it "can nest section inside non-indented sections" do
-        s = %(
-          SECTION
-
-          *name*
-          
-          Name
-            *sub*
-              Sub
-        )
-        check s, %(
-          SECTION
-            *name*
-              Name
-              *sub*
-                Sub
-        )
-      end
-    end
-
-    context "lists" do
-      it "applies to main" do
-        s = %(
-          o Bullet1
-          o Bullet2
-        )
-        check s, %(
-          o
-            Bullet1
-          o 
-            Bullet2
-        )
-      end
-      it "can contain descriptions" do
-        s = %(
-          o Bullet1
-            Some text
-          o Bullet2
-            --option
-              Option description
-        )
-        check s, %(
-          o
-            Bullet1 Some text
-          o 
-            Bullet2
+          )
+        end
+        it "applies to an option" do
+          s = %(
+            -a @ brief
+          )
+          check s, %(
             group
               subgroup
-                --option
-              Option description
-        )
+                -a
+                @brief
+          )
+        end
+        it "applies to an option group" do
+          s = %(
+            -a 
+              @ brief
+          )
+          check s, %(
+            group
+              subgroup
+                -a
+              @brief
+          )
+        end
+        it "applies to a single-line list of options as a group brief" do
+          s = %(
+            -a -b @brief
+          )
+          check s, %(
+            group
+              subgroup
+                -a
+                -b
+                @brief
+          )
+        end
+        it "applies to a mix of single- and multi-line options" do
+          s = %(
+            -a -b @brief1
+            -c
+              @brief2
+          )
+          check s, %(
+            group
+              subgroup
+                -a
+                -b
+                @brief1
+              subgroup
+                -c
+              @brief2
+          )
+        end
+        it "applies to a command" do
+          s = %(
+            cmd! @brief
+          )
+          check s, %(
+            group
+              cmd!
+                @brief
+          )
+        end
+
+        it "applies to a command group" do
+          s = %(
+            cmd! 
+              @brief
+          )
+          check s, %(
+            group
+              cmd!
+              @brief
+          )
+        end
+        
+        it "can be applied multiple times" do
+          s = %(
+            -a
+              @brief1
+              @brief2
+            cmd!
+              @brief3
+              @brief4
+          )
+          check s, %(
+            group
+              subgroup
+                -a
+              @brief1
+              @brief2
+            group
+              cmd!
+              @brief3
+              @brief4
+          )
+        end
+        it "handles default briefs" do
+          s = %(
+            cmd1! @ cmd1 brief
+            cmd2!
+              @default cmd brief
+          )
+          check s, %(
+            group
+              cmd1!
+                @cmd1 brief
+              cmd2!
+              @default cmd brief
+          )
+        end
       end
-      it "fails if bullet type is changed within a list" do
-        s = %(
-          o Ring-bullet
-          * Star-bullet
-        )
-        lexer = Lexer.new("main", s)
-        tokens = lexer.lex
-        parser = Parser.new(tokens)
-        expect { parser.parse }.to raise_error ParserError
+
+      context "code" do
+        it "applies to descriptions" do
+          s = %(
+            Text
+
+              code()
+          )
+          check s, %(
+            Text
+            ()    
+              code()
+          )
+        end
+        it "can't be the first element in the parent" do
+          s = %(
+            code()
+          )
+          check s, %(
+            code()
+          )
+        end
+      end
+
+      context "texts" do
+        it "applies to option groups" do
+          s = %(
+            -a -b
+              Single-line options
+
+            -c
+            -d
+              Multi-line options
+
+            Free 
+            text
+
+            More free text
+          )
+          check s, %(
+            group
+              subgroup
+                -a
+                -b
+              Single-line options
+            group
+              subgroup
+                -c
+              subgroup
+                -d
+              Multi-line options
+            Free text
+            More free text
+          )
+        end
+        it "applies to command groups" do
+          s = %(
+            cmd!
+              A text
+          )
+          check s, %(
+            group
+              cmd!
+              A text
+          )
+        end
+      end
+
+      context "sections" do
+        it "applies to main" do
+          s = %(
+            NAME
+              Text
+          )
+          check s, %(
+            NAME
+              Text
+          )
+        end
+
+        it "threat synopsis like a list of lines" do
+          s = %(
+            SYNOPSIS
+              a list
+              of lines
+          )
+          check s, %(
+            SYNOPSIS
+              a list
+              of lines
+          )
+        end
+
+        it "can have unindented content if followed by a blank" do
+          s = %(
+            NAME
+
+            Text
+          )
+          check s, %(
+            NAME
+              Text
+          )
+        end
+
+        it "can't be nested" do
+          s = %(
+            NAME
+              Text
+
+              NESTED
+                Nested
+          )
+          check_error(s)
+        end
+
+        it "unindented sections are not nested" do
+          s = %(
+            NAME
+
+            name
+
+            OTHER
+
+            other
+          )
+          check s, %(
+            NAME
+              name
+            OTHER
+              other
+          )
+        end
+      end
+
+      context "subsections" do
+        it "doesn't apply to main" do
+          s = %(
+            *name*
+              Text
+          )
+          check_error(s)
+        end
+
+        it "applies to non-indented sections" do
+          s = %(
+            SECTION
+
+            *sub*
+              text
+          )
+          check s, %(
+            SECTION
+              *sub*
+                text
+          )
+        end
+
+        it "can have unindented context" do
+          s = %(
+            SECTION
+              *name*
+
+              Text
+
+              *other*
+
+              Other
+          )
+          check s, %(
+            SECTION
+              *name*
+                Text
+              *other*
+                Other
+          )
+        end
+
+        it "can be nested" do
+          s = %(
+            NAME
+              Name
+
+              *Sub*
+                sub
+
+                *Subsub*
+                  subsub
+          )
+          check s, %(
+            NAME
+              Name
+              *Sub*
+                sub
+                *Subsub*
+                  subsub
+          )
+        end
+
+        it "can nest section inside non-indented sections" do
+          s = %(
+            SECTION
+
+            *name*
+            
+            Name
+              *sub*
+                Sub
+          )
+          check s, %(
+            SECTION
+              *name*
+                Name
+                *sub*
+                  Sub
+          )
+        end
+      end
+
+      context "lists" do
+        it "applies to main" do
+          s = %(
+            o Bullet1
+            o Bullet2
+          )
+          check s, %(
+            o
+              Bullet1
+            o 
+              Bullet2
+          )
+        end
+        it "can contain descriptions" do
+          s = %(
+            o Bullet1
+              Some text
+            o Bullet2
+              --option
+                Option description
+          )
+          check s, %(
+            o
+              Bullet1 Some text
+            o 
+              Bullet2
+              group
+                subgroup
+                  --option
+                Option description
+          )
+        end
+        it "fails if bullet type is changed within a list" do
+          s = %(
+            o Ring-bullet
+            * Star-bullet
+          )
+          lexer = Lexer.new("main", s)
+          tokens = lexer.lex
+          parser = Parser.new(tokens)
+          expect { parser.parse }.to raise_error ParserError
+        end
       end
     end
   end

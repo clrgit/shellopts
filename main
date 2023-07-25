@@ -196,11 +196,55 @@ spec = %(
     Finally
 )
 
-#lexer = ShellOpts::Lexer.new("main", spec)
-#tokens = lexer.lex
-#
-#parser = ShellOpts::Parser.new(tokens)
-#spec = parser.parse
+spec = %(
+  -a 
+  -b 
+  
+  cmd1! 
+    -c 
+    -d 
+    
+  cmd2! 
+    -e 
+    -f 
+  
+  cmd2.cmd3! 
+    -g
+)
+spec = "-a -b cmd1! -c -d cmd2! -e -f cmd2.cmd3! -g"
+
+lexer = ShellOpts::Lexer.new("main", spec)
+tokens = lexer.lex
+
+puts "Tokens"
+ShellOpts::Grammar::Format.set :rspec
+indent { tokens.each(&:dump) }
+puts
+#exit
+
+parser = ShellOpts::Parser.new(tokens, oneline: true)
+#ast = parser.parse
+ast = parser.parse
+puts "Ast#dump"
+indent { ast.dump }
+puts
+#exit
+
+analyzer = ShellOpts::Analyzer.new(ast)
+grammar, doc = analyzer.analyze
+puts "Grammar#dump"
+indent { grammar.dump }
+puts
+exit
+
+
+#puts "Grammar#dump(:rspec)"
+#ShellOpts::Grammar::Format.set :rspec
+#indent { grammar.dump }
+#puts
+#exit
+
+
 #
 #spec.dump
 #puts

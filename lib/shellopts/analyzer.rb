@@ -5,6 +5,7 @@ module ShellOpts
     attr_reader :grammar
 
     def initialize(ast)
+      constrain ast, Ast::Spec
       @ast = ast
     end
 
@@ -123,7 +124,7 @@ module ShellOpts
           if match = group.groups.find { _1.key?(ident) }
             group = match
           else
-            group = Grammar::Group.new(group, group.groups.size, cmd)
+            group = Grammar::Group.new(group, group.groups.size, defn)
             command = Grammar::Command.new(group, ident, cmd, callable: false)
           end
         }

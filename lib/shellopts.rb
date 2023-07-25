@@ -56,8 +56,9 @@ module ShellOpts
 
   # Returns a tuple of a ShellOpts::Command object and a ShellOpts::Args object
   # of the command line arguments 
-  def self.options(source, argv)
-    constrain src, String
+  def self.options(spec, argv)
+    constrain spec, String
+    constrain argv, [String]
     tokens = ShellOpts::Lexer.lex("main", spec)
     ast = ShellOpts::Parser.parse(tokens)
     grammar, doc = ShellOpts::Analyzer.analyze(ast)

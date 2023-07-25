@@ -21,8 +21,17 @@ module ShellOpts
     def head = elements.first
     def rest = elements[1..-1]
 
+    # Yield current token to block as long as it satisfies the conditions given
+    # by the arguments
+    #
+    # +kinds+ limits the kind of tokens. It can be a single kind, an array of
+    # kinds, or the empty array (meaning all token kinds).  +lineno+ limits
+    # tokens to be on the given line and +op+ and +charno+ limits the indentation
+    # of the token: If op is >=, the token has to have same or higher indent,
+    # if +op+ is ==, the token should have the given indent +kinds+ can be a
+    # kind, an array of kinds, or the empty array
     def consume(kinds, lineno, op = :==, charno, &block)
-      kinds = Array(kinds).flatten
+      kinds = Array(kinds).flatten.compact
 
       constrain kinds, [Symbol]
       constrain lineno, Integer, nil
@@ -30,7 +39,7 @@ module ShellOpts
       constrain charno, Integer, nil
 
       l = lambda { |t|
-        kinds.include?(t.kind) \
+        (kinds.empty? || kinds.include?(t.kind)) \
         && t.lineno == (lineno || t.lineno) \
         && t.charno.send(op, charno || t.charno)
       }

@@ -100,7 +100,8 @@ module ShellOpts
           
         # Ignore full-line comments. Full-line comments are lines with '#' as
         # the first non-space character and with an indent less than the
-        # initial indent so that it avoids conflicts with '#' as a bullet marker
+        # initial indent so that it avoids conflicts with '#' as a bullet
+        # marker when the source is indented (as it usually is)
         next if line.charno < initial_indent && line.text.start_with?("#")
 
         # Check indent

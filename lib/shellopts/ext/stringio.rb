@@ -10,14 +10,15 @@ module Ext
         #   redirect(devices-including-stdin..., string) { ... }
         #
         # Redirects the given standard input/output device to/from a string by
-        # setting the global $stdin, $stdout, $stderr variables(!)
+        # setting the global $stdin, $stdout, or $stderr variables. Note that
+        # this means that only one redirect can be active at a time
         #
         # +devices+ can be one of :stdin, :stdout, :stderr or any combination
-        # of them. +string+ should be set to the input string if :stdin is
-        # included in the devices
+        # of them. +string+ is to the input string if :stdin is included in the
+        # devices
         #
         # Returns a string containing the output of stdout/stderr or nil if it
-        # only redirected :stdin
+        # only redirects :stdin
         #
         def redirect(arg, *args, &block)
           args = ([arg] + args).flatten.uniq

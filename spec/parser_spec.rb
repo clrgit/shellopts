@@ -2,42 +2,28 @@
 include ShellOpts
 
 describe "Parser" do
-  before(:all) { ShellOpts::Grammar::Format.set(:rspec_option) }
-
-  # Parse 's' and return a dump of the parse tree
-  def parse(s) 
-    lexer = Lexer.new("main", s)
-    tokens = lexer.lex
-    parser = Parser.new(tokens)
-    dump parser.parse
-  end
-
   using Ext::StringIO::Redirect
 
-  def dump(node)
-    StringIO.redirect(:stdout) { node.dump(format: :rspec) }
-  end
+  before(:all) { ShellOpts::Ast::Format.set(:rspec) }
 
-  def compile(s)
-    undent parse(s).sub(/^.*?\n.*?\n/, "")
-  end
+  def parse(s) = Parser.parse(Lexer.lex("main", s))
+  def render(s) = undent StringIO.redirect(:stdout) { parse(s).dump(format: :rspec) }.sub(/^.*?\n.*?\n/, "")
+  def dump(s) = puts render(s)
 
-  # Parse 's' and check that the result matches 'r'. #check removes the first
-  # two lines that contain the 'main' declaration to save some typing
-  def check(s, r)
-    expect(compile s).to eq undent r
-  end
-
-  def check_success(s)
-    expect { parse(s) }.not_to raise_error
-  end
-
-  def check_error(s)
-    expect { parse(s) }.to raise_error ParserError
-  end
+  def check(s, r) = expect(render(s)).to eq undent r
+  def check_success(s) = expect { parse(s) }.not_to raise_error
+  def check_error(s) = expect { parse(s) }.to raise_error ParserError
 
   describe "#parse" do
     context "it parses singleline specs with" do
+      context "options" do
+        it "parses each option as a group" do
+          s = "-a -b"
+#         parse(s).dump
+#         check s, %(
+#         exit
+        end
+      end
     end
     context "it parses multiline specs with" do
       context "options" do
@@ -224,7 +210,7 @@ describe "Parser" do
         context "computes name" do
           it "raises if name is missing" do
             s = "++ :#"
-            expect { compile s }.to raise_error LexerError
+            expect { parse s }.to raise_error LexerError
           end
           it "uses type name as default" do
             s = "++ EFILE"

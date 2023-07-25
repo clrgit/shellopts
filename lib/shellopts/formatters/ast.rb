@@ -6,7 +6,19 @@ raise if !defined? ShellOpts::Ast
 
 module ShellOpts
   module Ast
-    module Format; end
+    module Format
+      FORMATS = [:debug, :rspec]
+
+      def self.set(format)
+        constrain format, *FORMATS
+        @@format = format
+      end
+
+      def self.get() = @@format
+
+      @@format = :debug
+    end
+      
 
     class Node
       # Main format switcher for Ast objects. It instantiates a formatter

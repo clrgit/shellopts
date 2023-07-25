@@ -17,16 +17,16 @@ module ShellOpts
     # The resulting Ast::Program object
     attr_reader :program
 
-    def initialize(tokens, oneline: false)
+    def initialize(tokens, singleline: false)
       constrain tokens, [Token]
       @tokens = TokenQueue.new tokens
-      @oneline = oneline
+      @singleline = singleline
     end
 
     # Parse tokens and return Ast::Spec object
     def parse
-      if @oneline
-        parse_oneline
+      if @singleline
+        parse_singleline
       else
         parse_multiline
       end
@@ -74,7 +74,7 @@ module ShellOpts
       end
     end
 
-    def parse_oneline
+    def parse_singleline
       token = tokens.shift
       @ast = Ast::Spec.new(token) # Also creates a command group with a program object
 
@@ -86,9 +86,9 @@ module ShellOpts
         indent {
         case token.kind
           when :option
-            parse_oneline_option(descr, token)
+            parse_singleline_option(descr, token)
           when :command
-            parse_oneline_command(descr, token)
+            parse_singleline_command(descr, token)
           when :arg_spec
             raise NotImplemented
           when :arg_descr
@@ -104,7 +104,7 @@ module ShellOpts
       tokens.empty? or parser_error tokens.head, "Unexpected token"
     end
 
-    def parse_oneline_option(parent, token)
+    def parse_singleline_option(parent, token)
       constrain parent, Ast::Description
       defn = Ast::OptionDefinition.new(parent, token)
       descr = Ast::Description.new(defn, token)
@@ -113,13 +113,13 @@ module ShellOpts
       parse_option_token(subgroup, token)
     end
 
-    def parse_oneline_command(parent, token)
+    def parse_singleline_command(parent, token)
       constrain parent, Ast::Description
       defn = Ast::CommandDefinition.new(parent, token)
       group = Ast::CommandGroup.new(defn, token)
       cmd = Ast::Command.new(group, token)
       descr = Ast::Description.new(defn, token)
-      tokens.consume(:option, nil, nil) { |token| parse_oneline_option(descr, token) }
+      tokens.consume(:option, nil, nil) { |token| parse_singleline_option(descr, token) }
     end
 
     def parse_multiline

@@ -275,10 +275,10 @@ module ShellOpts
     #
     def compile(spec)
       handle_exceptions {
-        @oneline = spec.index("\n").nil?
+        @singleline = spec.index("\n").nil?
         @spec = spec.sub(/^\s*\n/, "")
         @file = find_caller_file
-        @tokens = Lexer.lex(name, @spec, @oneline)
+        @tokens = Lexer.lex(name, @spec, @singleline)
         ast = Parser.parse(tokens)
 
         help_spec = (@help == true ? "-h,help" : @help)
@@ -423,7 +423,7 @@ module ShellOpts
       rescue CompilerError => ex
         filename = file =~ /\// ? file : "./#{file}"
         lineno, charno = find_spec_in_file
-        charno = 1 if !@oneline
+        charno = 1 if !@singleline
         $stderr.puts "#{filename}:#{ex.token.pos(lineno, charno)} #{ex.message}"
         exit(1)
       end
@@ -441,12 +441,12 @@ module ShellOpts
 
   public
     # Find line and char index of spec in text. Returns [nil, nil] if not found
-    def self.find_spec_in_text(text, spec, oneline)
+    def self.find_spec_in_text(text, spec, singleline)
       text_lines = text.split("\n")
       spec_lines = spec.split("\n")
       spec_lines.pop_while { |line| line =~ /^\s*$/ }
 
-      if oneline
+      if singleline
         line_i = nil
         char_i = nil
         char_z = 0
@@ -475,7 +475,7 @@ module ShellOpts
     end
 
     def find_spec_in_file
-      self.class.find_spec_in_text(IO.read(@file), @spec, @oneline).map { |i| (i || 0) + 1 }
+      self.class.find_spec_in_text(IO.read(@file), @spec, @singleline).map { |i| (i || 0) + 1 }
     end
 
     def lookup(name)

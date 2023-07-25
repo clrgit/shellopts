@@ -78,9 +78,9 @@ describe "ShellOpts::ShellOpts" do
 
   describe ".find_spec_in_text" do
     def find(text, spec)
-      oneline = spec.index("\n").nil?
+      singleline = spec.index("\n").nil?
       spec = spec.sub(/^\s*\n/, "")
-      ShellOpts::ShellOpts.find_spec_in_text(text, spec, oneline)
+      ShellOpts::ShellOpts.find_spec_in_text(text, spec, singleline)
     end
 
     it "returns [nil, nil] if not found" do

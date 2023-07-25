@@ -37,7 +37,7 @@ describe "Parser" do
   end
 
   describe "#parse" do
-    context "it parses oneline specs with" do
+    context "it parses singleline specs with" do
     end
     context "it parses multiline specs with" do
       context "options" do
@@ -900,8 +900,8 @@ end
 
 describe "Option#parse" do
   def opt(source, method = nil)
-    oneline = source.index("\n").nil?
-    tokens = Lexer.lex("main", source, oneline)
+    singleline = source.index("\n").nil?
+    tokens = Lexer.lex("main", source, singleline)
     program = Parser.parse(tokens)
     options = program.option_groups.map(&:options).flatten
     option = options.first

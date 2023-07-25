@@ -33,7 +33,7 @@ module ShellOpts
       @ast
     end
 
-    def self.parse(tokens) = self.new(tokens).parse
+    def self.parse(tokens, singleline: false) = self.new(tokens, singleline: singleline).parse
 
   protected
     SHORT_OPTION_NAME_RE = /[a-zA-Z0-9?]/
@@ -49,7 +49,8 @@ module ShellOpts
     # Current token, first token of queue
     def token = tokens.head
 
-    def parser_error(token, message) = raise ParserError, token, message
+    def parser_error(token, message) = self.class.parser_error(token, message)
+    def self.parser_error(token, message) = raise ParserError.new(token), message
 
     # Saves some typing. Maps from token kind to Parser method
     PARSER_MAP = {
@@ -99,7 +100,6 @@ module ShellOpts
           parser_error token, "Illegal syntax"
         end
         }
-
       }
       tokens.empty? or parser_error tokens.head, "Unexpected token"
     end
@@ -107,10 +107,10 @@ module ShellOpts
     def parse_singleline_option(parent, token)
       constrain parent, Ast::Description
       defn = Ast::OptionDefinition.new(parent, token)
-      descr = Ast::Description.new(defn, token)
       group = Ast::OptionGroup.new(defn, token)
       subgroup = Ast::OptionSubGroup.new(group, token)
       parse_option_token(subgroup, token)
+      descr = Ast::EmptyDescription.new(defn)
     end
 
     def parse_singleline_command(parent, token)

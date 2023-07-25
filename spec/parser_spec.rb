@@ -19,9 +19,14 @@ describe "Parser" do
       context "options" do
         it "parses each option as a group" do
           s = "-a -b"
-#         parse(s).dump
-#         check s, %(
-#         exit
+          check s, %(
+            group
+              subgroup
+                -a
+            group
+              subgroup
+                -b
+          )
         end
       end
     end

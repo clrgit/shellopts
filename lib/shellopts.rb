@@ -59,16 +59,21 @@ module ShellOpts
   def self.options(spec, argv)
     constrain spec, String
     constrain argv, [String]
+    singleline = spec.index("\n").nil?
     tokens = ShellOpts::Lexer.lex("main", spec)
-    ast = ShellOpts::Parser.parse(tokens)
+    ast = ShellOpts::Parser.parse(tokens, singleline: singleline)
     grammar, doc = ShellOpts::Analyzer.analyze(ast)
     ShellOpts::Interpreter.interpret(grammar, argv, exception: true)
   end
 
+  def self.shellopts = @shellopts
+
   def self.internal_error(token, message) raise InternalError, token, message end
 end
 
-# Helper classes
+
+
+# Library extensions
 require_relative 'shellopts/ext/array.rb'
 require_relative 'shellopts/ext/class.rb'
 require_relative 'shellopts/ext/stack.rb'
@@ -94,15 +99,50 @@ require_relative 'shellopts/interpreter.rb'
 
 # Formatters
 require_relative 'shellopts/format.rb'
-require_relative 'shellopts/formatters/ast.rb' # TODO
+require_relative 'shellopts/formatters/ast.rb'
 require_relative 'shellopts/formatters/grammar.rb'
 
+# ShellOpts global object
+require_relative 'shellopts/shellopts.rb'
 
 #require_relative 'shellopts/type.rb'
 
 
 
 __END__
+  class ShellOpts
+    attr_reader :spec
+    attr_reader :argv
+    attr_reader :tokens
+    attr_reader :ast
+    attr_reader :grammar
+    attr_reader :doc
+
+    def initialize(spec, argv)
+      @spec, @argv = spec, argv
+    end
+
+    def compile
+    end
+
+    def handle_exceptions(&block)
+      return yield if exception
+      begin
+        yield
+      rescue Error => ex
+        error(ex.message)
+      rescue Failure => ex
+        failure(ex.message)
+      rescue CompilerError => ex
+        filename = file =~ /\// ? file : "./#{file}"
+        lineno, charno = find_spec_in_file
+        charno = 1 if !@singleline
+        $stderr.puts "#{filename}:#{ex.token.pos(lineno, charno)} #{ex.message}"
+        exit(1)
+      end
+    end
+
+
 require 'indented_io'
 require 'constrain'
 include Constrain

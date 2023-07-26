@@ -6,11 +6,11 @@ describe "Parser" do
 
   before(:all) { ShellOpts::Ast::Format.set(:rspec) }
 
-  def parse(s, sl = false) = Parser.parse(Lexer.lex("main", s), singleline: sl)
-  def render(s, sl = false) 
-    undent StringIO.redirect(:stdout) { parse(s, sl).dump(format: :rspec) }.sub(/^.*?\n.*?\n/, "")
+  def parse(s, multiline = true) = Parser.parse(Lexer.lex("main", s), multiline: multiline)
+  def render(s, multiline = true) 
+    undent StringIO.redirect(:stdout) { parse(s, multiline).dump(format: :rspec) }.sub(/^.*?\n.*?\n/, "")
   end
-  def dump(s, sl = false) = puts render(s, sl)
+  def dump(s, multiline = true) = puts render(s, multiline)
 
   def check(s, r) = expect(render(s)).to eq undent r
   def check_success(s) = expect { parse(s) }.not_to raise_error
@@ -18,7 +18,7 @@ describe "Parser" do
 
   describe "#parse" do
     context "it parses singleline specs with" do
-      def check(s, r) = expect(render(s, true)).to eq undent r
+      def check(s, r) = expect(render(s, false)).to eq undent r
       context "options" do
         it "creates a group around each option" do
           s = "-a -b"

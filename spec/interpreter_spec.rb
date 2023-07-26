@@ -35,9 +35,9 @@ describe "Interpreter" do
   end
 
   def interpret(spec, argv)
-    singleline = spec.index("\n").nil?
+    multiline = !spec.index("\n").nil?
     tokens = Lexer.lex("main", spec, singleline)
-    ast = Parser.parse(tokens)
+    ast = Parser.parse(tokens, multiline: multiline)
     grammar = Analyzer.analyze(ast) # @grammar and @ast refer to the same object
     expr, args = Interpreter.interpret(grammar, argv)
 

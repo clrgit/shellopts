@@ -17,30 +17,29 @@ module ShellOpts
     # The resulting Ast::Program object
     attr_reader :program
 
-    def initialize(tokens, singleline: false)
+    def initialize(tokens, multiline: true)
       constrain tokens, [Token]
       @tokens = TokenQueue.new tokens
-      @singleline = singleline
+      @multiline = multiline
     end
 
     # Parse tokens and return Ast::Spec object
     def parse
-      if @singleline
-        parse_singleline
-      else
+      if @multiline
         parse_multiline
+      else
+        parse_singleline
       end
       @ast
     end
 
-    def self.parse(tokens, singleline: false) = self.new(tokens, singleline: singleline).parse
+    def self.parse(tokens, multiline: true) = self.new(tokens, multiline: multiline).parse
 
   protected
     SHORT_OPTION_NAME_RE = /[a-zA-Z0-9?]/
     LONG_OPTION_NAME_RE = /[a-zA-Z0-9][a-zA-Z0-9_-]*/
     OPTION_NAME_RE=/(?:#{SHORT_OPTION_NAME_RE}|#{LONG_OPTION_NAME_RE})/
     OPTION_NAME_LIST_RE = /#{OPTION_NAME_RE}(?:,#{OPTION_NAME_RE})*/
-
     RESERVED_NAME_RE = /^__.*__$/
 
     # Queue of tokens (TokenQueue object)

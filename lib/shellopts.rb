@@ -59,9 +59,9 @@ module ShellOpts
   def self.options(spec, argv)
     constrain spec, String
     constrain argv, [String]
-    singleline = spec.index("\n").nil?
+    multiline = !spec.index("\n").nil?
     tokens = ShellOpts::Lexer.lex("main", spec)
-    ast = ShellOpts::Parser.parse(tokens, singleline: singleline)
+    ast = ShellOpts::Parser.parse(tokens, multiline: multiline)
     grammar, doc = ShellOpts::Analyzer.analyze(ast)
     ShellOpts::Interpreter.interpret(grammar, argv, exception: true)
   end

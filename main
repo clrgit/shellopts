@@ -218,8 +218,8 @@ spec_singleline = "-a -b cmd1! -c -d cmd2! -e -f cmd2.cmd3! -g"
 spec_singleline = "-a,b"
 
 def compile(s)
-  singleline = s.index("\n").nil?
-  ShellOpts::Parser.parse(ShellOpts::Lexer.lex("main", s), singleline: singleline)
+  multiline = !s.index("\n").nil?
+  ShellOpts::Parser.parse(ShellOpts::Lexer.lex("main", s), multiline: multiline)
 end
 
 #compile(spec).dump(format: :debug)
@@ -240,8 +240,8 @@ tokens = lexer.lex
 #puts
 #exit
 
-singleline = spec.index("\n").nil?
-parser = ShellOpts::Parser.new(tokens, singleline: singleline)
+sl = !spec.index("\n").nil?
+parser = ShellOpts::Parser.new(tokens, sl: sl)
 #ast = parser.parse
 ast = parser.parse
 

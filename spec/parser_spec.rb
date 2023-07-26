@@ -6,9 +6,11 @@ describe "Parser" do
 
   before(:all) { ShellOpts::Ast::Format.set(:rspec) }
 
-  def parse(s) = Parser.parse(Lexer.lex("main", s))
-  def render(s) = undent StringIO.redirect(:stdout) { parse(s).dump(format: :rspec) }.sub(/^.*?\n.*?\n/, "")
-  def dump(s) = puts render(s)
+  def parse(s, sl = false) = Parser.parse(Lexer.lex("main", s), singleline: sl)
+  def render(s, sl = false) 
+    undent StringIO.redirect(:stdout) { parse(s, sl).dump(format: :rspec) }.sub(/^.*?\n.*?\n/, "")
+  end
+  def dump(s, sl = false) = puts render(s, sl)
 
   def check(s, r) = expect(render(s)).to eq undent r
   def check_success(s) = expect { parse(s) }.not_to raise_error
@@ -16,8 +18,9 @@ describe "Parser" do
 
   describe "#parse" do
     context "it parses singleline specs with" do
+      def check(s, r) = expect(render(s, true)).to eq undent r
       context "options" do
-        it "parses each option as a group" do
+        it "creates a group around each option" do
           s = "-a -b"
           check s, %(
             group
@@ -26,6 +29,84 @@ describe "Parser" do
             group
               subgroup
                 -b
+          )
+        end
+        it "nests options within the previous command" do
+          s = "-a cmd1! -b cmd2! -c"
+          check s, %(
+            group
+              subgroup
+                -a
+            group
+              cmd1!
+              group 
+                subgroup
+                  -b
+            group
+              cmd2!
+              group
+                subgroup
+                  -c
+          )
+        end
+        it "accepts option lists" do
+          s = "-a,b"
+          check s, %(
+            group
+              subgroup
+                -a,b
+          )
+        end
+      end
+      context "commands" do
+        it "creates a command group for each command" do
+          s = "cmd1! cmd2!"
+          check s, %(
+            group
+              cmd1!
+            group
+              cmd2!
+          )
+        end
+        it "accepts qualified commands" do
+          s = "cmd1! cmd1.cmd2!"
+          check s, %(
+            group
+              cmd1!
+            group
+              cmd1.cmd2!
+          )
+        end
+      end
+      context "arg_specs" do
+        it "attaches arguments to the program" do
+          s = "cmd1! ++ ARG1 ARG2"
+          check s, %(
+            group
+              cmd1!
+            ++
+              ARG1:String
+              ARG2:String
+          )
+        end
+      end
+      context "arg_descrs" do
+        it "attaches argument descriptions to the program" do
+          s = "cmd1! -- ARG1 ARG2"
+          check s, %(
+            group
+              cmd1!
+            -- ARG1 ARG2
+          )
+        end
+      end
+      context "briefs" do
+        it "attaches briefs to the program" do
+          s = "cmd1! @ brief"
+          check s, %(
+            group
+              cmd1!
+            @brief
           )
         end
       end
@@ -42,15 +123,6 @@ describe "Parser" do
             group
               subgroup
                 -a
-          )
-        end
-        it "creates a subgroup around single-line list of options" do
-          s = "-a -b"
-          check s, %(
-            group
-              subgroup
-                -a
-                -b
           )
         end
         it "creates a group around a multi-line list of options" do

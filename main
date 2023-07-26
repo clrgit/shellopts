@@ -215,6 +215,7 @@ spec = %(
     -g
 )
 spec_singleline = "-a -b cmd1! -c -d cmd2! -e -f cmd2.cmd3! -g"
+spec_singleline = "-a,b"
 
 def compile(s)
   singleline = s.index("\n").nil?
@@ -223,6 +224,12 @@ end
 
 #compile(spec).dump(format: :debug)
 compile(spec_singleline).dump(format: :debug)
+g = compile(spec_singleline)
+g.filter(ShellOpts::Ast::Option) { |opt|
+  p opt
+  p opt.names
+}
+
 exit
 
 lexer = ShellOpts::Lexer.new("main", spec)

@@ -91,11 +91,14 @@ module ShellOpts
           when :command
             parse_singleline_command(descr, token)
           when :arg_spec
-            raise NotImplemented
+            tokens.unshift token
+            parse_arg_spec(descr)
           when :arg_descr
-            raise NotImplemented
+            tokens.unshift token
+            parse_arg_descr(descr)
           when :brief
-            raise NotImplemented
+            tokens.unshift token
+            parse_brief(descr)
         else
           parser_error token, "Illegal syntax"
         end

@@ -1,7 +1,7 @@
 
 describe "ShellOpts::ShellOpts" do
   def default_source = "-a"
-  def make(*args, **opts) = ShellOpts::ShellOpts.new(*args, version: false, **opts)
+  def make(*args, **opts) = ShellOpts::ShellOpts.new(*args, **opts)
   def compile(src = nil, *args, **opts) = make(*args, **opts).compile(src || default_source)
 
   def attr(src, member, *args, **opts)
@@ -183,6 +183,19 @@ describe "ShellOpts::ShellOpts" do
   end
 
   describe "#compile" do
+    def find_builtin_option(shellopts = nil, ident, **opts)
+      shellopts ||= compile(**opts)
+      shellopts.grammar[ident]
+    end
+
+    def has_builtin_option?(ident, **opts) = !find_builtin_option(ident, **opts).nil?
+
+    it "returns self" do
+      s = make
+      c = s.compile("-a")
+      expect(c).to eq s
+    end
+
     it "sets #multiline to true/false" do
       check_val(:multiline, nil)
       check_val("-a\n", :multiline, true)
@@ -205,23 +218,37 @@ describe "ShellOpts::ShellOpts" do
       check_val(:grammar, nil)
       check_val(true, :grammar, ShellOpts::Grammar::Grammar)
     end
+    it "sets #<builtin>_option to the associated Grammar object" do
+      s = compile(**::ShellOpts::ShellOpts::BUILTIN_OPTIONS.map { |opt| [opt, true] }.to_h)
+      ::ShellOpts::ShellOpts::BUILTIN_OPTIONS.each { |opt|
+        expect(opt).not_to eq nil
+        attr = s.send(:"#{opt}_option")
+        obj = find_builtin_option(s, opt)
+        expect(attr).to eq obj
+      }
+    end
+
+    it "creates a --help grammar option by default" do
+      expect(has_builtin_option?(:help, help: false)).to eq false
+      expect(has_builtin_option? :help).to eq true
+    end
+    it "creates a --version grammar option"
+    it "creates a --quiet grammar option when #quiet is true" do
+      expect(has_builtin_option?(:quiet)).to eq false
+      expect(has_builtin_option?(:quiet, quiet: true)).to eq true
+    end
+    it "creates a repeatable --verbose grammar option when #verbose is true" do
+      expect(has_builtin_option?(:verbose)).to eq false
+      option = find_builtin_option(:verbose, verbose: true)
+      expect(option).not_to eq nil
+      expect(option.repeatable?).to eq true
+    end
+    it "creates a --debug grammar option when #debug is true" do
+      expect(has_builtin_option?(:debug)).to eq false
+      expect(has_builtin_option?(:debug, debug: true)).to eq true
+    end
+
     it "sets #doc"
-    it "returns self" do
-      s = make
-      c = s.compile("-a")
-      expect(c).to eq s
-    end
-    it "creates a --help option" do
-      found = compile.grammar.filter(ShellOpts::Grammar::Option).find { |opt| opt.ident == :help }
-      expect(found).to eq true
-    end
-    it "creates a --version option"
-    it "creates a --quiet option" do
-      found = compile.grammar.filter(ShellOpts::Grammar::Option).find { |opt| opt.ident == :quiet }
-      expect(found).to eq true
-    end
-    it "creates a repeatable --verbose option"
-    it "creates a --debug option"
   end
 end
 

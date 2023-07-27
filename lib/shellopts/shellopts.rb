@@ -4,6 +4,7 @@ module ShellOpts
     using Ext::Array::ShiftWhile
     using Ext::Array::PopWhile
 
+    # List of builtin in options. Only used in tests atm.
     BUILTIN_OPTIONS = [:help, :version, :quiet, :verbose, :debug]
 
     # Name of program. Defaults to the name of the executable
@@ -101,7 +102,7 @@ module ShellOpts
       @name = name || File.basename($PROGRAM_NAME)
       @help = help
       @version = version != false
-      @version_number = version == true ? find_version_number : version
+      @version_number = version == true ? find_version_number : version if version
       @quiet = quiet
       @verbose = verbose
       @debug = debug

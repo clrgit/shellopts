@@ -76,6 +76,7 @@ end
 # Library extensions
 require_relative 'shellopts/ext/array.rb'
 require_relative 'shellopts/ext/class.rb'
+require_relative 'shellopts/ext/lcs.rb'
 require_relative 'shellopts/ext/stack.rb'
 require_relative 'shellopts/ext/stringio.rb'
 require_relative 'shellopts/ext/tree.rb'

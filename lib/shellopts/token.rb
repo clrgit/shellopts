@@ -69,12 +69,13 @@ module ShellOpts
     # Token lines. Nil except for :code tokens
     attr_reader :lines
 
-    # +lineno+ and +charno+ are zero for the :program token and >= 1 otherwise
+    # +lineno+ and +charno+ are zero for the :program token and >= 1 otherwise.
+    # 1 is also used for artificial tokens
     def initialize(kind, lineno, charno, source, value = source, lines = nil)
       constrain kind, *KINDS
       constrain lineno, Integer
       constrain charno, Integer
-      constrain lineno > 0 && charno > 0 || kind == :program
+      constrain lineno > 0 && charno > 0 || kind == :program, true
       constrain source, String
       constrain value, String, nil
       constrain lines, [String], nil
@@ -87,6 +88,8 @@ module ShellOpts
     def location(start_lineno = 1, start_charno = 1) 
       "#{start_lineno + lineno - 1}:#{start_charno + charno - 1}" 
     end
+
+    alias_method :pos, :location # FIXME Rename pos -> location
 
     def inspect
       "<#{self.class.name} #{location} #{kind.inspect} #{value.inspect}>"

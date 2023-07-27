@@ -110,81 +110,6 @@ module ShellOpts
       object
     end
 
-#     # 
-#     def split_uid(uid)
-#       exprs = uid.to_s.gsub(/\./, "!.").split(/\./)
-#       exprs.map { |expr| expr =~ /^(.*)\[(.*)\]$/ ? ["#$1!".to_sym, $2.to_i] : expr.to_sym }.flatten
-#     end
-#
-#     # Syntax
-#     #   command[integer] <- argument
-#     #   command.command!
-#     #   command.option
-#     #
-#     #   cmd1!
-#     #   cmd2!
-#     #     --gryf
-#     #     gryf!
-#     #
-#     #   cmd3!
-#     #
-#     #   cmd2!
-#     #   cmd1.cmd2!
-#
-#     def dot(uid)
-#       split_uid(uid).inject(self) { |object, expr|
-#         if expr.is_a?(Integer)
-#           object.is_a?(Command) or raise
-#           object.args[expr]
-#         elsif object.is_a?(Grammar) && expr == :!
-#           object.program
-#         elsif object.is_a?(Group)
-#           object.subcommand?(expr) or raise
-#           object.groups.find { |group| group.key?(expr) }[expr]
-#         elsif object.is_a?(Command)
-#           object.key?(expr) or raise
-#           object[expr]
-#         else
-#           raise
-#         end
-#       }
-#     end
-
-#   def split_uid(uid)
-#     exprs = uid.to_s.gsub(/\./, "!.").split(/\./)
-#     exprs.map { |expr| expr =~ /^(.*)\[(.*)\]$/ ? ["#$1!".to_sym, $2.to_i] : expr.to_sym }.flatten
-#   end
-#
-#   def dot(uid)
-#     split_uid(uid).inject(self) { |object, expr|
-#       if object.is_a?(Command)
-#         if expr.is_a?(Integer)
-#           raise NotImplemented
-#         else
-#           case object.grammar
-#             when Grammar::Group
-#               
-#             when Grammar::Command
-#           else
-#             raise
-#           end
-#
-#           object.grammar.subcommand?(expr) or raise
-#           object[expr]
-#         end
-#       if expr.is_a?(Integer)
-#         object.is_a?(Command) or raise
-#       elsif object.is_a?(Command)
-#         case object.grammar
-#           when Command
-#           when Option
-#             raise
-#         end
-#     }
-#   end
-      
-
-
     # Returns the command or option object identified by the UID if present and
     # otherwise nil. Returns a possibly empty array of option objects if the
     # option is repeatable. Raise an ArgumentError if the key doesn't exists
@@ -286,21 +211,6 @@ module ShellOpts
     #
     def subcommand!() __subcommand__! end
 
-#   # Returns the concatenated identifier of subcommands (eg. :cmd.subcmd!)
-#   def subcommands() __subcommands__ end
-#
-#   # Returns the subcommands in an array. This doesn't include the top-level
-#   # program object
-#   def subcommands!() __subcommands__! end
-
-#   # The parent command or nil. Initialized by #add_command
-#   #
-#   # Note: Can be overridden by a subcommand declaration (but not an
-#   # option), in that case use #__supercommand__! or
-#   # ShellOpts.supercommand!(object) instead
-#   #
-#   def supercommand!() __supercommand__ end
-
     # UID of command/program (String)
     def __uid__() @__grammar__.uid end
 
@@ -344,16 +254,6 @@ module ShellOpts
     # True if ident is the actual subcommand
     def __subcommand__?(ident) = __subcommand__&.__ident__ == ident
 
-#   # Implementation of the #subcommands method
-#   def __subcommands__()
-#     __subcommands__!.last&.__uid__&.to_sym
-#   end
-#
-#   # Implementation of the #subcommands! method
-#   def __subcommands__!()
-#     ::Algorithm.follow(self.__subcommand__!, :__subcommand__!).to_a
-#   end
-
   private
     def __initialize__(grammar)
       @__grammar__ = grammar
@@ -370,8 +270,8 @@ module ShellOpts
         ::Kernel.p opt
         if !opt.repeatable?
           self.instance_eval %(
-            def #{opt.ident}?() 
-              @__option_values__.key?(:#{opt.ident}) 
+            def #{opt.attr}?() 
+              @__option_values__.key?(:#{opt.attr}) 
             end
           )
         end
@@ -379,14 +279,14 @@ module ShellOpts
         if opt.repeatable?
           if opt.argument?
             self.instance_eval %(
-              def #{opt.ident}?() 
-                (@__option_values__[:#{opt.ident}]&.size || 0) > 0 
+              def #{opt.attr}?() 
+                (@__option_values__[:#{opt.attr}]&.size || 0) > 0 
               end
             )
             self.instance_eval %(
-              def #{opt.ident}(default = [])
-                if @__option_values__.key?(:#{opt.ident}) 
-                  @__option_values__[:#{opt.ident}]
+              def #{opt.attr}(default = [])
+                if @__option_values__.key?(:#{opt.attr}) 
+                  @__option_values__[:#{opt.attr}]
                 else
                   default
                 end
@@ -394,16 +294,16 @@ module ShellOpts
             )
           else
             self.instance_eval %(
-              def #{opt.ident}?() 
-                (@__option_values__[:#{opt.ident}] || 0) > 0 
+              def #{opt.attr}?() 
+                (@__option_values__[:#{opt.attr}] || 0) > 0 
               end
             )
             self.instance_eval %(
-              def #{opt.ident}(default = 0) 
-                if default > 0 && (@__option_values__[:#{opt.ident}] || 0) == 0
+              def #{opt.attr}(default = 0) 
+                if default > 0 && (@__option_values__[:#{opt.attr}] || 0) == 0
                   default
                 else
-                  @__option_values__[:#{opt.ident}] || 0
+                  @__option_values__[:#{opt.attr}] || 0
                 end
               end
             )
@@ -411,9 +311,9 @@ module ShellOpts
 
         elsif opt.argument?
           self.instance_eval %(
-            def #{opt.ident}(default = nil)
-              if @__option_values__.key?(:#{opt.ident}) 
-                @__option_values__[:#{opt.ident}]
+            def #{opt.attr}(default = nil)
+              if @__option_values__.key?(:#{opt.attr}) 
+                @__option_values__[:#{opt.attr}]
               else
                 default
               end
@@ -422,8 +322,8 @@ module ShellOpts
 
         else
           self.instance_eval %(
-            def #{opt.ident}() 
-              @__option_values__.key?(:#{opt.ident}) 
+            def #{opt.attr}() 
+              @__option_values__.key?(:#{opt.attr}) 
             end
           )
         end
@@ -505,3 +405,106 @@ module ShellOpts
     end
   end
 end
+
+__END__
+
+#   # Returns the concatenated identifier of subcommands (eg. :cmd.subcmd!)
+#   def subcommands() __subcommands__ end
+#
+#   # Returns the subcommands in an array. This doesn't include the top-level
+#   # program object
+#   def subcommands!() __subcommands__! end
+
+#   # The parent command or nil. Initialized by #add_command
+#   #
+#   # Note: Can be overridden by a subcommand declaration (but not an
+#   # option), in that case use #__supercommand__! or
+#   # ShellOpts.supercommand!(object) instead
+#   #
+#   def supercommand!() __supercommand__ end
+
+#   # Implementation of the #subcommands method
+#   def __subcommands__()
+#     __subcommands__!.last&.__uid__&.to_sym
+#   end
+#
+#   # Implementation of the #subcommands! method
+#   def __subcommands__!()
+#     ::Algorithm.follow(self.__subcommand__!, :__subcommand__!).to_a
+#   end
+
+#     # 
+#     def split_uid(uid)
+#       exprs = uid.to_s.gsub(/\./, "!.").split(/\./)
+#       exprs.map { |expr| expr =~ /^(.*)\[(.*)\]$/ ? ["#$1!".to_sym, $2.to_i] : expr.to_sym }.flatten
+#     end
+#
+#     # Syntax
+#     #   command[integer] <- argument
+#     #   command.command!
+#     #   command.option
+#     #
+#     #   cmd1!
+#     #   cmd2!
+#     #     --gryf
+#     #     gryf!
+#     #
+#     #   cmd3!
+#     #
+#     #   cmd2!
+#     #   cmd1.cmd2!
+#
+#     def dot(uid)
+#       split_uid(uid).inject(self) { |object, expr|
+#         if expr.is_a?(Integer)
+#           object.is_a?(Command) or raise
+#           object.args[expr]
+#         elsif object.is_a?(Grammar) && expr == :!
+#           object.program
+#         elsif object.is_a?(Group)
+#           object.subcommand?(expr) or raise
+#           object.groups.find { |group| group.key?(expr) }[expr]
+#         elsif object.is_a?(Command)
+#           object.key?(expr) or raise
+#           object[expr]
+#         else
+#           raise
+#         end
+#       }
+#     end
+
+#   def split_uid(uid)
+#     exprs = uid.to_s.gsub(/\./, "!.").split(/\./)
+#     exprs.map { |expr| expr =~ /^(.*)\[(.*)\]$/ ? ["#$1!".to_sym, $2.to_i] : expr.to_sym }.flatten
+#   end
+#
+#   def dot(uid)
+#     split_uid(uid).inject(self) { |object, expr|
+#       if object.is_a?(Command)
+#         if expr.is_a?(Integer)
+#           raise NotImplemented
+#         else
+#           case object.grammar
+#             when Grammar::Group
+#               
+#             when Grammar::Command
+#           else
+#             raise
+#           end
+#
+#           object.grammar.subcommand?(expr) or raise
+#           object[expr]
+#         end
+#       if expr.is_a?(Integer)
+#         object.is_a?(Command) or raise
+#       elsif object.is_a?(Command)
+#         case object.grammar
+#           when Command
+#           when Option
+#             raise
+#         end
+#     }
+#   end
+      
+
+

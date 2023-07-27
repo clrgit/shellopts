@@ -17,6 +17,7 @@ module ShellOpts
       # nil
       attr_accessor :grammar
 
+      # +parent+ is nil for top-level Grammar object and for artificial options
       def initialize(parent, token)
         constrain parent, Node, nil
         constrain token, Token
@@ -36,7 +37,7 @@ module ShellOpts
       def accepts = self.class.accepts
 
       def attach(child)
-        accept?(child.class) or raise ArgumentError, child.class
+        accept?(child.class) or raise ArgumentError, "#{self.class} doesn't accept #{child.class} children"
         super
       end
     end
@@ -56,6 +57,7 @@ module ShellOpts
       def commands = subject.commands
     end
 
+    # The top-level AST object
     class Spec < CommandDefinition
       def name = token.value
       def program = subject.commands.first
@@ -82,7 +84,7 @@ module ShellOpts
       def header = abstract_method
 
       def initialize(parent, token)
-        constrain parent, Definition
+        constrain parent, Definition, nil
         super
       end
     end
@@ -292,8 +294,11 @@ module ShellOpts
       # Associated Grammar::Option object. Initialize by the analyzer
       alias_method :option, :grammar
     
+      # +parent+ can be nil. This is used to create the built-in options
+      # --help, --version etc.
       def initialize(parent, token, idents, repeatable, optional)
-        constrain parent, OptionSubGroup, Command
+        constrain parent, OptionSubGroup, Command, nil
+        constrain token, Token
         constrain idents, [Symbol]
         constrain repeatable, true, false
         constrain optional, true, false

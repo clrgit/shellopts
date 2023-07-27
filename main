@@ -197,7 +197,7 @@ spec = %(
 )
 
 spec = %(
-  -a
+  -a @ this brief
 
   -b 
   
@@ -214,16 +214,27 @@ spec = %(
   cmd2.cmd3! 
     -g
 )
+
+sh = ShellOpts::ShellOpts.new(
+    version: true, version_number: "1.2.3", 
+    quiet: true, verbose: true, debug: true,
+    exception: true) 
+sh.compile(spec)
+sh.grammar.dump(&:debug)
+exit
+
+
 spec_singleline = "-a -b cmd1! -c -d cmd2! -e -f cmd2.cmd3! -g"
-spec_singleline = "-a,b"
+#spec_singleline = "-a,b"
 
 def compile(s)
   multiline = !s.index("\n").nil?
   ShellOpts::Parser.parse(ShellOpts::Lexer.lex("main", s), multiline: multiline)
 end
 
-#compile(spec).dump(format: :debug)
-compile(spec_singleline).dump(format: :debug)
+compile(spec).dump(format: :debug)
+#compile(spec_singleline).dump(format: :debug)
+
 g = compile(spec_singleline)
 g.filter(ShellOpts::Ast::Option) { |opt|
   p opt

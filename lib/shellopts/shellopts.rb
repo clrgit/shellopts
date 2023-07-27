@@ -4,88 +4,105 @@ module ShellOpts
     using Ext::Array::ShiftWhile
     using Ext::Array::PopWhile
 
+    BUILTIN_OPTIONS = [:help, :version, :quiet, :verbose, :debug]
+
     # Name of program. Defaults to the name of the executable
     attr_reader :name
-
-    # Specification (String). Initialized by #compile
-    attr_reader :spec
-
-    # Array of arguments. Initialized by #interpret
-    attr_reader :argv 
-
-    # Grammar. Grammar::Program object. Initialized by #compile
-    attr_reader :grammar
 
     # Resulting ShellOpts::Program object containing options and optional
     # subcommand. Initialized by #interpret
     def program() @program end
 
-    # Array of remaining arguments. Initialized by #interpret
+    # Array of arguments. Initialized by #interpret
+    attr_reader :argv 
+
+    # Array of remaining arguments after the arguments have been interpreted.
+    # Initialized by #interpret
     attr_reader :args
+
+    ### OPTIONS ###
+
+    # Use floating options if true
+    attr_accessor :float
 
     # Automatically add a -h and a --help option if true. Default true
     attr_reader :help
 
-    # Version of client program. If not nil, a --version option is added to the
-    # program    attr_reader :version
+    # Automatically add a --version option if true. +version+ can be
+    # initialized as an option to #initialize and if given a true value it will
+    # try to auto-dectect the version number. If the version number can't be
+    # detected, the +version+ option should be set to the version string
+    # be supplied. Default true
+    attr_reader :version
 
-    # Automatically add a -q and a --quiet option if true
-    attr_reader :quiet
-
-    # Automatically add a -v and a --verbose option if true
-    attr_reader :verbose
-
-    # Automatically add a --debug option if true
-    attr_reader :debug
-
-    # Version number if +verbose+ is true. It is usually detected dynamically 
+    # Version of client program. Extracted from the :version value
     attr_reader :version_number
 
-    # Floating options
-    attr_accessor :float
+    # Automatically add a -q and a --quiet option if true. Default false
+    attr_reader :quiet
 
-    # True if ShellOpts lets exceptions through instead of writing an error
-    # message and exit. This is useful when debugging
+    # Automatically add a -v and a --verbose repeatable option if true. Default false
+    attr_reader :verbose
+
+    # Automatically add a --debug option if true. Default false
+    attr_reader :debug
+
+    ### ERROR HANDLING ###
+
+    # True if ShellOpts should let exceptions through instead of writing an
+    # error message and exit. This is useful when debugging
     attr_accessor :exception
 
-    # File of source
+    # File of source. The file that contains the specification. This is
+    # determined automatically by inspecting the call-stack. It may fail
     attr_reader :file
 
-    # INTERNAL DATA STRUCTURES
+    ### INTERNAL DATA ###
 
-    # The specification source (String)
+    # True if +spec+ is a multi-line specification. This is determined
+    # dynamically by scanning for a newline character in the source
+    attr_reader :multiline
+
+    # The specification source (String). Initialized by #compile
     attr_reader :spec
 
-    # True if +spec+ is a single-line specification
-    attr_reader :singleline
-
-    # Array of program arguments
-    attr_reader :argv
-
-    # List of tokens. Initialized by the lexer
+    # List of tokens. Initialized by #compile
     attr_reader :tokens
 
-    # AST of the specification. Initialized by the parser
+    # AST of the specification. Initialized by #compile
     attr_reader :ast
 
-    # The grammar of the specification. Initialized by the analyzer
+    # Grammar. Grammar::Program object. Initialized by #compile
     attr_reader :grammar
 
-    # The documentation of the specification. Initialized by the analyzer
+    # The documentation of the specification. Initialized by #compile
     attr_reader :doc
 
     def initialize(
-        name: nil, help: true, version: true, quiet: nil, verbose: nil, debug:
-        nil, version_number: nil, float: true, exception: false)
+        name: nil, help: true, version: true, version_number: nil, quiet:
+        false, verbose: false, debug: false, float: true, exception: false)
+      constrain name, String, nil
+      constrain help, true, false
+      constrain version, true, false, String
+      constrain version_number, String, nil
+      constrain version || version_number.nil?, true
+      constrain quiet, true, false
+      constrain verbose, true, false
+      constrain debug, true, false
+      constrain float, true, false
+      constrain exception, true, false
       @name = name || File.basename($PROGRAM_NAME)
       @help = help
-      @version = version || (version.nil? && !version_number.nil?)
+      @version = version != false || !version_number.nil?
+      @version_number = version_number || find_version_number if @version
       @quiet = quiet
       @verbose = verbose
       @debug = debug
-      @version_number = version_number || find_version_number if @version
       @float = float
       @exception = exception
+
+      BUILTIN_OPTIONS.each { |ident|
+      }
     end
 
     def self.options(spec, argv)
@@ -97,15 +114,18 @@ module ShellOpts
     end
 
     def compile(spec)
+      constrain spec, String
       handle_exceptions {
-        @singleline = spec.index("\n").nil?
+        @multiline = !spec.index("\n").nil?
         @spec = spec.sub(/^\s*\n/, "")
         @file = find_caller_file
 
         @tokens = Lexer.lex(name, @spec)
-        @ast = Parser.parse(@tokens, singleline: @singleline)
-#       inject_options
-        @grammar = Analyzer.analyze(@ast)
+        @parser = Parser.new(@tokens, multiline: @multiline) # We need @parser in #add_builtin_options
+        @ast = @parser.parse
+        @grammar, @doc = Analyzer.analyze(@ast)
+
+        add_builtin_options
       }
       self
     end
@@ -139,31 +159,33 @@ module ShellOpts
     end
 
   private
+    def add_builtin_options
+      # More clever handling of aliases. :help, :version etc. are builtins in
+      # ShellOpts but may have other names as options
+      #
+      option_specs = {
+        help: [@help_format || "-h,help=FORMAT?", "Print help", "..."],
+        version: [@version_format || "--version", "Version number", "Write version number and exit"],
+        quiet: [@quiet_format || "-q,quiet", "Quiet", "Do not write anything to standard output"],
+        verbose: [@verbose_format || "+v,verbose", "Increase verbosity", "Write verbose output"],
+        debug: [@debug_format || "--debug", "Debug", "Run in debug mode"]
+      }.delete_if { |k,_| !self.send(k) }
 
-    def inject_options
-      help_spec = (@help == true ? "-h,help" : @help)
-      version_spec = (@version == true ? "--version" : @version)
-      quiet_spec = (@quiet == true ? "-q,quiet" : @quiet)
-      verbose_spec = (@verbose == true ? "+v,verbose" : @verbose)
-      debug_spec = (@debug == true ? "--debug" : @debug)
+      token = @grammar.token
 
-      @quiet_option = 
-          ast.inject_option(quiet_spec, "Quiet", "Do not write anything to standard output") if @quiet
-      @verbose_option = 
-          ast.inject_option(verbose_spec, "Increase verbosity", "Write verbose output") if @verbose
-      @debug_option = 
-          ast.inject_option(debug_spec, "Write debug information") if @debug
-      @help_option = 
-          ast.inject_option(help_spec, "Write short or long help") { |option|
-            short_option = option.short_names.first 
-            long_option = option.long_names.first
-            [
-              short_option && "#{short_option} prints a brief help text",
-              long_option && "#{long_option} prints a longer man-style description of the command"
-            ].compact.join(", ")
-          } if @help
-      @version_option = 
-          ast.inject_option(version_spec, "Write version number and exit") if @version
+      option_specs.each { |attr,(spec,brief,descr)|
+        ast_defn = Ast::OptionDefinition.new(nil, token)
+        ast_group = Ast::OptionGroup.new(ast_defn, token)
+        ast_subgroup = Ast::OptionSubGroup.new(ast_group, token)
+        ast_option = @parser.send(:parse_option_token, ast_subgroup, Token.new(:option, 1, 1, spec))
+        Ast::Brief.new(ast_subgroup, Token.new(:text, 1, 1, brief)) if brief
+        if descr
+          Ast::Description.new(ast_defn, Token.new(:text, 1, 1, descr))
+        else
+          Ast::EmptyDescription.new(ast_defn)
+        end
+        Grammar::Option.new(@grammar, ast_option, attr: attr)
+      }
     end
 
     def handle_exceptions(&block)
@@ -175,7 +197,7 @@ module ShellOpts
       rescue Failure => ex
         failure(ex.message)
       rescue CompilerError => ex
-        filename = file =~ /\// ? file : "./#{file}"
+        filename = (file =~ /\// ? file : "./#{file}")
         lineno, charno = find_spec_in_file
         charno = 1 if !@singleline
         $stderr.puts "#{filename}:#{ex.token.pos(lineno, charno)} #{ex.message}"
@@ -184,22 +206,140 @@ module ShellOpts
     end
 
     def find_version_number
-      exe = caller.find { |line| line =~ /`<top \(required\)>'$/ }&.sub(/:.*/, "") or return nil
-      file = Dir.glob(File.dirname(exe) + "/../lib/*/version.rb").first or return nil
-      IO.read(file).sub(/^.*VERSION\s*=\s*"(.*?)".*$/m, '\1') or
-          raise ArgumentError, "ShellOpts needs an explicit version"
+      version = nil
+      if caller.find { |line| line =~ /\/rspec\// } # To be able to test it in rspec
+        exe = caller.first.sub(/\/lib\/.*/, "/lib/ignored")
+      else
+        exe = caller.find { |line| line !~ /^#{__FILE__}:/ }&.sub(/:.*/, "")
+      end
+      file = Dir.glob(File.dirname(exe) + "/../lib/*/version.rb").first if exe
+      version = IO.read(file).sub(/^.*VERSION\s*=\s*"(.*?)".*$/m, '\1') if file
+      version or raise ArgumentError, "ShellOpts needs an explicit version"
+      version
     end
 
     def find_caller_file
       caller.reverse.select { |line| line !~ /^\s*#{__FILE__}:/ }.last.sub(/:.*/, "").sub(/^\.\//, "")
     end
 
+    # Find line and char index of spec in text. Returns [nil, nil] if not found
+    def self.find_spec_in_text(text, spec, singleline)
+      text_lines = text.split("\n")
+      spec_lines = spec.split("\n")
+      spec_lines.pop_while { |line| line =~ /^\s*$/ }
 
+      if singleline
+        line_i = nil
+        char_i = nil
+        char_z = 0
+
+        (0 ... text_lines.size).each { |text_i|
+          curr_char_i, curr_char_z = 
+              LCS.find_longest_common_substring_index(text_lines[text_i], spec_lines.first.strip)
+          if curr_char_z > char_z
+            line_i = text_i
+            char_i = curr_char_i
+            char_z = curr_char_z
+          end
+        }
+        line_i ? [line_i, char_i] : [nil, nil]
+      else
+        spec_string = spec_lines.first.strip
+        line_i = (0 ... text_lines.size - spec_lines.size + 1).find { |text_i|
+          (0 ... spec_lines.size).all? { |spec_i|
+            compare_lines(text_lines[text_i + spec_i], spec_lines[spec_i])
+          }
+        } or return [nil, nil]
+        char_i, char_z = 
+            LCS.find_longest_common_substring_index(text_lines[line_i], spec_lines.first.strip)
+        [line_i, char_i || 0]
+      end
+    end
+
+    def find_spec_in_file
+      self.class.find_spec_in_text(IO.read(@file), @spec, @singleline).map { |i| (i || 0) + 1 }
+    end
+
+    def self.compare_lines(text, spec)
+      return true if text == spec
+      return true if text =~ /[#\$\\]/
+      false
+    end
   end
 end
 
 __END__
 
+#   def add_builtin_option(spec, brief, descr)
+#     constrain spec, String
+#     constrain brief, String, nil
+#     constrain descr, String, nil
+#     ast_defn = Ast::OptionDefinition.new(nil, token)
+#     ast_group = Ast::OptionGroup.new(ast_defn, token)
+#     ast_subgroup = Ast::OptionSubGroup.new(ast_group, token)
+#     ast_option = @parser.parse_option_token(ast_subgroup, Token(:option, 1, 1, spec))
+#     Ast::Brief.new(ast_subgroup, Token.new(:text, 1, 1, brief)) if brief
+#     if descr
+#       Ast::Description.new(ast_defn, Token.new(:text, 1, 1, descr))
+#     else
+#       Ast::EmptyDescription.new(ast_defn)
+#     end
+#     Option.new(grammar, ast_option)
+#   end
+
+
+
+#     for option, option_spec in option_specs
+#       add_builtin_option(*option_spec, attr: option)
+#     end
+      
+#     formats = [
+#       ["-h,help=FORMAT?"]
+#     ]
+#
+#     help_spec = 
+#         case @help
+#           when true; "-h,help=FORMAT?"
+#           when false; nil
+#           when String; @help
+#         end
+#
+#
+#
+#     help_spec = (@help == true ? "-h,help=FORMAT?" : @help)
+#     version_spec = (@version == true ? "--version" : @version)
+#     quiet_spec = (@quiet == true ? "-q,quiet" : @quiet)
+#     verbose_spec = (@verbose == true ? "+v,verbose" : @verbose)
+#     debug_spec = (@debug == true ? "--debug" : @debug)
+# 
+#     # TODO: Let user-defined options override built-in options. Or detect conflicts
+#     # TODO: Allow aliases for builtin options
+#     # TODO: Use Parser#parse_option_token
+#     
+#     add_builtin_option 
+#     
+#     grammar.add_option([:version], "Version number", "Write version number and exit") if @version
+#     grammar.add_option([:q, :quiet], "Quiet", "Do not write anything to standard output") if @quiet
+#     grammar.add_option([:v, :verbose], "Increase verbosity", "Write verbose output", repeatable: true) if @verbose
+#     grammar.add_option([:debug], "Debug", "Run in debug mode") if @debug
+
+#     @help_option = 
+#         ast.inject_option(help_spec, "Write short or long help") { |option|
+#           short_option = option.short_names.first 
+#           long_option = option.long_names.first
+#           [
+#             short_option && "#{short_option} prints a brief help text",
+#             long_option && "#{long_option} prints a longer man-style description of the command"
+#           ].compact.join(", ")
+#         } if @help
+#     @version_option = 
+#         ast.inject_option(version_spec, "Write version number and exit") if @version
+#     @quiet_option = 
+#         ast.inject_option(quiet_spec, "Quiet", "Do not write anything to standard output") if @quiet
+#     @verbose_option = 
+#         ast.inject_option(verbose_spec, "Increase verbosity", "Write verbose output") if @verbose
+#     @debug_option = 
+#         ast.inject_option(debug_spec, "Write debug information") if @debug
 
 # TODO: Describe exception handling
 #

@@ -84,8 +84,8 @@ module ShellOpts
       # Used by Tree
       def key = ident
 
-      def dot_eval(expr) = expr_error expr
-      def expr_error(expr) = raise ArgumentError, "Illegal expression: #{expr.inspect}"
+      def dot_eval(expr) = dot_error expr
+      def dot_error(expr) = raise ArgumentError, "Illegal expression in #{self.class}#dot: #{expr.inspect}"
 
     private
       # Top-level Grammar object. Initialized in Grammar#initialize
@@ -124,14 +124,16 @@ module ShellOpts
               group.subcommands.find { |cmd| cmd.ident == expr }
             elsif self.key?(expr) # command-option
               self[expr]
+            elsif group.key?(expr) # group-option
+              group[expr]
             else
-              expr_error expr
+              dot_error expr
             end
           when Integer
             if (0...args.size).include?(expr) # args
               args[expr]
             else
-              expr_error expr
+              dot_error expr
             end
         end
       end

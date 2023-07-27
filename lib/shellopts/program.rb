@@ -266,7 +266,6 @@ module ShellOpts
       __define_command_methods__
     end
 
-    # FIXME: This doesn't handle nested methods. Does it have to?
     def __define_option_methods__
       @__grammar__.options.each { |opt|
         if !opt.repeatable?

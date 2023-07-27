@@ -35,9 +35,9 @@ describe "ShellOpts::ShellOpts" do
   def check_error(src = nil, *args, **opts)
     if src
       src = nil if src == true
-      expect { compile(src, *args, **opts) }.to raise_error ShellOpts::CompilerError
+      expect { compile(src, *args, **opts) }.to raise_error ShellOpts::ShellOptsError
     else
-      expect { make(*args, **opts) }.to raise_error ShellOpts::Error
+      expect { make(*args, **opts) }.to raise_error ShellOpts::ShellOptsError
     end
   end
 
@@ -84,10 +84,11 @@ describe "ShellOpts::ShellOpts" do
         it "accepts a true/false value" do
           check_success(true, help: true)
           check_success(true, help: false)
-          check_constrain_error(true, help: "gryf")
+          check_error(true, help: "gryf")
+#         check_constrain_error(true, help: "gryf")
         end
         it "defaults to true" do
-          check_val(true, :help, true)
+          check_val(:help, true)
         end
       end
       describe ":version" do
@@ -119,10 +120,6 @@ describe "ShellOpts::ShellOpts" do
         end
 
         context "when a version number" do
-          it "sets #version to true" do
-            s = ShellOpts::ShellOpts.new(version: "1.2.3")
-            expect(s.version).to eq true
-          end
           it "sets #version_number to the given value" do
             s = ShellOpts::ShellOpts.new(version: "1.2.3")
             expect(s.version_number).to eq "1.2.3"
@@ -133,7 +130,7 @@ describe "ShellOpts::ShellOpts" do
         it "accepts a true/false value" do
           check_success(true, quiet: true)
           check_success(true, quiet: false)
-          check_constrain_error(true, quiet: "gryf")
+          check_error(true, quiet: "gryf")
         end
         it "defaults to false" do
           check_val(true, :quiet, false)
@@ -143,7 +140,7 @@ describe "ShellOpts::ShellOpts" do
         it "accepts a true/false value" do
           check_success(true, verbose: true)
           check_success(true, verbose: false)
-          check_constrain_error(true, verbose: "gryf")
+          check_error(true, verbose: "gryf")
         end
         it "defaults to false" do
           check_val(true, :verbose, false)
@@ -153,7 +150,7 @@ describe "ShellOpts::ShellOpts" do
         it "accepts a true/false value" do
           check_success(true, debug: true)
           check_success(true, debug: false)
-          check_constrain_error(true, debug: "gryf")
+          check_error(true, debug: "gryf")
         end
         it "defaults to false" do
           check_val(true, :debug, false)
@@ -180,11 +177,49 @@ describe "ShellOpts::ShellOpts" do
         end
       end
     end
+
+    describe "builtin options" do
+#     it "handles renames"
+#     def check_rename(option, spec
+#     end
+
+      context "when a string" do
+        it "sets #version to true" do
+          s = ShellOpts::ShellOpts.new(version: "1.2.3")
+          expect(s.version).to eq true
+        end
+
+        context "when the string matches /<option>:<version>/" do
+          it "renames the option" do
+            s = compile(exception: true, version: "-V,VERSION:1.2.3")
+            expect(s.grammar.dot(:VERSION).ident).to eq :VERSION
+          end
+          it "sets #version_number to the given value"
+        end
+          
+        context "when the string matches /<option>/" do
+          it "renames the option" do
+            s = compile(exception: true, help: "-H,HELP")
+            expect(s.grammar[:HELP]).not_to eq nil
+          end
+        end
+
+        context "when the string matches /<version>/" do
+          it "sets #version_number to the given value"
+        end
+      end
+
+    end
+
   end
 
   describe "#compile" do
     def find_builtin_option(shellopts = nil, ident, **opts)
       shellopts ||= compile(**opts)
+#     shellopts.grammar.dot(ident)
+#p ident
+#p shellopts.grammar[ident]
+#     shellopts.grammar.dump
       shellopts.grammar[ident]
     end
 
@@ -218,16 +253,13 @@ describe "ShellOpts::ShellOpts" do
       check_val(:grammar, nil)
       check_val(true, :grammar, ShellOpts::Grammar::Grammar)
     end
-    it "sets #<builtin>_option to the associated Grammar object" do
-      s = compile(**::ShellOpts::ShellOpts::BUILTIN_OPTIONS.map { |opt| [opt, true] }.to_h)
-      ::ShellOpts::ShellOpts::BUILTIN_OPTIONS.each { |opt|
-        expect(opt).not_to eq nil
-        attr = s.send(:"#{opt}_option")
-        obj = find_builtin_option(s, opt)
-        expect(attr).to eq obj
-      }
+    it "sets #builtin_idents to the (optional renamed) ident" do
+      s = compile
+      expect(s.builtin_idents.all? { |k,v| k == v }).to eq true
+      s = compile(help: "-H,HELP")
+      expect(s.builtin_idents[:help]).to eq :HELP
+      
     end
-
     it "creates a --help grammar option by default" do
       expect(has_builtin_option?(:help, help: false)).to eq false
       expect(has_builtin_option? :help).to eq true
@@ -250,26 +282,40 @@ describe "ShellOpts::ShellOpts" do
 
     it "sets #doc"
   end
-end
 
-# describe "#program" do
-#   it "is initially nil" do
-#     check_nil(:program)
-#   end
-#   it "is set by #interpret"
-# end
-#
-# describe "#argv" do
-#   it "is initially nil" do
-#     check_nil(:argv)
-#   end
-#   it "is set by #interpret"
-# end
-#
-# describe "#args" do
-#   it "is initially nil" do
-#     check_nil(:args)
-#   end
-#   it "is set by #interpret"
-# end
+  describe "#interpret" do
+    describe "#program" do
+      it "is initially nil" #do
+#       check_nil(:program)
+#     end
+      it "is set by #interpret"
+    end
+
+    describe "#argv" do
+      it "is initially nil" #do
+#       check_nil(:argv)
+#     end
+      it "is set by #interpret"
+    end
+
+    describe "#args" do
+      it "is initially nil" #do
+#       check_nil(:args)
+#     end
+      it "is set by #interpret"
+    end
+  end
+end
+__END__
+    it "sets #<builtin>_option to the associated Grammar object" do
+#     args = ::ShellOpts::ShellOpts::BUILTIN_OPTIONS.keys.map { |opt,_| [opt, true] }.to_h
+      s = compile(**args)
+      ::ShellOpts::ShellOpts::BUILTIN_OPTIONS.keys.each { |opt|
+#       expect(opt).not_to eq nil
+        attr = s.send(:"#{opt}_option")
+        obj = find_builtin_option(s, opt)
+        expect(attr).to eq obj
+      }
+    end
+
 

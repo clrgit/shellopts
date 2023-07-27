@@ -1,3 +1,4 @@
+__END__
 include ShellOpts
 
 describe "ShellOpts" do

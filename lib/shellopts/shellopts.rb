@@ -1,17 +1,32 @@
-
 module ShellOpts
   class ShellOpts
     using Ext::Array::ShiftWhile
     using Ext::Array::PopWhile
 
-    # List of builtin in options. Only used in tests atm.
-    BUILTIN_OPTIONS = [:help, :version, :quiet, :verbose, :debug]
+    # Map of builtin in options. It maps from ident to a tuple of spec, brief,
+    # and description and serves as a template for #builtin_options
+    BUILTIN_OPTIONS = {
+      help: ["-h,help=FORMAT?", "Print help", "... TODO"],
+      version: ["--version", "Version number", "Write version number and exit"],
+      quiet: ["-q,quiet", "Quiet", "Do not write anything to standard output"],
+      verbose: ["+v,verbose", "Increase verbosity", "Write verbose output"],
+      debug: ["--debug", "Debug", "Run in debug mode"]
+    }
+
+# TODO
+#             short_option = option.short_names.first 
+#             long_option = option.long_names.first
+#             [
+#               short_option && "#{short_option} prints a brief help text",
+#               long_option && "#{long_option} prints a longer man-style description of the command"
+#             ].compact.join(", ")
 
     # Name of program. Defaults to the name of the executable
     attr_reader :name
 
-    # Resulting ShellOpts::Program object containing options and optional
-    # subcommand. Initialized by #interpret
+    # ShellOpts::Program object containing options and optional subcommand.
+    # Arguments are also included if called through ShellOpts#program.
+    # Initialized by #interpret
     def program() @program end
 
     # Array of arguments. Initialized by #interpret
@@ -21,10 +36,18 @@ module ShellOpts
     # Initialized by #interpret
     attr_reader :args
 
+    # The documentation of the specification. Initialized by #compile (TODO)
+    attr_reader :doc
+
     ### OPTIONS ###
 
     # Use floating options if true
     attr_accessor :float
+
+    # It is possible to rename the following builtin options by setting them to
+    # an option definition in #initialize. Eg. 'ShellOpts.new(help: "-H,HELP")'. 
+    # The #builtin_idents maps from the builtin option identifier to the
+    # renamed option identifier
 
     # Automatically add a -h and a --help option if true. Default true
     attr_reader :help
@@ -36,8 +59,8 @@ module ShellOpts
     # be supplied. Default true
     attr_reader :version
 
-    # Version of client program. Extracted from the :version value. Note that
-    # version_number is false and not nil when version is false
+    # Version of client program. Extracted from the :version argument to
+    # #initialize or auto-detected. nil if #version is false
     attr_reader :version_number
 
     # Automatically add a -q and a --quiet option if true. Default false
@@ -49,13 +72,8 @@ module ShellOpts
     # Automatically add a --debug option if true. Default false
     attr_reader :debug
 
-    # Grammar::Option objects associated with the builtin options. Used by the
-    # #interpreter to access renamed builtin options. Initialized by #compile
-    attr_reader :help_option
-    attr_reader :version_option
-    attr_reader :quiet_option
-    attr_reader :verbose_option
-    attr_reader :debug_option
+    # Lookup builtin option. Initialized by #compile
+    def builtin_option(ident) = program.send(@builtin_idents[ident])
 
     ### ERROR HANDLING ###
 
@@ -85,39 +103,58 @@ module ShellOpts
     # Grammar. Grammar::Program object. Initialized by #compile
     attr_reader :grammar
 
-    # The documentation of the specification. Initialized by #compile
-    attr_reader :doc
+    # List of option source definitions for active builtin options
+    attr_reader :builtin_options
+
+    # Map from builtin option name to (possibly) renamed identifier
+    attr_reader :builtin_idents
 
     def initialize(
         name: nil, help: true, version: true, version_number: nil, quiet:
         false, verbose: false, debug: false, float: true, exception: false)
       constrain name, String, nil
-      constrain help, true, false
-      constrain version, true, false, String
-      constrain quiet, true, false
-      constrain verbose, true, false
-      constrain debug, true, false
       constrain float, true, false
+      constrain help, true, false, String
+      constrain version, true, false, String
+      constrain quiet, true, false, String
+      constrain verbose, true, false, String
+      constrain debug, true, false, String
       constrain exception, true, false
       @name = name || File.basename($PROGRAM_NAME)
-      @help = help
-      @version = version != false
-      @version_number = version == true ? find_version_number : version if version
-      @quiet = quiet
-      @verbose = verbose
-      @debug = debug
       @float = float
       @exception = exception
+
+      @builtin_options = {}
+      BUILTIN_OPTIONS.each { |opt,(default_spec,brief,descr)|
+        val = eval(opt.to_s)
+        inst_var = :"@#{opt}"
+        instance_variable_set(inst_var, val != false)
+        case val
+          when false # nop
+          when true
+            @builtin_options[opt] = [default_spec, brief, descr]
+          when /^(?:#{Parser::OPTION_RE}(?::(.+))?|(.+))$/
+            spec, arg, version = $1&.+($2), $3, $5 || $6
+            arg.nil? && (opt == :version || version.nil?) or 
+                raise ShellOptsError.new(nil), "Illegal value for '#{opt}' argument: #{val}"
+            @builtin_options[opt] = [spec || default_spec, brief, descr]
+            @version_number = version || find_version_number if opt == :version
+        end
+      }
+      @version_number ||= find_version_number if self.version
     end
 
+
     def self.options(spec, argv)
-      raise NotImplemented
+      raise NotImplementedError
     end
 
     def self.program(spec, argv)
-      raise NotImplemented
+      raise NotImplementedError
     end
 
+    # Compile source and return grammar object. Also sets #spec and #grammar.
+    # Returns self
     def compile(spec)
       constrain spec, String
       handle_exceptions {
@@ -129,6 +166,34 @@ module ShellOpts
         @ast = parser.parse
         @grammar, @doc = Analyzer.analyze(@ast)
         add_builtin_options(parser)
+      }
+      self
+    end
+
+    # Use grammar to interpret arguments. Return a ShellOpts::Program and
+    # ShellOpts::Args tuple
+    #
+    def interpret(argv)
+      handle_exceptions { 
+        @argv = argv.dup
+        @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
+
+        # Process standard options (that may have been renamed)
+        if @program.__send__(:"#{@help_option.ident}?")
+          if @program[:help].name =~ /^--/
+            ShellOpts.help
+          else
+            ShellOpts.brief
+          end
+          exit
+        elsif @program.__send__(:"#{@version_option.ident}?")
+          puts version_number
+          exit
+        else
+          @program.__quiet__ = @program.__send__(:"#{@quiet_option.ident}?") if @quiet
+          @program.__verbose__ = @program.__send__(:"#{@verbose_option.ident}") if @verbose
+          @program.__debug__ = @program.__send__(:"#{@debug_option.ident}?") if @debug
+        end
       }
       self
     end
@@ -163,17 +228,10 @@ module ShellOpts
 
   private
     def add_builtin_options(parser)
-      option_specs = {
-        help: [@help_format || "-h,help=FORMAT?", "Print help", "..."],
-        version: [@version_format || "--version", "Version number", "Write version number and exit"],
-        quiet: [@quiet_format || "-q,quiet", "Quiet", "Do not write anything to standard output"],
-        verbose: [@verbose_format || "+v,verbose", "Increase verbosity", "Write verbose output"],
-        debug: [@debug_format || "--debug", "Debug", "Run in debug mode"]
-      }.delete_if { |k,_| !self.send(k) }
+      @builtin_idents = {}
 
       token = @grammar.token # Top-level token at 0:0
-
-      option_specs.each { |attr,(spec,brief,descr)|
+      @builtin_options.each { |opt,(spec,brief,descr)|
         ast_defn = Ast::OptionDefinition.new(nil, token)
         ast_group = Ast::OptionGroup.new(ast_defn, token)
         ast_subgroup = Ast::OptionSubGroup.new(ast_group, token)
@@ -185,7 +243,7 @@ module ShellOpts
           Ast::EmptyDescription.new(ast_defn)
         end
         option = Grammar::Option.new(@grammar, ast_option)
-        instance_variable_set(:"@#{attr}_option", option) # Assign builtin option attributes
+        @builtin_idents[opt] = option.ident
       }
     end
 

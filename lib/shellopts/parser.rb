@@ -11,8 +11,19 @@ module ShellOpts
   # full recursive descent parser because the stack handling gets hairy here
   # and there
   class Parser
-    using Ext::Array::ShiftWhile
+    using Ext::Array::ShiftWhile # FIXME: Still needed?
     using Ext::Array::PopWhile
+
+    SHORT_OPTION_NAME_RE = /[a-zA-Z0-9?]/
+    LONG_OPTION_NAME_RE = /[a-zA-Z0-9][a-zA-Z0-9_-]*/
+    OPTION_NAME_RE=/(?:#{SHORT_OPTION_NAME_RE}|#{LONG_OPTION_NAME_RE})/
+    OPTION_NAME_LIST_RE = /#{OPTION_NAME_RE}(?:,#{OPTION_NAME_RE})*/
+    RESERVED_NAME_RE = /^__.*__$/
+
+    OPTION_INIT_RE = /-|--|\+|\+\+/
+    OPTION_ARG_RE = /(?:=(.+?)(\?)?)?/
+    OPTION_RE = /^(#{OPTION_INIT_RE})(#{OPTION_NAME_LIST_RE})#{OPTION_ARG_RE}/
+
 
     # The resulting Ast::Program object
     attr_reader :program
@@ -36,12 +47,6 @@ module ShellOpts
     def self.parse(tokens, multiline: true) = self.new(tokens, multiline: multiline).parse
 
   protected
-    SHORT_OPTION_NAME_RE = /[a-zA-Z0-9?]/
-    LONG_OPTION_NAME_RE = /[a-zA-Z0-9][a-zA-Z0-9_-]*/
-    OPTION_NAME_RE=/(?:#{SHORT_OPTION_NAME_RE}|#{LONG_OPTION_NAME_RE})/
-    OPTION_NAME_LIST_RE = /#{OPTION_NAME_RE}(?:,#{OPTION_NAME_RE})*/
-    RESERVED_NAME_RE = /^__.*__$/
-
     # Queue of tokens (TokenQueue object)
     attr_reader :tokens
 
@@ -228,8 +233,7 @@ module ShellOpts
     end
 
     def parse_option_token(parent, token)
-      token.source =~ /^(-|--|\+|\+\+)(#{OPTION_NAME_LIST_RE})(?:=(.+?)(\?)?)?$/ or 
-          parser_error token, "Illegal option: #{token.source.inspect}"
+      token.source =~ /^#{OPTION_RE}$/ or parser_error token, "Illegal option: #{token.source.inspect}"
       initial = $1
       names = $2.split(",")
       arg = $3

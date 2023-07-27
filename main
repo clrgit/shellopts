@@ -216,7 +216,7 @@ spec = %(
 )
 
 sh = ShellOpts::ShellOpts.new(
-    version: true, version_number: "1.2.3", 
+    version: "1.2.3", 
     quiet: true, verbose: true, debug: true,
     exception: true) 
 sh.compile(spec)

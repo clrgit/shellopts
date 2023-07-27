@@ -224,8 +224,8 @@ module ShellOpts
     attr_reader :__grammar__
 
     # Map from option identifier to value. Repeated options options without
-    # arguments have the number of occurences as value, repeated option with
-    # arguments have the array of values as value
+    # arguments have the number of occurences as value, repeated options with
+    # arguments collects the arguments into an array and use that as value
     attr_reader :__option_values__
 
     # List of Option objects for the subcommand in the same order as given by
@@ -263,15 +263,16 @@ module ShellOpts
       @__subcommand__ = nil
 
       __define_option_methods__
+      __define_command_methods__
     end
 
+    # FIXME: This doesn't handle nested methods. Does it have to?
     def __define_option_methods__
       @__grammar__.options.each { |opt|
-        ::Kernel.p opt
         if !opt.repeatable?
           self.instance_eval %(
-            def #{opt.attr}?() 
-              @__option_values__.key?(:#{opt.attr}) 
+            def #{opt.ident}?() 
+              @__option_values__.key?(:#{opt.ident}) 
             end
           )
         end
@@ -279,14 +280,14 @@ module ShellOpts
         if opt.repeatable?
           if opt.argument?
             self.instance_eval %(
-              def #{opt.attr}?() 
-                (@__option_values__[:#{opt.attr}]&.size || 0) > 0 
+              def #{opt.ident}?() 
+                (@__option_values__[:#{opt.ident}]&.size || 0) > 0 
               end
             )
             self.instance_eval %(
-              def #{opt.attr}(default = [])
-                if @__option_values__.key?(:#{opt.attr}) 
-                  @__option_values__[:#{opt.attr}]
+              def #{opt.ident}(default = [])
+                if @__option_values__.key?(:#{opt.ident}) 
+                  @__option_values__[:#{opt.ident}]
                 else
                   default
                 end
@@ -294,16 +295,16 @@ module ShellOpts
             )
           else
             self.instance_eval %(
-              def #{opt.attr}?() 
-                (@__option_values__[:#{opt.attr}] || 0) > 0 
+              def #{opt.ident}?() 
+                (@__option_values__[:#{opt.ident}] || 0) > 0 
               end
             )
             self.instance_eval %(
-              def #{opt.attr}(default = 0) 
-                if default > 0 && (@__option_values__[:#{opt.attr}] || 0) == 0
+              def #{opt.ident}(default = 0) 
+                if default > 0 && (@__option_values__[:#{opt.ident}] || 0) == 0
                   default
                 else
-                  @__option_values__[:#{opt.attr}] || 0
+                  @__option_values__[:#{opt.ident}] || 0
                 end
               end
             )
@@ -311,9 +312,9 @@ module ShellOpts
 
         elsif opt.argument?
           self.instance_eval %(
-            def #{opt.attr}(default = nil)
-              if @__option_values__.key?(:#{opt.attr}) 
-                @__option_values__[:#{opt.attr}]
+            def #{opt.ident}(default = nil)
+              if @__option_values__.key?(:#{opt.ident}) 
+                @__option_values__[:#{opt.ident}]
               else
                 default
               end
@@ -322,13 +323,15 @@ module ShellOpts
 
         else
           self.instance_eval %(
-            def #{opt.attr}() 
-              @__option_values__.key?(:#{opt.attr}) 
+            def #{opt.ident}() 
+              @__option_values__.key?(:#{opt.ident}) 
             end
           )
         end
       }
+    end
 
+    def __define_command_methods__
       @__grammar__.commands.each { |cmd|
         next if cmd.ident.nil?
         self.instance_eval %(

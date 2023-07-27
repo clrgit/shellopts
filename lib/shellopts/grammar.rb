@@ -1,6 +1,4 @@
 module ShellOpts
-
-
   # Canonical name:
   #   Options 
   #     The name of the first long option if present and otherwise the name of
@@ -192,9 +190,6 @@ module ShellOpts
     end
 
     class Option < Node
-      # Name of member method. Defaults to #ident
-      attr_reader :attr
-
       # Has to come before alias_method below
       forward_to :ast, :name, :names, :short_names, :long_names, 
                        :ident, :idents, :short_idents, :long_idents,  # FIXME Node#ident and Ast#ident connflicts
@@ -207,31 +202,14 @@ module ShellOpts
       def argument = children.first
       def argument? = !children.empty?
 
-      def initialize(parent, ast, attr: nil, **opts) # FIXME Add an :ident option
+      def initialize(parent, ast, **opts) # FIXME Add an :ident option
         constrain parent, Command
         constrain ast, Ast::Option
         super(parent, ast.ident, ast, **opts)
-        @attr = attr || ident
       end
     end
-#
-#   class SystemOption < Option
-#     attr_reader :name, :names, :short_names, :long_names, 
-#                 :ident, :idents, :short_idents, :long_idents, 
-#                 :repeatable?, :optional?
-#
-#     def initialize(parent, ast, name, repeatable, optional)
-#
-#       super(parent, ast)
-#       @name = name
-#       @names = [@name]
-#       @short_names = 
-#     end
-#   end
+
+    class BuiltinOption < Option; end
   end
 end
-
-
-
-
 

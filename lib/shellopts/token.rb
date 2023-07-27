@@ -75,7 +75,6 @@ module ShellOpts
       constrain kind, *KINDS
       constrain lineno, Integer
       constrain charno, Integer
-      constrain lineno > 0 && charno > 0 || kind == :program, true
       constrain source, String
       constrain value, String, nil
       constrain lines, [String], nil

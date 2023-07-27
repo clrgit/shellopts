@@ -35,7 +35,8 @@ module ShellOpts
     # be supplied. Default true
     attr_reader :version
 
-    # Version of client program. Extracted from the :version value
+    # Version of client program. Extracted from the :version value. Note that
+    # version_number is false and not nil when version is false
     attr_reader :version_number
 
     # Automatically add a -q and a --quiet option if true. Default false
@@ -46,6 +47,14 @@ module ShellOpts
 
     # Automatically add a --debug option if true. Default false
     attr_reader :debug
+
+    # Grammar::Option objects associated with the builtin options. Used by the
+    # #interpreter to access renamed builtin options. Initialized by #compile
+    attr_reader :help_option
+    attr_reader :version_option
+    attr_reader :quiet_option
+    attr_reader :verbose_option
+    attr_reader :debug_option
 
     ### ERROR HANDLING ###
 
@@ -84,8 +93,6 @@ module ShellOpts
       constrain name, String, nil
       constrain help, true, false
       constrain version, true, false, String
-      constrain version_number, String, nil
-      constrain version || version_number.nil?, true
       constrain quiet, true, false
       constrain verbose, true, false
       constrain debug, true, false
@@ -93,16 +100,13 @@ module ShellOpts
       constrain exception, true, false
       @name = name || File.basename($PROGRAM_NAME)
       @help = help
-      @version = version != false || !version_number.nil?
-      @version_number = version_number || find_version_number if @version
+      @version = version != false
+      @version_number = version == true ? find_version_number : version
       @quiet = quiet
       @verbose = verbose
       @debug = debug
       @float = float
       @exception = exception
-
-      BUILTIN_OPTIONS.each { |ident|
-      }
     end
 
     def self.options(spec, argv)
@@ -119,13 +123,11 @@ module ShellOpts
         @multiline = !spec.index("\n").nil?
         @spec = spec.sub(/^\s*\n/, "")
         @file = find_caller_file
-
         @tokens = Lexer.lex(name, @spec)
-        @parser = Parser.new(@tokens, multiline: @multiline) # We need @parser in #add_builtin_options
-        @ast = @parser.parse
+        parser = Parser.new(@tokens, multiline: @multiline) # We need @parser in #add_builtin_options
+        @ast = parser.parse
         @grammar, @doc = Analyzer.analyze(@ast)
-
-        add_builtin_options
+        add_builtin_options(parser)
       }
       self
     end
@@ -159,10 +161,7 @@ module ShellOpts
     end
 
   private
-    def add_builtin_options
-      # More clever handling of aliases. :help, :version etc. are builtins in
-      # ShellOpts but may have other names as options
-      #
+    def add_builtin_options(parser)
       option_specs = {
         help: [@help_format || "-h,help=FORMAT?", "Print help", "..."],
         version: [@version_format || "--version", "Version number", "Write version number and exit"],
@@ -171,20 +170,21 @@ module ShellOpts
         debug: [@debug_format || "--debug", "Debug", "Run in debug mode"]
       }.delete_if { |k,_| !self.send(k) }
 
-      token = @grammar.token
+      token = @grammar.token # Top-level token at 0:0
 
       option_specs.each { |attr,(spec,brief,descr)|
         ast_defn = Ast::OptionDefinition.new(nil, token)
         ast_group = Ast::OptionGroup.new(ast_defn, token)
         ast_subgroup = Ast::OptionSubGroup.new(ast_group, token)
-        ast_option = @parser.send(:parse_option_token, ast_subgroup, Token.new(:option, 1, 1, spec))
+        ast_option = parser.send(:parse_option_token, ast_subgroup, Token.new(:option, 0, 0, spec))
         Ast::Brief.new(ast_subgroup, Token.new(:text, 1, 1, brief)) if brief
         if descr
           Ast::Description.new(ast_defn, Token.new(:text, 1, 1, descr))
         else
           Ast::EmptyDescription.new(ast_defn)
         end
-        Grammar::Option.new(@grammar, ast_option, attr: attr)
+        option = Grammar::Option.new(@grammar, ast_option)
+        instance_variable_set(:"@#{attr}_option", option) # Assign builtin option attributes
       }
     end
 
@@ -199,12 +199,13 @@ module ShellOpts
       rescue CompilerError => ex
         filename = (file =~ /\// ? file : "./#{file}")
         lineno, charno = find_spec_in_file
-        charno = 1 if !@singleline
+        charno = 1 if multiline
         $stderr.puts "#{filename}:#{ex.token.pos(lineno, charno)} #{ex.message}"
         exit 1
       end
     end
 
+    # TODO: Describe
     def find_version_number
       version = nil
       if caller.find { |line| line =~ /\/rspec\// } # To be able to test it in rspec
@@ -218,17 +219,28 @@ module ShellOpts
       version
     end
 
+    # TODO: Describe
     def find_caller_file
       caller.reverse.select { |line| line !~ /^\s*#{__FILE__}:/ }.last.sub(/:.*/, "").sub(/^\.\//, "")
     end
 
     # Find line and char index of spec in text. Returns [nil, nil] if not found
-    def self.find_spec_in_text(text, spec, singleline)
+    def self.find_spec_in_text(text, spec, multiline)
       text_lines = text.split("\n")
       spec_lines = spec.split("\n")
       spec_lines.pop_while { |line| line =~ /^\s*$/ }
 
-      if singleline
+      if multiline
+        spec_string = spec_lines.first.strip
+        line_i = (0 ... text_lines.size - spec_lines.size + 1).find { |text_i|
+          (0 ... spec_lines.size).all? { |spec_i|
+            compare_lines(text_lines[text_i + spec_i], spec_lines[spec_i])
+          }
+        } or return [nil, nil]
+        char_i, char_z = 
+            LCS.find_longest_common_substring_index(text_lines[line_i], spec_lines.first.strip)
+        [line_i, char_i || 0]
+      else
         line_i = nil
         char_i = nil
         char_z = 0
@@ -243,21 +255,11 @@ module ShellOpts
           end
         }
         line_i ? [line_i, char_i] : [nil, nil]
-      else
-        spec_string = spec_lines.first.strip
-        line_i = (0 ... text_lines.size - spec_lines.size + 1).find { |text_i|
-          (0 ... spec_lines.size).all? { |spec_i|
-            compare_lines(text_lines[text_i + spec_i], spec_lines[spec_i])
-          }
-        } or return [nil, nil]
-        char_i, char_z = 
-            LCS.find_longest_common_substring_index(text_lines[line_i], spec_lines.first.strip)
-        [line_i, char_i || 0]
       end
     end
 
     def find_spec_in_file
-      self.class.find_spec_in_text(IO.read(@file), @spec, @singleline).map { |i| (i || 0) + 1 }
+      self.class.find_spec_in_text(IO.read(@file), @spec, @multiline).map { |i| (i || 0) + 1 }
     end
 
     def self.compare_lines(text, spec)
@@ -270,88 +272,6 @@ end
 
 __END__
 
-#   def add_builtin_option(spec, brief, descr)
-#     constrain spec, String
-#     constrain brief, String, nil
-#     constrain descr, String, nil
-#     ast_defn = Ast::OptionDefinition.new(nil, token)
-#     ast_group = Ast::OptionGroup.new(ast_defn, token)
-#     ast_subgroup = Ast::OptionSubGroup.new(ast_group, token)
-#     ast_option = @parser.parse_option_token(ast_subgroup, Token(:option, 1, 1, spec))
-#     Ast::Brief.new(ast_subgroup, Token.new(:text, 1, 1, brief)) if brief
-#     if descr
-#       Ast::Description.new(ast_defn, Token.new(:text, 1, 1, descr))
-#     else
-#       Ast::EmptyDescription.new(ast_defn)
-#     end
-#     Option.new(grammar, ast_option)
-#   end
-
-
-
-#     for option, option_spec in option_specs
-#       add_builtin_option(*option_spec, attr: option)
-#     end
-      
-#     formats = [
-#       ["-h,help=FORMAT?"]
-#     ]
-#
-#     help_spec = 
-#         case @help
-#           when true; "-h,help=FORMAT?"
-#           when false; nil
-#           when String; @help
-#         end
-#
-#
-#
-#     help_spec = (@help == true ? "-h,help=FORMAT?" : @help)
-#     version_spec = (@version == true ? "--version" : @version)
-#     quiet_spec = (@quiet == true ? "-q,quiet" : @quiet)
-#     verbose_spec = (@verbose == true ? "+v,verbose" : @verbose)
-#     debug_spec = (@debug == true ? "--debug" : @debug)
-# 
-#     # TODO: Let user-defined options override built-in options. Or detect conflicts
-#     # TODO: Allow aliases for builtin options
-#     # TODO: Use Parser#parse_option_token
-#     
-#     add_builtin_option 
-#     
-#     grammar.add_option([:version], "Version number", "Write version number and exit") if @version
-#     grammar.add_option([:q, :quiet], "Quiet", "Do not write anything to standard output") if @quiet
-#     grammar.add_option([:v, :verbose], "Increase verbosity", "Write verbose output", repeatable: true) if @verbose
-#     grammar.add_option([:debug], "Debug", "Run in debug mode") if @debug
-
-#     @help_option = 
-#         ast.inject_option(help_spec, "Write short or long help") { |option|
-#           short_option = option.short_names.first 
-#           long_option = option.long_names.first
-#           [
-#             short_option && "#{short_option} prints a brief help text",
-#             long_option && "#{long_option} prints a longer man-style description of the command"
-#           ].compact.join(", ")
-#         } if @help
-#     @version_option = 
-#         ast.inject_option(version_spec, "Write version number and exit") if @version
-#     @quiet_option = 
-#         ast.inject_option(quiet_spec, "Quiet", "Do not write anything to standard output") if @quiet
-#     @verbose_option = 
-#         ast.inject_option(verbose_spec, "Increase verbosity", "Write verbose output") if @verbose
-#     @debug_option = 
-#         ast.inject_option(debug_spec, "Write debug information") if @debug
-
-# TODO: Describe exception handling
-#
-# Notes
-#   * Two kinds of exceptions: Expected & unexpected. Expected exceptions are
-#     RuntimeError or IOError. Unexpected exceptions are the rest. Both results
-#     in shellopts.failure messages if shellopts error handling is enabled 
-#   * Describe the difference between StandardError, RuntimeError, and IOError
-#   * Add an #internal error handling for the production environment that
-#     prints an intelligble error message and prettyfies stack dump. This
-#     should catch non-RuntimeError/UIError exceptions
-#   * Find a reliable way of testing environment
 
 module ShellOpts
   # Base error class
@@ -791,3 +711,85 @@ module ShellOpts
   end
 end
 
+#   def add_builtin_option(spec, brief, descr)
+#     constrain spec, String
+#     constrain brief, String, nil
+#     constrain descr, String, nil
+#     ast_defn = Ast::OptionDefinition.new(nil, token)
+#     ast_group = Ast::OptionGroup.new(ast_defn, token)
+#     ast_subgroup = Ast::OptionSubGroup.new(ast_group, token)
+#     ast_option = @parser.parse_option_token(ast_subgroup, Token(:option, 1, 1, spec))
+#     Ast::Brief.new(ast_subgroup, Token.new(:text, 1, 1, brief)) if brief
+#     if descr
+#       Ast::Description.new(ast_defn, Token.new(:text, 1, 1, descr))
+#     else
+#       Ast::EmptyDescription.new(ast_defn)
+#     end
+#     Option.new(grammar, ast_option)
+#   end
+
+
+
+#     for option, option_spec in option_specs
+#       add_builtin_option(*option_spec, attr: option)
+#     end
+      
+#     formats = [
+#       ["-h,help=FORMAT?"]
+#     ]
+#
+#     help_spec = 
+#         case @help
+#           when true; "-h,help=FORMAT?"
+#           when false; nil
+#           when String; @help
+#         end
+#
+#
+#
+#     help_spec = (@help == true ? "-h,help=FORMAT?" : @help)
+#     version_spec = (@version == true ? "--version" : @version)
+#     quiet_spec = (@quiet == true ? "-q,quiet" : @quiet)
+#     verbose_spec = (@verbose == true ? "+v,verbose" : @verbose)
+#     debug_spec = (@debug == true ? "--debug" : @debug)
+# 
+#     # TODO: Let user-defined options override built-in options. Or detect conflicts
+#     # TODO: Allow aliases for builtin options
+#     # TODO: Use Parser#parse_option_token
+#     
+#     add_builtin_option 
+#     
+#     grammar.add_option([:version], "Version number", "Write version number and exit") if @version
+#     grammar.add_option([:q, :quiet], "Quiet", "Do not write anything to standard output") if @quiet
+#     grammar.add_option([:v, :verbose], "Increase verbosity", "Write verbose output", repeatable: true) if @verbose
+#     grammar.add_option([:debug], "Debug", "Run in debug mode") if @debug
+
+#     @help_option = 
+#         ast.inject_option(help_spec, "Write short or long help") { |option|
+#           short_option = option.short_names.first 
+#           long_option = option.long_names.first
+#           [
+#             short_option && "#{short_option} prints a brief help text",
+#             long_option && "#{long_option} prints a longer man-style description of the command"
+#           ].compact.join(", ")
+#         } if @help
+#     @version_option = 
+#         ast.inject_option(version_spec, "Write version number and exit") if @version
+#     @quiet_option = 
+#         ast.inject_option(quiet_spec, "Quiet", "Do not write anything to standard output") if @quiet
+#     @verbose_option = 
+#         ast.inject_option(verbose_spec, "Increase verbosity", "Write verbose output") if @verbose
+#     @debug_option = 
+#         ast.inject_option(debug_spec, "Write debug information") if @debug
+
+# TODO: Describe exception handling
+#
+# Notes
+#   * Two kinds of exceptions: Expected & unexpected. Expected exceptions are
+#     RuntimeError or IOError. Unexpected exceptions are the rest. Both results
+#     in shellopts.failure messages if shellopts error handling is enabled 
+#   * Describe the difference between StandardError, RuntimeError, and IOError
+#   * Add an #internal error handling for the production environment that
+#     prints an intelligble error message and prettyfies stack dump. This
+#     should catch non-RuntimeError/UIError exceptions
+#   * Find a reliable way of testing environment

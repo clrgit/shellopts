@@ -143,10 +143,6 @@ module ShellOpts
     class ArgSpec < Node
       alias_method :command, :parent
       alias_method :args, :children
-#     def initialize(parent, token, **opts)
-#       constrain parent, Command
-#       super
-#     end
       def self.accepts = [Arg]
     end
 
@@ -245,7 +241,7 @@ module ShellOpts
     # An option group is a list of continuous subgroups without blank lines in
     # between, like a text paragraph. Options in a group share a common description
     class OptionGroup < Group
-      def brief = description.find(Brief)
+      def brief = description.find(Brief) # Can be overridden in SubGroup
       def options = @options ||= filter(Option).to_a
 
       # Does not include Brief because it can't be attached directly to a
@@ -266,10 +262,19 @@ module ShellOpts
     # command.  #option_subgroup, #option_group, and #brief returns nil in the
     # last case
     class Option < Node
-      def name = token.value.sub(/^-+/, "")
+      def name = token.value.sub(/^-+/, "") # FIXME FIXME FIXME
+
+      # The parent subgroup. nil if the option is attached to a command
       def option_subgroup = parent.is_a?(OptionSubGroup) ? parent : nil
+
+      # The parent group. nil if the option is attached to a command
       def option_group = option_subgroup&.option_group
+
+      # Option brief. nil if attached to a command
       def brief = find(Brief) || option_subgroup&.brief
+
+      # Option description. nil if attached to a command
+      def description = option_group&.description
 
       attr_reader :name
       attr_reader :names
@@ -287,10 +292,6 @@ module ShellOpts
       def argument? = !argument.nil?
       def argument = @children.first
 
-#     attr_reader :argument
-#     attr_reader :argument_name
-#     attr_reader :argument_type
-    
       # Associated Grammar::Option object. Initialize by the analyzer
       alias_method :option, :grammar
     
@@ -302,17 +303,11 @@ module ShellOpts
         constrain idents, [Symbol]
         constrain repeatable, true, false
         constrain optional, true, false
-#       constrain argument, Arg, nil
-#       constrain argument_name, String, nil
-#       constrain argument_type, Type::Type, nil
         super(parent, token)
 
         @idents = idents
         @repeatable = repeatable
         @optional = optional
-#       @argument = argument
-#       @argument_name = argument_name
-#       @argument_type = argument_type
 
         @names = []
         @short_names = []

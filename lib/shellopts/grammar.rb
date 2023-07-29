@@ -195,7 +195,8 @@ module ShellOpts
       # Has to come before alias_method below
       forward_to :ast, :name, :names, :short_names, :long_names, 
                        :ident, :idents, :short_idents, :long_idents,  # FIXME Node#ident and Ast#ident connflicts
-                       :repeatable?, :optional?
+                       :repeatable?, :optional?,
+                       :brief, :description
 
       # Override Node#literal to include '-' or '--'
       def literal = literals.first

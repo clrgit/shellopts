@@ -3,23 +3,29 @@ module ShellOpts
     using Ext::Array::ShiftWhile
     using Ext::Array::PopWhile
 
-    # Map of builtin in options. It maps from ident to a tuple of spec, brief,
-    # and description and serves as a template for #builtin_options
+    # Data for builtin options. BUILTIN_OPTIONS serves as a template for
+    # @builtin_options that is used to create the options
+    #
+    # BIULTIN_OPTIONS is a map from ident to a either tuple of spec,
+    # brief, and description, or a tuple of spec, brief, short option
+    # description, long option description. If both the short and long option
+    # identifiers are present, the short and long descriptions are joined by a
+    # comma (','). Long and short option descriptions are used when the two can
+    # have different meaning but are still processed as one option (eg -h vs.
+    # --help)
+    #
+    # All descriptions have %short and %long replaced with the short/long
+    # option name (including the - or -- prefix)
     BUILTIN_OPTIONS = {
-      help: ["-h,help=FORMAT?", "Print help", "... TODO"],
+      help: ["-h,help=FORMAT?", "Print help", 
+        "%short prints a brief help text",
+        "%long prints a longer man-style description of the command"
+      ],
       version: ["--version", "Version number", "Write version number and exit"],
       quiet: ["-q,quiet", "Quiet", "Do not write anything to standard output"],
       verbose: ["+v,verbose", "Increase verbosity", "Write verbose output"],
       debug: ["--debug", "Debug", "Run in debug mode"]
     }
-
-# TODO
-#             short_option = option.short_names.first 
-#             long_option = option.long_names.first
-#             [
-#               short_option && "#{short_option} prints a brief help text",
-#               long_option && "#{long_option} prints a longer man-style description of the command"
-#             ].compact.join(", ")
 
     # Name of program. Defaults to the name of the executable
     attr_reader :name
@@ -47,7 +53,8 @@ module ShellOpts
     # It is possible to rename the following builtin options by setting them to
     # an option definition in #initialize. Eg. 'ShellOpts.new(help: "-H,HELP")'. 
     # The #builtin_idents maps from the builtin option identifier to the
-    # renamed option identifier
+    # renamed option identifier, so that ShellOpts still can find the options
+    # when it is processing them
 
     # Automatically add a -h and a --help option if true. Default true
     attr_reader :help
@@ -124,6 +131,8 @@ module ShellOpts
       @float = float
       @exception = exception
 
+      # Builtin options is a copy of BUILTIN_OPTIONS except the default spec
+      # may be overridden by the option value from #initialize
       @builtin_options = {}
       BUILTIN_OPTIONS.each { |opt,(default_spec,brief,descr)|
         val = eval(opt.to_s)
@@ -143,7 +152,6 @@ module ShellOpts
       }
       @version_number ||= find_version_number if self.version
     end
-
 
     def self.options(spec, argv)
       raise NotImplementedError
@@ -172,7 +180,6 @@ module ShellOpts
 
     # Use grammar to interpret arguments. Return a ShellOpts::Program and
     # ShellOpts::Args tuple
-    #
     def interpret(argv)
       handle_exceptions { 
         @argv = argv.dup
@@ -231,17 +238,30 @@ module ShellOpts
       @builtin_idents = {}
 
       token = @grammar.token # Top-level token at 0:0
-      @builtin_options.each { |opt,(spec,brief,descr)|
+      @builtin_options.each { |opt,(spec,brief,descr1, descr2)|
         ast_defn = Ast::OptionDefinition.new(nil, token)
         ast_group = Ast::OptionGroup.new(ast_defn, token)
         ast_subgroup = Ast::OptionSubGroup.new(ast_group, token)
         ast_option = parser.send(:parse_option_token, ast_subgroup, Token.new(:option, 0, 0, spec))
         Ast::Brief.new(ast_subgroup, Token.new(:text, 1, 1, brief)) if brief
-        if descr
-          Ast::Description.new(ast_defn, Token.new(:text, 1, 1, descr))
-        else
+
+        if descr1.nil?
           Ast::EmptyDescription.new(ast_defn)
+        else
+          short_name = ast_option.short_names.first
+          long_name = ast_option.long_names.first
+          descr = ""
+          descr += descr1 if descr1 && (descr2.nil? || short_name)
+          descr += descr2 if descr2 && long_name
+          descr.gsub!(/%short/, short_name) if short_name
+          descr.gsub!(/%long/, long_name) if long_name
+#         puts
+#         puts ">> #{descr1.inspect} <<"
+#         puts ">> #{descr2.inspect} <<"
+#         puts ">> #{descr.inspect} <<"
+          Ast::Description.new(ast_defn, Token.new(:text, 1, 1, descr))
         end
+
         option = Grammar::Option.new(@grammar, ast_option)
         @builtin_idents[opt] = option.ident
       }

@@ -60,10 +60,10 @@ module ShellOpts
     # Location. A tuple of [lineno, charno]. Implemented for convenience
     def location = [lineno, charno]
 
-    # Token source
+    # Token source (String)
     attr_reader :source
 
-    # Token string value. This is usually equal to source
+    # Token string value. This is equal to #source except for :code kinds
     def value = @value ||= (lines ? lines.join("\n") : source)
 
     # Token lines. Nil except for :code tokens

@@ -80,17 +80,18 @@ describe "ShellOpts::ShellOpts" do
           expect(make.name).to eq "rspec"
         end
       end
+
       describe ":help" do
         it "accepts a true/false value" do
           check_success(true, help: true)
           check_success(true, help: false)
           check_error(true, help: "gryf")
-#         check_constrain_error(true, help: "gryf")
         end
         it "defaults to true" do
           check_val(:help, true)
         end
       end
+
       describe ":version" do
         it "accepts true, false, or a String" do
           check_success(true, version: true)
@@ -126,10 +127,12 @@ describe "ShellOpts::ShellOpts" do
           end
         end
       end
+
       describe ":quiet" do
-        it "accepts a true/false value" do
+        it "accepts a true/false value" do # TODO TODO TODO
           check_success(true, quiet: true)
           check_success(true, quiet: false)
+          check_success(true, quiet: "-Q,QUIET")
           check_error(true, quiet: "gryf")
         end
         it "defaults to false" do
@@ -178,48 +181,11 @@ describe "ShellOpts::ShellOpts" do
       end
     end
 
-    describe "builtin options" do
-#     it "handles renames"
-#     def check_rename(option, spec
-#     end
-
-      context "when a string" do
-        it "sets #version to true" do
-          s = ShellOpts::ShellOpts.new(version: "1.2.3")
-          expect(s.version).to eq true
-        end
-
-        context "when the string matches /<option>:<version>/" do
-          it "renames the option" do
-            s = compile(exception: true, version: "-V,VERSION:1.2.3")
-            expect(s.grammar.dot(:VERSION).ident).to eq :VERSION
-          end
-          it "sets #version_number to the given value"
-        end
-          
-        context "when the string matches /<option>/" do
-          it "renames the option" do
-            s = compile(exception: true, help: "-H,HELP")
-            expect(s.grammar[:HELP]).not_to eq nil
-          end
-        end
-
-        context "when the string matches /<version>/" do
-          it "sets #version_number to the given value"
-        end
-      end
-
-    end
-
   end
 
   describe "#compile" do
     def find_builtin_option(shellopts = nil, ident, **opts)
       shellopts ||= compile(**opts)
-#     shellopts.grammar.dot(ident)
-#p ident
-#p shellopts.grammar[ident]
-#     shellopts.grammar.dump
       shellopts.grammar[ident]
     end
 
@@ -264,7 +230,10 @@ describe "ShellOpts::ShellOpts" do
       expect(has_builtin_option?(:help, help: false)).to eq false
       expect(has_builtin_option? :help).to eq true
     end
-    it "creates a --version grammar option"
+    it "creates a --version grammar option by default" do
+      expect(has_builtin_option?(:version, version: false)).to eq false
+      expect(has_builtin_option? :version).to eq true
+    end
     it "creates a --quiet grammar option when #quiet is true" do
       expect(has_builtin_option?(:quiet)).to eq false
       expect(has_builtin_option?(:quiet, quiet: true)).to eq true
@@ -281,6 +250,69 @@ describe "ShellOpts::ShellOpts" do
     end
 
     it "sets #doc"
+
+    describe "builtin options" do
+      it "substitutes %short with the short option name" do
+      end
+
+      context "when ShellOpts#<option> is a string" do
+        let(:compile_with_patched_quiet) { 
+          so = ShellOpts::ShellOpts.new(exception: true, quiet: true)
+          so.builtin_options[:quiet][2] = "short: %short, long: %long"
+          so.compile("-a")
+        }
+
+        it "sets the option to true" do
+          s = compile(exception: true, help: "-H,HELP")
+          expect(s.help).to eq true
+        end
+        it "renames the option" do
+          s = compile(exception: true, help: "-H,HELP")
+          expect(s.grammar[:HELP]).not_to eq nil
+        end
+        it "substitutes %short in the doc" do
+          s = compile_with_patched_quiet
+          p s.grammar[:quiet].description
+          p s.grammar[:quiet].description =~ /short: -q.*/
+          expect(s.grammar[:quiet].description).to match /short: -q.*/
+#         expect(with_patched_quiet.builtin_options[:quiet][2]).to match /short: -q/
+        end
+        it "substitutes %long in the doc" do
+          expect(with_patched_quiet.builtin_options[:quiet][2]).to match /long: -quiet/
+        end
+      end
+    end
+
+    describe "#version option" do
+      context "when then string matches /<option>/" do
+        it "sets #version to true" do
+          s = ShellOpts::ShellOpts.new(version: "-V,VERSION")
+          expect(s.version).to eq true
+        end
+        it "renames the option" do
+          s = compile(exception: true, help: "-V,VERSION")
+          expect(s.grammar[:VERSION]).not_to eq nil
+        end
+      end
+
+      context "when the string matches /<option>:<version>/" do
+        it "renames the option" do
+          s = compile(exception: true, version: "-V,VERSION:1.2.3")
+          expect(s.grammar.dot(:VERSION).ident).to eq :VERSION
+        end
+        it "sets #version_number to the given value" do
+          s = compile(exception: true, version: "-V,VERSION:1.2.3")
+          expect(s.version_number).to eq "1.2.3"
+        end
+      end
+        
+      context "when the string matches /<version>/" do
+        it "sets #version_number to the given value" do
+          s = compile(exception: true, version: "1.2.3")
+          expect(s.version_number).to eq "1.2.3"
+        end
+      end
+    end
   end
 
   describe "#interpret" do
@@ -306,6 +338,7 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 end
+
 __END__
     it "sets #<builtin>_option to the associated Grammar object" do
 #     args = ::ShellOpts::ShellOpts::BUILTIN_OPTIONS.keys.map { |opt,_| [opt, true] }.to_h

@@ -99,6 +99,17 @@ module ShellOpts
       def self.accepts = [Node] # Anything can go into a description. FIXME
     end
 
+    # A TextDescription has a single Paragraph child. It is used internally
+    class TextDescription < Description
+      def paragraph = children.first
+      def text = paragraph.text
+
+      def initialize(parent, token, text)
+        super(parent, token)
+        Paragraph.new(self, token, text)
+      end
+    end
+
     class EmptyDescription < Description
       def initialize(parent) super(parent, parent.token) end
     end
@@ -262,8 +273,6 @@ module ShellOpts
     # command.  #option_subgroup, #option_group, and #brief returns nil in the
     # last case
     class Option < Node
-      def name = token.value.sub(/^-+/, "") # FIXME FIXME FIXME
-
       # The parent subgroup. nil if the option is attached to a command
       def option_subgroup = parent.is_a?(OptionSubGroup) ? parent : nil
 

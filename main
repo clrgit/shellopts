@@ -216,8 +216,9 @@ spec = %(
 )
 
 sh = ShellOpts::ShellOpts.new(
-    version: "1.2.3", 
-    quiet: true, verbose: true, debug: true,
+#   version: "-V,VERSION:1.2.3", 
+    version: false, 
+    quiet: "-Q,QUIET", verbose: true, debug: true,
     exception: true) 
 sh.compile(spec)
 sh.grammar.dump(&:debug)
@@ -238,8 +239,13 @@ compile(spec).dump(format: :debug)
 g = compile(spec_singleline)
 g.filter(ShellOpts::Ast::Option) { |opt|
   p opt
+  p opt.name
   p opt.names
+  p opt.ident
+  p opt.idents
 }
+
+
 
 exit
 

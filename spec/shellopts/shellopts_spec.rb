@@ -1,7 +1,7 @@
 
 describe "ShellOpts::ShellOpts" do
   def default_source = "-a"
-  def make(*args, **opts) = ShellOpts::ShellOpts.new(*args, **opts)
+  def make(*args, exception: true, **opts) = ShellOpts::ShellOpts.new(*args, exception: exception, **opts)
   def compile(src = nil, *args, **opts) = make(*args, **opts).compile(src || default_source)
 
   def attr(src, member, *args, **opts)
@@ -176,11 +176,11 @@ describe "ShellOpts::ShellOpts" do
           check_constrain_error(true, exception: "gryf")
         end
         it "defaults to false" do
-          check_val(true, :exception, false)
+          s = ShellOpts::ShellOpts.new.compile(default_source)
+          expect(s.exception).to eq false
         end
       end
     end
-
   end
 
   describe "#compile" do
@@ -251,34 +251,59 @@ describe "ShellOpts::ShellOpts" do
 
     it "sets #doc"
 
+
     describe "builtin options" do
       it "substitutes %short with the short option name" do
       end
 
       context "when ShellOpts#<option> is a string" do
-        let(:compile_with_patched_quiet) { 
-          so = ShellOpts::ShellOpts.new(exception: true, quiet: true)
-          so.builtin_options[:quiet][2] = "short: %short, long: %long"
-          so.compile("-a")
-        }
+        # Using :quiet as test case
+        def compile_with_patched_quiet(patch, quiet: true, **opts)
+          patch = Array(patch).flatten
+          so = ShellOpts::ShellOpts.new(quiet: quiet, **opts)
+          so.builtin_options[:quiet][2] = patch.first
+          so.builtin_options[:quiet][3] = patch.last if patch.size > 1
+          so.compile(default_source)
+        end
 
         it "sets the option to true" do
-          s = compile(exception: true, help: "-H,HELP")
+          s = compile(help: "-H,HELP")
           expect(s.help).to eq true
         end
         it "renames the option" do
-          s = compile(exception: true, help: "-H,HELP")
+          s = compile(help: "-H,HELP")
           expect(s.grammar[:HELP]).not_to eq nil
         end
         it "substitutes %short in the doc" do
-          s = compile_with_patched_quiet
-          p s.grammar[:quiet].description
-          p s.grammar[:quiet].description =~ /short: -q.*/
-          expect(s.grammar[:quiet].description).to match /short: -q.*/
-#         expect(with_patched_quiet.builtin_options[:quiet][2]).to match /short: -q/
+          s = compile_with_patched_quiet("short: %short")
+          expect(s.grammar[:quiet].description.text).to eq "short: -q"
         end
         it "substitutes %long in the doc" do
-          expect(with_patched_quiet.builtin_options[:quiet][2]).to match /long: -quiet/
+          s = compile_with_patched_quiet("long: %long")
+          expect(s.grammar[:quiet].description.text).to eq "long: --quiet"
+        end
+        it "substitutes %short with renamed value if present" do
+          s = compile_with_patched_quiet("short: %short", quiet: "-Q")
+          expect(s.grammar[:Q].description.text).to eq "short: -Q"
+        end
+        it "substitutes %long with renamed value if present" do
+          s = compile_with_patched_quiet("long: %long", quiet: "--QUIET")
+          expect(s.grammar[:QUIET].description.text).to eq "long: --QUIET"
+        end
+        context "with two descriptions" do
+          it "only includes the first description if there is a short option" do
+            s = compile_with_patched_quiet(["short: %short", "long"], quiet: "--QUIET")
+            expect(s.grammar[:QUIET].description.text).to eq "long"
+          end
+          it "only prints the long variant if there is a long option" do
+            s = compile_with_patched_quiet(["short", "long %long"], quiet: "-Q")
+            expect(s.grammar[:Q].description.text).to eq "short"
+          end
+          it "concatenates the descriptions if both short and long options are present" do
+            s = compile_with_patched_quiet(["short %short", "long %long"], quiet: "-Q,QUIET")
+            expect(s.grammar[:QUIET].description.text).to eq "short -Q, long --QUIET"
+            
+          end
         end
       end
     end
@@ -290,25 +315,25 @@ describe "ShellOpts::ShellOpts" do
           expect(s.version).to eq true
         end
         it "renames the option" do
-          s = compile(exception: true, help: "-V,VERSION")
+          s = compile(help: "-V,VERSION")
           expect(s.grammar[:VERSION]).not_to eq nil
         end
       end
 
       context "when the string matches /<option>:<version>/" do
         it "renames the option" do
-          s = compile(exception: true, version: "-V,VERSION:1.2.3")
+          s = compile(version: "-V,VERSION:1.2.3")
           expect(s.grammar.dot(:VERSION).ident).to eq :VERSION
         end
         it "sets #version_number to the given value" do
-          s = compile(exception: true, version: "-V,VERSION:1.2.3")
+          s = compile(version: "-V,VERSION:1.2.3")
           expect(s.version_number).to eq "1.2.3"
         end
       end
         
       context "when the string matches /<version>/" do
         it "sets #version_number to the given value" do
-          s = compile(exception: true, version: "1.2.3")
+          s = compile(version: "1.2.3")
           expect(s.version_number).to eq "1.2.3"
         end
       end

@@ -243,6 +243,7 @@ module ShellOpts
         ast_group = Ast::OptionGroup.new(ast_defn, token)
         ast_subgroup = Ast::OptionSubGroup.new(ast_group, token)
         ast_option = parser.send(:parse_option_token, ast_subgroup, Token.new(:option, 0, 0, spec))
+
         Ast::Brief.new(ast_subgroup, Token.new(:text, 1, 1, brief)) if brief
 
         if descr1.nil?
@@ -250,16 +251,13 @@ module ShellOpts
         else
           short_name = ast_option.short_names.first
           long_name = ast_option.long_names.first
-          descr = ""
-          descr += descr1 if descr1 && (descr2.nil? || short_name)
-          descr += descr2 if descr2 && long_name
+          descrs = []
+          descrs << descr1 if descr1 && (descr2.nil? || short_name)
+          descrs << descr2 if descr2 && long_name
+          descr = descrs.join(", ")
           descr.gsub!(/%short/, short_name) if short_name
           descr.gsub!(/%long/, long_name) if long_name
-#         puts
-#         puts ">> #{descr1.inspect} <<"
-#         puts ">> #{descr2.inspect} <<"
-#         puts ">> #{descr.inspect} <<"
-          Ast::Description.new(ast_defn, Token.new(:text, 1, 1, descr))
+          Ast::TextDescription.new(ast_defn, token, descr)
         end
 
         option = Grammar::Option.new(@grammar, ast_option)

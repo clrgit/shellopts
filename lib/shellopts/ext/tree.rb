@@ -296,6 +296,7 @@ module Tree
     def attach(child) = @children << child
   end
 
+  # This is an abstract base class for Tree::Map and Tree::Set
   class HashTree < AbstractTree
     attr_reader :nodes
     def children = nodes.values
@@ -318,6 +319,11 @@ module Tree
   end
 
   class Set < HashTree
+    # Note that it doesn't make much sense to have a Map#path because a node
+    # doesn't know its key, and on the other hand, if a node knows its key,
+    # then we could just as well use a Map#Set instead
+    def path = (follow(parent, :parent).to_a.reverse.map(&:key) + [key]).join(".")
+
   protected
     def key = abstract_method
     def attach(child) = attach_by_key(child, child.send(:key))

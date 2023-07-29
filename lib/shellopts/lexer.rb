@@ -1,7 +1,8 @@
 
 module ShellOpts
   class Lexer
-    OPTION_RE = /--?\S/
+    # TODO: Move all REs to a re.rb file
+    OPTION_RE = /(?:--?|\+\+?)\S/
 
     # Commands are always lower-case. This prevents collision with named
     # arguments that are always upper-case

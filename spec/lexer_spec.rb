@@ -51,6 +51,16 @@ describe "Lexer" do
       expect(make src, fields: :source).to eq %w(-a,all --beta -c,config --data)
     end
 
+    it "create repeatable option tokens" do
+      src = %(
+        +a,all
+        ++beta
+        +c,config ++data
+      )
+      expect(make src, fields: :kind).to eq [:option, :option, :option, :option]
+      expect(make src, fields: :source).to eq %w(+a,all ++beta +c,config ++data)
+    end
+
     it "creates command tokens" do
       src = %(
         cmd!

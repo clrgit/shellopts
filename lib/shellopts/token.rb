@@ -91,6 +91,7 @@ module ShellOpts
     alias_method :pos, :location # FIXME Rename pos -> location
 
     def inspect
+      raise
       "<#{self.class.name} #{location} #{kind.inspect} #{value.inspect}>"
     end
 

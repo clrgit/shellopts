@@ -105,6 +105,8 @@ module ShellOpts
 
     # Redefine ::new to call #__initialize__
     def self.new(grammar)
+      ::Constrain.constrain grammar, Grammar::Command
+      ::Constrain.constrain grammar.is_a?(Grammar::Group), false
       object = super()
       object.__send__(:__initialize__, grammar)
       object
@@ -140,7 +142,6 @@ module ShellOpts
         
       }
       
-
       __grammar__.key?(uid) or ::Kernel.raise ::ArgumentError, "'#{uid}' is not a valid UID"
       idents = uid.to_s.gsub(/\./, "!.").split(/\./).map(&:to_sym)
       idents.inject(self) { |cmd, ident|
@@ -177,7 +178,6 @@ module ShellOpts
       keys = keys.empty? ? __option_values__.keys : keys
       keys.filter_map { |key| __option_values__.key?(key) && [key, self.__send__(key)] }.to_h
     end
-
 
     # Subcommand identifier or nil if not present. #subcommand is often used in
     # case statement to branch out to code that handles the given subcommand:
@@ -253,6 +253,9 @@ module ShellOpts
 
     # True if ident is the actual subcommand
     def __subcommand__?(ident) = __subcommand__&.__ident__ == ident
+
+    # Like Object#class
+    def __class__ = Command
 
   private
     def __initialize__(grammar)
@@ -331,7 +334,9 @@ module ShellOpts
     end
 
     def __define_command_methods__
-      @__grammar__.commands.each { |cmd|
+      ::Constrain.constrain @__grammar__, Grammar::Command
+      ::Constrain.constrain @__grammar__.is_a?(Grammar::Group), false
+      @__grammar__.group.commands.each { |cmd|
         next if cmd.ident.nil?
         self.instance_eval %(
           def #{cmd.ident}() 
@@ -373,6 +378,8 @@ module ShellOpts
     attr_accessor :__quiet__
     attr_accessor :__verbose__
     attr_accessor :__debug__
+
+    def __class__ = Program
 
     def initialize
       super

@@ -14,6 +14,7 @@ module ShellOpts
     using Ext::Array::ShiftWhile # FIXME: Still needed?
     using Ext::Array::PopWhile
 
+    # TODO: Move all REs to a re.rb file (or put them in ShellOpts)
     SHORT_OPTION_NAME_RE = /[a-zA-Z0-9?]/
     LONG_OPTION_NAME_RE = /[a-zA-Z0-9][a-zA-Z0-9_-]*/
     OPTION_NAME_RE=/(?:#{SHORT_OPTION_NAME_RE}|#{LONG_OPTION_NAME_RE})/
@@ -88,7 +89,6 @@ module ShellOpts
       descr = Ast::Description.new(@ast, token)
 
       tokens.consume(nil, nil, nil) { |token|
-        indent {
         case token.kind
           when :option
             parse_singleline_option(descr, token)
@@ -106,7 +106,6 @@ module ShellOpts
         else
           parser_error token, "Illegal syntax"
         end
-        }
       }
       tokens.empty? or parser_error tokens.head, "Unexpected token"
     end

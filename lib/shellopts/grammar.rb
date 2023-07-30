@@ -70,22 +70,23 @@ module ShellOpts
       # Limit error output
       def inspect = "#{token&.value} (#{self.class})"
 
-      def dot(expr) # TODO: Tests
-        constrain expr, Symbol, String
-        expr
+      def dot(path)
+        indent {
+        constrain path, Symbol, String
+        path
           .to_s.gsub(/\./, "!.")
           .split(/\./)
           .map { |expr| expr =~ /^(.*)\[(.*)\]$/ ? ["#$1!".to_sym, $2.to_i] : expr.to_sym }
           .flatten
-          .inject(self) { |node, expr| node.dot_eval(expr) }
+          .inject(self) { |node, expr| node&.dot_eval(expr) }
+        }
       end
 
     protected
       # Used by Tree
       def key = ident
 
-      def dot_eval(expr) = dot_error expr
-      def dot_error(expr) = raise ArgumentError, "Illegal expression in #{self.class}#dot: #{expr.inspect}"
+      def dot_eval(path) = abstract_method
 
     private
       # Top-level Grammar object. Initialized in Grammar#initialize
@@ -108,6 +109,9 @@ module ShellOpts
       # List of arguments
       def args = children.select { |c| c.is_a? Arg }
 
+      def subcommands = group.subcommands
+      def subcommand?(ident) = group.subcommand?(ident)
+
       def initialize(parent, ident, ast, name: nil, callable: true, **opts)
         constrain parent, Group, nil
         name ||= ident.to_s[0..-2]
@@ -120,20 +124,20 @@ module ShellOpts
         constrain expr, Symbol, Integer
         case expr
           when Symbol
-            if group.subcommand?(expr) # subcommand or group-option
-              group.subcommands.find { |cmd| cmd.ident == expr }
+            if subcommand?(expr) # subcommand
+              subcommands.find { |cmd| cmd.ident == expr }
             elsif self.key?(expr) # command-option
               self[expr]
             elsif group.key?(expr) # group-option
               group[expr]
             else
-              dot_error expr
+              nil
             end
           when Integer
             if (0...args.size).include?(expr) # args
               args[expr]
             else
-              dot_error expr
+              nil
             end
         end
       end
@@ -166,7 +170,7 @@ module ShellOpts
       end
 
       # Subcommands. Sub-commands are the commands of the sub-groups
-      def subcommand?(ident) = groups.any? { _1.key?(ident) }
+      def subcommand?(ident) = !subcommands.find { _1.ident == ident }.nil?
       def subcommands = groups.map(&:commands).flatten
     end
 

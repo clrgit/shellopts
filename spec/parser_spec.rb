@@ -49,6 +49,14 @@ describe "Parser" do
                   -c
           )
         end
+        it "accepts repeated options" do
+          s = "+a"
+          check s, %(
+            group
+              subgroup
+                +a
+          )
+        end
         it "accepts option lists" do
           s = "-a,b"
           check s, %(

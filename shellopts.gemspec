@@ -23,11 +23,12 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "forward_to"
+  spec.add_dependency "abstract_method_error"
   spec.add_dependency "constrain", "~> 0.8"
   spec.add_dependency "follow"
-  spec.add_dependency "ruby-terminfo-r3"
+  spec.add_dependency "forward_to"
   spec.add_dependency "indented_io"
+  spec.add_dependency "ruby-terminfo-r3"
 
   spec.add_development_dependency "rake"
   spec.add_development_dependency "rspec"

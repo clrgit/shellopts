@@ -3,6 +3,8 @@ require 'set'
 
 require 'indented_io'
 
+require 'abstract_method_error'
+
 require 'constrain'
 include Constrain
 

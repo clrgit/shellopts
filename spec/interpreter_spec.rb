@@ -15,7 +15,7 @@ describe "Interpreter" do
   end
 
   def render_option(command, ident, value)
-    option = command.__grammar__[ident]
+    option = command.__grammar__.dot(ident)
     if option.repeatable?
       arg = "*#{value}"
     elsif value
@@ -34,28 +34,61 @@ describe "Interpreter" do
     ].flatten.compact.join(" ")
   end
 
-  def interpret(spec, argv)
+  def analyze(spec)
     multiline = !spec.index("\n").nil?
-    tokens = Lexer.lex("main", spec, singleline)
+    tokens = Lexer.lex("main", spec)
     ast = Parser.parse(tokens, multiline: multiline)
-    grammar = Analyzer.analyze(ast) # @grammar and @ast refer to the same object
-    expr, args = Interpreter.interpret(grammar, argv)
+    grammar, doc = Analyzer.analyze(ast) # @grammar and @ast refer to the same object
+    [grammar, doc]
+  end
 
-    render_command(expr)
+  def interpret(spec, argv, **opts)
+    grammar, doc = analyze(spec)
+    Interpreter.interpret(grammar, argv, **opts)
+  end
+
+  def compile(spec, argv, **opts)
+    command, args = interpret(spec, argv, **opts)
+    render_command(command)
+  end
+
+  def program(spec, argv)
+    command, args = interpret(spec, argv)
+    command
+  end
+
+  def check_success(spec, argv, **opts)
+    expect { compile(spec, argv, **opts) }.not_to raise_error
+  end
+
+  def check_failure(spec, argv, **opts)
+    expect { compile(spec, argv, **opts) }.to raise_error ShellOpts::Error
   end
 
   it "splits coalesced short options" do
-    expect(interpret "+a", %w(-aa)).to eq "main -a*2"
-    expect(interpret "-a -b", %w(-ab)).to eq "main -a -b"
+    expect(compile "+a", %w(-aa)).to eq "main -a*2"
+    expect(compile "-a -b", %w(-ab)).to eq "main -a -b"
   end
 
-  context "when float is true" do
-    it "allows options everywhere" do
-      expect(interpret "-a cmd! -b", %w(cmd -a -b)).to eq "main -a cmd -b"
+  context "when #float is true" do
+    it "allows options everywhere after their command" do
+      expect(compile "-a cmd! -b", %w(cmd -a -b)).to eq "main -a cmd -b"
+    end
+    it "does not allow options before their command" do
+      check_failure("-a cmd! -b", %w(-a -b cmd1))
     end
     it "sub-commands can override outer options" do
-      expect(interpret "-a cmd! +a", %w(-a cmd -a -a)).to eq "main -a cmd -a*2"
+      expect(compile "-a cmd! +a", %w(-a cmd -a -a)).to eq "main -a cmd -a*2"
     end
+  end
+  context "when #float is false" do
+    it "only allows options immediately after their command" do
+      check_success("-a cmd! -b", %w(-a cmd -b), float: false)
+      check_failure("-a cmd! -b", %w(cmd -a -b), float: false)
+    end
+  end
+  context "when #liquid is true" do
+    it "allows options anywhere"
   end
 end
 

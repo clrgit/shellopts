@@ -322,7 +322,15 @@ module Tree
     # Note that it doesn't make much sense to have a Map#path because a node
     # doesn't know its key, and on the other hand, if a node knows its key,
     # then we could just as well use a Map#Set instead
-    def path = (follow(parent, :parent).to_a.reverse.map(&:key) + [key]).join(".")
+    def path
+      (
+        follow(parent, :parent)
+            .map { _1.send(:key).to_s }
+            .select { !_1.empty? } # Eliminate root object
+            .reverse + [key]
+      ).join(".")
+#     (follow(parent, :parent).map { _1.send(:key) }.reverse + [key]).join(".")
+    end
 
   protected
     def key = abstract_method

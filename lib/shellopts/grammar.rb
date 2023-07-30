@@ -216,6 +216,7 @@ module ShellOpts
       end
     end
 
+    # TODO: Add a float option that is used to allow --help, -h everywhere
     class BuiltinOption < Option; end
   end
 end

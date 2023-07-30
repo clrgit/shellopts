@@ -181,11 +181,15 @@ module ShellOpts
     # Use grammar to interpret arguments. Return a ShellOpts::Program and
     # ShellOpts::Args tuple
     def interpret(argv)
-      handle_exceptions { 
+      handle_exceptions {
+        # TODO make a begin rescue block around the interpreter and allow
+        # syntax errors as long as there is a --help or -h option
+        # TODO make --help, -h float-always
+
         @argv = argv.dup
         @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
 
-        # Process standard options (that may have been renamed)
+        # --help option (that may have been renamed)
         if @program.__send__(:"#{@help_option.ident}?")
           if @program[:help].name =~ /^--/
             ShellOpts.help
@@ -193,10 +197,15 @@ module ShellOpts
             ShellOpts.brief
           end
           exit
+
+        # --version option
         elsif @program.__send__(:"#{@version_option.ident}?")
           puts version_number
           exit
+
+        # other builtin options
         else
+          @program.__debug__ = @program.__send__(:"#{@debug_option.ident}?") if @debug
           @program.__quiet__ = @program.__send__(:"#{@quiet_option.ident}?") if @quiet
           @program.__verbose__ = @program.__send__(:"#{@verbose_option.ident}") if @verbose
           @program.__debug__ = @program.__send__(:"#{@debug_option.ident}?") if @debug

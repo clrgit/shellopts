@@ -28,6 +28,7 @@ module ShellOpts
           break
         elsif arg =~ /^-|\+/
           interpret_option(command, arg)
+          # TODO: if option.__grammar__.suspend_error? ...
         elsif @args.empty? && command.__grammar__.subcommand?(:"#{arg}!")
           command = interpret_command(command, arg)
         elsif @float

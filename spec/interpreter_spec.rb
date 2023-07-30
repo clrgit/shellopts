@@ -73,6 +73,11 @@ describe "Interpreter" do
   context "when #float is true" do
     it "allows options everywhere after their command" do
       expect(compile "-a cmd! -b", %w(cmd -a -b)).to eq "main -a cmd -b"
+#     puts "-----------------------------------"
+#     opts, args = interpret("-a cmd! -b", %w(cmd -a -b))
+#     p opts.__option_hash__
+#     p opts.a?
+#     exit
     end
     it "does not allow options before their command" do
       check_failure("-a cmd! -b", %w(-a -b cmd1))
@@ -85,6 +90,7 @@ describe "Interpreter" do
     it "only allows options immediately after their command" do
       check_success("-a cmd! -b", %w(-a cmd -b), float: false)
       check_failure("-a cmd! -b", %w(cmd -a -b), float: false)
+
     end
   end
   context "when #liquid is true" do

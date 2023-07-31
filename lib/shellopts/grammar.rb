@@ -112,6 +112,8 @@ module ShellOpts
       def subcommands = group.subcommands
       def subcommand?(ident) = group.subcommand?(ident)
 
+      def alloptions = options + group.options
+
       def initialize(parent, ident, ast, name: nil, callable: true, **opts)
         constrain parent, Group, nil
         name ||= ident.to_s[0..-2]

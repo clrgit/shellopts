@@ -98,6 +98,14 @@ module ShellOpts
     define_method(:is_a?, ::Kernel.method(:is_a?))
 
     # These names can't be used as option or command names
+    #
+    # TODO: 
+    #   o Is #is_a? and to_h reserved names?
+    #   o Is #is_a (without '?') a typo? No
+    #   o Make #nil a soft reserved word? Together with #class and maybe others?
+    #   o Make a method that declares __*__ methods for "soft" reserved methods
+    #   o Create ShellOpts::is_a?, to_h, nil?, class etc.
+    #
     RESERVED_OPTION_NAMES = %w(
         is_a to_h instance_eval instance_exec method_missing singleton_method_added
         singleton_method_removed singleton_method_undefined
@@ -116,20 +124,18 @@ module ShellOpts
     # otherwise nil. Returns a possibly empty array of option objects if the
     # option is repeatable. Raise an ArgumentError if the key doesn't exists
     #
-    # The +key+ is the symbolic UID of the object. Eg. :command.option or
-    # :command.subcommand!
+    # The +key+ is the symbolic UID of the object. Eg. :option, :command!,
+    # :command.option or :command.subcommand!
     #
     # TODO: uid = nil (the default) is the subcommand if present and otherwise nil
     #
     def [](uid = nil)
-      !uid.nil? or return __subcommand__
+      !uid.nil? or return __subcommand__!
 
       names = uid.to_s.gsub(/\./, "!.").split(/\./)
       idents = names.map(&:to_sym)
 
       names.inject(self) { |cmd, name|
-#       if name.end_with?("!")
-          
         case name
           when /!$/
             return nil if cmd.__subcommand__ != ident
@@ -138,8 +144,6 @@ module ShellOpts
             opt = cmd.__option_hash__[ident]
             opt.nil? && cmd.__grammar__[ident].repeatable? ? [] : opt
         end
-            
-        
       }
       
       __grammar__.key?(uid) or ::Kernel.raise ::ArgumentError, "'#{uid}' is not a valid UID"
@@ -156,7 +160,7 @@ module ShellOpts
       }
     end
 
-    def key?(ident)
+    def key?(ident) # TODO Use or remove
     end
 
     # Returns a hash from option ident to value
@@ -254,7 +258,7 @@ module ShellOpts
     # True if ident is the actual subcommand
     def __subcommand__?(ident) = __subcommand__&.__ident__ == ident
 
-    # Like Object#class
+    # Like Object#class. Used for debug
     def __class__ = Command
 
   private
@@ -270,15 +274,8 @@ module ShellOpts
     end
 
     def __define_option_methods__
-      @__grammar__.options.each { |opt|
-        if !opt.repeatable?
-          self.instance_eval %(
-            def #{opt.ident}?() 
-              @__option_values__.key?(:#{opt.ident}) 
-            end
-          )
-        end
-        
+      @__grammar__.alloptions.each { |opt|
+        ::Kernel.puts "  #{opt.inspect}"
         if opt.repeatable?
           if opt.argument?
             self.instance_eval %(
@@ -311,24 +308,33 @@ module ShellOpts
               end
             )
           end
-
-        elsif opt.argument?
-          self.instance_eval %(
-            def #{opt.ident}(default = nil)
-              if @__option_values__.key?(:#{opt.ident}) 
-                @__option_values__[:#{opt.ident}]
-              else
-                default
-              end
-            end
-          )
-
         else
-          self.instance_eval %(
-            def #{opt.ident}() 
-              @__option_values__.key?(:#{opt.ident}) 
-            end
-          )
+          if !opt.repeatable?
+            self.instance_eval %(
+              def #{opt.ident}?() 
+                @__option_values__.key?(:#{opt.ident}) 
+              end
+            )
+          end
+
+          if opt.argument?
+            self.instance_eval %(
+              def #{opt.ident}(default = nil)
+                if @__option_values__.key?(:#{opt.ident}) 
+                  @__option_values__[:#{opt.ident}]
+                else
+                  default
+                end
+              end
+            )
+
+          else
+            self.instance_eval %(
+              def #{opt.ident}() 
+                @__option_values__.key?(:#{opt.ident}) 
+              end
+            )
+          end
         end
       }
     end
@@ -336,7 +342,7 @@ module ShellOpts
     def __define_command_methods__
       ::Constrain.constrain @__grammar__, Grammar::Command
       ::Constrain.constrain @__grammar__.is_a?(Grammar::Group), false
-      @__grammar__.group.commands.each { |cmd|
+      @__grammar__.subcommands.each { |cmd|
         next if cmd.ident.nil?
         self.instance_eval %(
           def #{cmd.ident}() 

@@ -15,6 +15,8 @@ require_relative 'shellopts/ext/forward_to.rb'
 include ForwardTo
 
 module ShellOpts
+  # TODO: Move to exceptions
+
   # Base error class
   #
   # Note that errors in the usage of the ShellOpts library are reported using

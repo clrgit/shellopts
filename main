@@ -217,11 +217,21 @@ spec = %(
 
 sh = ShellOpts::ShellOpts.new(
 #   version: "-V,VERSION:1.2.3", 
-    version: false, 
+    version: "1.2.3", 
+#   version: true,
     quiet: "-Q,QUIET", verbose: true, debug: true,
     exception: true) 
 sh.compile(spec)
 sh.grammar.dump(&:debug)
+puts
+sh.interpret %w(-a cmd1 -c)
+p sh.program.a
+p sh.program.b
+p sh.program.cmd1!.__class__
+p sh.program.cmd2!.class
+#p sh.program[]
+p sh.program[].c
+
 exit
 
 

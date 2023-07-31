@@ -55,6 +55,7 @@ module ShellOpts
     # The #builtin_idents maps from the builtin option identifier to the
     # renamed option identifier, so that ShellOpts still can find the options
     # when it is processing them
+    #
 
     # Automatically add a -h and a --help option if true. Default true
     attr_reader :help
@@ -72,15 +73,18 @@ module ShellOpts
 
     # Automatically add a -q and a --quiet option if true. Default false
     attr_reader :quiet
-
+  
     # Automatically add a -v and a --verbose repeatable option if true. Default false
     attr_reader :verbose
 
     # Automatically add a --debug option if true. Default false
     attr_reader :debug
 
-    # Lookup builtin option. Initialized by #compile
-    def builtin_option(ident) = program.send(@builtin_idents[ident])
+    # Return value of a builtin option.  Builtin options can be renamed, so we
+    # have to use indirection Returns nil if the option is missing or
+    # undeclared. Depends on data initialized by #compile. TODO: Replace
+    # implemetation with @program[@builtin_idents[ident]]
+    def builtin_option(ident) = @builtin_idents[ident] && program.__send__(@builtin_idents[ident])
 
     ### ERROR HANDLING ###
 
@@ -161,8 +165,7 @@ module ShellOpts
       raise NotImplementedError
     end
 
-    # Compile source and return grammar object. Also sets #spec and #grammar.
-    # Returns self
+    # Compile source and set #spec and #grammar. Returns self
     def compile(spec)
       constrain spec, String
       handle_exceptions {
@@ -178,19 +181,20 @@ module ShellOpts
       self
     end
 
-    # Use grammar to interpret arguments. Return a ShellOpts::Program and
-    # ShellOpts::Args tuple
+    # Use grammar to interpret arguments. Returns self
     def interpret(argv)
+      constrain argv, [String]
       handle_exceptions {
         # TODO make a begin rescue block around the interpreter and allow
         # syntax errors as long as there is a --help or -h option
         # TODO make --help, -h float-always
+        # TODO make --help, -h available everywhere (alternative to float)
 
         @argv = argv.dup
         @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
 
         # --help option (that may have been renamed)
-        if @program.__send__(:"#{@help_option.ident}?")
+        if builtin_option(:help)
           if @program[:help].name =~ /^--/
             ShellOpts.help
           else
@@ -199,16 +203,15 @@ module ShellOpts
           exit
 
         # --version option
-        elsif @program.__send__(:"#{@version_option.ident}?")
-          puts version_number
+        elsif builtin_option(:version)
+          puts "#{name} #{version_number}"
           exit
 
         # other builtin options
-        else
-          @program.__debug__ = @program.__send__(:"#{@debug_option.ident}?") if @debug
-          @program.__quiet__ = @program.__send__(:"#{@quiet_option.ident}?") if @quiet
-          @program.__verbose__ = @program.__send__(:"#{@verbose_option.ident}") if @verbose
-          @program.__debug__ = @program.__send__(:"#{@debug_option.ident}?") if @debug
+        else # FIXME What are these used for?
+#         @program.__quiet__ = @program.__send__(:"#{@quiet_option.ident}?") if @quiet
+#         @program.__verbose__ = @program.__send__(:"#{@verbose_option.ident}") if @verbose
+#         @program.__debug__ = @program.__send__(:"#{@debug_option.ident}?") if @debug
         end
       }
       self

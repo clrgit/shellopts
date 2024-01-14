@@ -29,7 +29,7 @@ module ShellOpts
     attr_reader :text
 
     # The text with in-line comments removed. This is only relevant for lines
-    # that are part of a definition, paragraphs and other text elements can't
+    # that are part of a definition; paragraphs and other text elements can't
     # be commented. Computed lazily
     def expr = @expr ||= text.sub(/\s+#.*/, "")
 

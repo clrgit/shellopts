@@ -10,28 +10,28 @@ Scan SPEC using indent to nest objects
   block_element:
     brief
     arguments
-    section
-    command
     option
+    command
+    section
     text
 
   brief: 
     '@' LINE
 
-  option_declaration:
-    ('-'|'--'|'+'|'++')OPTION['='VALUE]
+  argument_declaration: 
+    ARGUMENT
 
   arguments:
     '--' argument_declaration+
 
-  command:
-    COMMAND'!' option_declaration* arguments? brief? block?
+  option_declaration:
+    ('-'|'--'|'+'|'++')OPTION['='VALUE]
 
   option:
     option_declaration brief? text_block?
     
-  argument_declaration: 
-    ARGUMENT
+  command:
+    COMMAND'!' option_declaration* arguments? brief? block?
 
   section:
     UPPERCASE block_element*

@@ -1,0 +1,50 @@
+
+Scan SPEC using indent to nest objects
+
+  spec:
+    block_element+
+
+  block:
+    INDENT block_element+ OUTDENT
+
+  block_element:
+    brief
+    arguments
+    section
+    command
+    option
+    text
+
+  brief: 
+    '@' LINE
+
+  option_declaration:
+    ('-'|'--'|'+'|'++')OPTION['='VALUE]
+
+  arguments:
+    '--' argument_declaration+
+
+  command:
+    COMMAND'!' option_declaration* arguments? brief? block?
+
+  option:
+    option_declaration brief? text_block?
+    
+  argument_declaration: 
+    ARGUMENT
+
+  section:
+    UPPERCASE block_element*
+
+  text:
+    (paragraph | code)+
+
+  text_block:
+    INDENT text OUTDENT
+
+  paragraph:
+    LINE+
+
+  code:
+    BLANK INDENT LINE+ BLANK OUTDENT
+

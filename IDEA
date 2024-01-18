@@ -1,4 +1,26 @@
 
+Have three commands/modules:
+  ShellOpts
+    Parse spec and execute command. If a --help or a -h option is detected,
+    processing is stopped at that point and the corresponding ShellOptsHelp or
+    ShellOptsH is exec(3)'ed
+
+    Problems
+      o Needs a full representation of the command to produce correct error
+        messages. Or make that a module too?
+
+  ShellOptsError
+    (maybe, see above) Parse spec and emit error message
+
+  ShellOptsHelp
+    Parse spec and print help page. --format determines the output format
+    (default text)
+
+  ShellOptsH
+    Parse spec and print short help page. --format determinnes the output format
+
+
+
 Scan SPEC using indent to nest objects
 
   spec:

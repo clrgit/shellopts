@@ -27,8 +27,7 @@ o Add a default argument to extract:
 
 o More strict parsing of option and command lines
 o --option can't be escaped if on the start of a block line?
-o Use require_relative
-o In the following list is a command with a mandatory sub-command
+o In the following, 'list' is a command with a mandatory sub-command
 
   list.tables!
   list.uuids!
@@ -66,6 +65,12 @@ o Support for paging of help:
       file.close 
     end 
 
+o 'help' should list commands in declaration order
+o 'help' should use all levels by default
+o 'help' should always include top-level options (try setting levels: 10 and
+  see top-level options are gone
+
++ Use require_relative
 + Special handling of --help arguments so that '--help command' is possible
 + Allow assignment to options (this makes practical stuff easier)
 + Rename line and char to lineno and charno
@@ -74,24 +79,5 @@ o Support for paging of help:
 + Bold text output
 + Recursive format of commands
 + Rename Compiler -> Interpreter
-
-
-OLD
-
-o Fix that it is near unsable when the user doesn't do 'include ShellOpts'
-o Subcommands can be parsed as well: 
-    opts, args = Shellopts.process(OPTIONS, ARGV)
-    ...
-    opts, command = opts.process
-    case command
-      when ...
-    end
-o 'help' should list commands in declaration order
-o 'help' should use all levels by default
-o 'help' should always include top-level options (try setting levels: 10 and
-  see top-level options are gone
-o A ShellOpts#shift command that makes it possible for Array#expect to emit
-  relevant error messages
-
 + Somehow escape comments where a line starts with an option name
 + Parse and check enumeration arguments ('--debug=tokens|ast|idr|...')

@@ -1,4 +1,5 @@
 
+o New types: DATE DATETIME TIME
 o Remove IFILE and OFILE. Alternatively document them
 o Document special-case file argument '-'
 o Accept both strings and symbols for commands (maybe... ruins the global namespace in #[])

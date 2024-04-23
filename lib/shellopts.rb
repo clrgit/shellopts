@@ -448,24 +448,36 @@ module ShellOpts
   # Emit a message on standard error. The --silent option suppresses these messages
   def self.notice(message, newline: true)
     method = newline ? :puts : :print
-    $stderr.send(method, message) if !silent?
+    if !silent?
+      $stderr.send(method, message)
+      $stderr.flush
+    end
   end
 
   # Emit a message on standard output. The --quiet option suppresses these messages
   def self.mesg(message, newline: true)
     method = newline ? :puts : :print
-    $stdout.send(method, message) if !quiet?
+    if !quiet?
+      $stdout.send(method, message)
+      $stdout.flush
+    end
   end
 
   # Emit a message on standard output. The --verbose option controls these messages
   def self.verb(level = 1, message, newline: true)
     method = newline ? :puts : :print
-    $stdout.send(method, message) if verbose?(level)
+    if verbose?(level)
+      $stdout.send(method, message)
+      $stdout.flush
+    end
   end
 
   def self.debug(message, newline: true)
     method = newline ? :puts : :print
-    $stdout.send(method, message) if debug?
+    if debug?
+      $stdout.send(method, message)
+      $stdout.flush
+    end
   end
 
   module Message

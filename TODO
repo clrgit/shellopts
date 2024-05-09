@@ -1,3 +1,17 @@
+# TODO
+o A program framework to make it easier to handle commands:
+    class Program
+      def check!() end
+      def fix!() end
+      def list!() end
+
+      def initialize(spec, argv)
+      end
+
+      def command(cmd)
+        self.send(cmd.subcommand)
+      end
+    end
 
 o We really need a global #indent/#outdent set of methods
 o Make it possible to override the documentation of built-in options (ex. --verbose)

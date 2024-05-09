@@ -1,4 +1,11 @@
 
+o We really need a global #indent/#outdent set of methods
+o Create global IO-like objects for each output channel: $mesg, $verb, $notice,
+  $warn, $error, $failure so that they can be used together with the usual
+  output functions #puts, #print, #printf, #indent etc.
+
+    ShellOpts.mesg "string" -> $mesg.puts "string"
+
 o Remove IFILE and OFILE. Alternatively document them
 o Document special-case file argument '-'
 o Accept both strings and symbols for commands (maybe... ruins the global namespace in #[])

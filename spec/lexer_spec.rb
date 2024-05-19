@@ -62,11 +62,12 @@ describe "Lexer" do
     end
     it "allows ! to be escaped" do
       src = %(
-        \\cmd!
-        cmd.cmd2!
+        \\cmd1!
+        \\cmd2!
+        cmd3!
       )
-      expect(make src, fields: :kind).to eq [:text, :command]
-      expect(make src, fields: :source).to eq %w(cmd! cmd.cmd2!)
+      expect(make src, fields: :kind).to eq [:text, :text, :command]
+      expect(make src, fields: :source).to eq %w(cmd1! cmd2! cmd3!)
     end
 
     it "creates spec and argument tokens" do

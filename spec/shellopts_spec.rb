@@ -41,7 +41,7 @@ describe "ShellOpts::ShellOpts" do
           ShellOpts.error("msg")
         rescue SystemExit
           ;
-        ensure 
+        ensure
           $stderr = hold
         end
       end
@@ -69,7 +69,7 @@ describe "ShellOpts::ShellOpts" do
           ShellOpts.failure("msg")
         rescue SystemExit
           ;
-        ensure 
+        ensure
           $stderr = hold
         end
       end
@@ -179,7 +179,7 @@ describe "ShellOpts::ShellOpts" do
       yield
     rescue SystemExit
       return true;
-    ensure 
+    ensure
       $stderr = hold
     end
     return false

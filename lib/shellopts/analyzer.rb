@@ -14,8 +14,8 @@ module ShellOpts
         children.delete_if { |node| node.is_a?(ArgSpec) }
       end
 
-      def analyzer_error(token, message) 
-        raise AnalyzerError.new(token), message 
+      def analyzer_error(token, message)
+        raise AnalyzerError.new(token), message
       end
     end
 
@@ -27,7 +27,7 @@ module ShellOpts
       # Move options before first command or before explicit COMMAND section
       def reorder_options
         if commands.any?
-          i = children.find_index { |child| 
+          i = children.find_index { |child|
             child.is_a?(Command) || child.is_a?(Section) && child.name == "COMMAND"
           }
           if i
@@ -40,10 +40,10 @@ module ShellOpts
       def compute_option_hashes
         options.each { |option|
           option.idents.zip(option.names).each { |ident, name|
-            !@options_hash.key?(name) or 
+            !@options_hash.key?(name) or
                 analyzer_error option.token, "Duplicate option name: #{name}"
             @options_hash[name] = option
-            !@options_hash.key?(ident) or 
+            !@options_hash.key?(ident) or
                 analyzer_error option.token, "Can't use both #{@options_hash[ident].name} and #{name}"
             @options_hash[ident] = option
           }
@@ -53,7 +53,7 @@ module ShellOpts
       # TODO Check for dash-collision
       def compute_command_hashes
         commands.each { |command|
-          !@commands_hash.key?(command.name) or 
+          !@commands_hash.key?(command.name) or
               analyzer_error command.token, "Duplicate command name: #{command.name}"
           @commands_hash[command.name] = command
           @commands_hash[command.ident] = command
@@ -75,7 +75,7 @@ module ShellOpts
     def create_implicit_commands(cmd)
       path = cmd.path[0..-2]
 
-      
+
     end
 
     # Link up commands with supercommands. This is only done for commands that
@@ -83,7 +83,7 @@ module ShellOpts
     # parent/child relationship is not changed Example:
     #
     #   cmd!
-    #   cmd.subcmd! 
+    #   cmd.subcmd!
     #
     # Here subcmd is added to cmd's list of commands. It keeps its position in
     # the program's parent/child relationship so that documentation will print the
@@ -147,8 +147,8 @@ module ShellOpts
 
       @grammar.compute_command_hashes
 
-      @grammar.traverse { |node| 
-        node.remove_brief_nodes 
+      @grammar.traverse { |node|
+        node.remove_brief_nodes
         node.remove_arg_descr_nodes
         node.remove_arg_spec_nodes
       }

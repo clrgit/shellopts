@@ -174,7 +174,7 @@ module ShellOpts
 
     # The parent command or nil. Initialized by #add_command
     attr_accessor :__supercommand__
-    
+
     # The subcommand identifier (a Symbol incl. the exclamation mark) or nil
     # if not present. Use #subcommand!, or the dynamically generated
     # '#<identifier>!' method to get the actual subcommand object
@@ -197,7 +197,7 @@ module ShellOpts
     def __initialize__(grammar)
       @__grammar__ = grammar
       @__option_values__ = {}
-      @__option_list__ = [] 
+      @__option_list__ = []
       @__option_hash__ = {}
       @__option_values__ = {}
       @__subcommand__ = nil
@@ -209,22 +209,22 @@ module ShellOpts
       @__grammar__.options.each { |opt|
         if !opt.repeatable?
           self.instance_eval %(
-            def #{opt.attr}?() 
-              @__option_values__.key?(:#{opt.attr}) 
+            def #{opt.attr}?()
+              @__option_values__.key?(:#{opt.attr})
             end
           )
         end
-        
+
         if opt.repeatable?
           if opt.argument?
             self.instance_eval %(
-              def #{opt.attr}?() 
-                (@__option_values__[:#{opt.attr}]&.size || 0) > 0 
+              def #{opt.attr}?()
+                (@__option_values__[:#{opt.attr}]&.size || 0) > 0
               end
             )
             self.instance_eval %(
               def #{opt.attr}(default = [])
-                if @__option_values__.key?(:#{opt.attr}) 
+                if @__option_values__.key?(:#{opt.attr})
                   @__option_values__[:#{opt.attr}]
                 else
                   default
@@ -233,12 +233,12 @@ module ShellOpts
             )
           else
             self.instance_eval %(
-              def #{opt.attr}?() 
-                (@__option_values__[:#{opt.attr}] || 0) > 0 
+              def #{opt.attr}?()
+                (@__option_values__[:#{opt.attr}] || 0) > 0
               end
             )
             self.instance_eval %(
-              def #{opt.attr}(default = 0) 
+              def #{opt.attr}(default = 0)
                 if default > 0 && (@__option_values__[:#{opt.attr}] || 0) == 0
                   default
                 else
@@ -251,7 +251,7 @@ module ShellOpts
         elsif opt.argument?
           self.instance_eval %(
             def #{opt.attr}(default = nil)
-              if @__option_values__.key?(:#{opt.attr}) 
+              if @__option_values__.key?(:#{opt.attr})
                 @__option_values__[:#{opt.attr}]
               else
                 default
@@ -261,8 +261,8 @@ module ShellOpts
 
         else
           self.instance_eval %(
-            def #{opt.attr}() 
-              @__option_values__.key?(:#{opt.attr}) 
+            def #{opt.attr}()
+              @__option_values__.key?(:#{opt.attr})
             end
           )
         end
@@ -279,7 +279,7 @@ module ShellOpts
       @__grammar__.commands.each { |cmd|
         next if cmd.attr.nil?
         self.instance_eval %(
-          def #{cmd.attr}() 
+          def #{cmd.attr}()
             :#{cmd.attr} == __subcommand__ ? __subcommand__! : nil
           end
         )
@@ -337,13 +337,13 @@ module ShellOpts
     attr_reader :grammar
 
     # The actual name used on the shell command-line (String)
-    attr_reader :name 
+    attr_reader :name
 
     # Argument value or nil if not present. The value is a String, Integer,
     # or Float depending the on the type of the option
     attr_accessor :argument
 
-    forward_to :grammar, 
+    forward_to :grammar,
         :uid, :ident,
         :repeatable?, :argument?, :integer?, :float?,
         :file?, :enum?, :string?, :optional?,

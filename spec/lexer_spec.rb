@@ -148,7 +148,7 @@ describe "Lexer" do
 
     it "ignores initial blank and commented lines" do
       src = %(
-        
+
         -a
 # Meta-comment
         Text

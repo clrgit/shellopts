@@ -9,7 +9,7 @@ describe "Parser" do
 
 #   puts "Tokens"
 #   indent { tokens.each(&:dump) }
-#   puts 
+#   puts
 #   puts "Ast"
 #   indent { ast.dump_ast }
 #   puts
@@ -46,7 +46,7 @@ describe "Parser" do
           cmd!
       )
     end
-   
+
     it "parses -a cmd!" do
       s = "-a cmd!"
       expect(struct s).to eq undent %(

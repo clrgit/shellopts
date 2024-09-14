@@ -34,15 +34,15 @@ module ShellOpts
         width = [Formatter.rest, max_width].min
         if descrs.size == 0
           print (lead = Formatter.command_prefix || "")
-          indent(lead.size, ' ', bol: bol && lead == "") { 
-            puts render(:multi, width) 
+          indent(lead.size, ' ', bol: bol && lead == "") {
+            puts render(:multi, width)
           }
         else
           lead = Formatter.command_prefix || ""
           descrs.each { |descr|
             print lead
-            puts render(:multi, width, args: descr.text.split(' ')) 
-          } 
+            puts render(:multi, width, args: descr.text.split(' '))
+          }
         end
       end
 
@@ -120,7 +120,7 @@ module ShellOpts
           Command => "COMMAND"
         }
         seen_sections = {}
-        newline = false # True if a newline should be printed before child 
+        newline = false # True if a newline should be printed before child
         indent {
           children.each { |child|
             klass = child.is_a?(Section) ?  section.key(child.name) : child.class
@@ -174,7 +174,7 @@ module ShellOpts
     module WrappedNode
       def puts_descr
         width = [Formatter.rest, Formatter::HELP_MAX_WIDTH].min
-        puts lines(width) 
+        puts lines(width)
       end
     end
 
@@ -220,7 +220,7 @@ module ShellOpts
     HELP_INDENT = 4
 
     # Max. width of help text (not including indent)
-    HELP_MAX_WIDTH = 85 
+    HELP_MAX_WIDTH = 85
 
     # Command prefix when subject is a sub-command
     def self.command_prefix() @command_prefix end
@@ -279,7 +279,7 @@ module ShellOpts
     # +fields+ is an array of [subject-string, descr-text] tuples where the
     # descr is an array of words
     def self.compute_columns(width, fields)
-      first_max = 
+      first_max =
           fields.map { |first, _| first.size }.select { |size| size <= BRIEF_COL1_MAX_WIDTH }.max ||
           BRIEF_COL1_MIN_WIDTH
       second_max = fields.map { |_, second| second ? second&.map(&:size).sum + second.size - 1 : 0 }.max

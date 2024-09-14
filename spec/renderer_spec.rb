@@ -2,7 +2,7 @@
 include ShellOpts
 
 describe ShellOpts do
-  def compile(source) 
+  def compile(source)
     shellopts = ShellOpts::ShellOpts.new(name: "rspec", help: false, version: false)
     shellopts.compile(source)
     shellopts.grammar
@@ -86,7 +86,7 @@ describe ShellOpts do
 
       it "renders each argument description on a line" do
         s = %(
-          -- ARG1 
+          -- ARG1
           -- ARG2
         )
         r = undent %(

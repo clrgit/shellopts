@@ -37,9 +37,9 @@ module ShellOpts
     end
 
     class IntegerArgument < ArgumentType
-      def match?(name, literal) 
-        literal =~ /^-?\d+$/ or 
-            set_message "Illegal integer value in #{name}: #{literal}" 
+      def match?(name, literal)
+        literal =~ /^-?\d+$/ or
+            set_message "Illegal integer value in #{name}: #{literal}"
       end
 
       def value?(value) value.is_a?(Integer) end
@@ -47,9 +47,9 @@ module ShellOpts
     end
 
     class FloatArgument < ArgumentType
-      def match?(name, literal) 
+      def match?(name, literal)
         # https://stackoverflow.com/a/21891705/2130986
-        literal =~ /^[+-]?(?:0|[1-9]\d*)(?:\.(?:\d*[1-9]|0))?$/ or 
+        literal =~ /^[+-]?(?:0|[1-9]\d*)(?:\.(?:\d*[1-9]|0))?$/ or
             set_message "Illegal decimal value in #{name}: #{literal}"
       end
 
@@ -61,7 +61,7 @@ module ShellOpts
       attr_reader :kind
 
       def subject # Used in error messages
-        @subject ||= 
+        @subject ||=
             case kind
               when :file, :efile; "regular file"
               when :nfile, :ifile, :ofile; "file"
@@ -74,7 +74,7 @@ module ShellOpts
 
       def initialize(kind)
         constrain kind, :file, :dir, :path, :efile, :edir, :epath, :nfile, :ndir, :npath, :ifile, :ofile
-        @kind = kind 
+        @kind = kind
       end
 
       def match?(name, literal)
@@ -168,7 +168,7 @@ module ShellOpts
           end
 
         # file does not exist
-        else 
+        else
           if [:default, :new].include? mode
             dir = File.dirname(literal)
             if !File.directory?(dir)

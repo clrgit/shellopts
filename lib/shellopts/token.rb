@@ -4,7 +4,7 @@ module ShellOpts
     # Each kind should have a corresponding Grammar class with the same name
     KINDS = [
         :program, :section, :option, :command, :spec, :argument, :usage,
-        :usage_string, :brief, :text, :blank 
+        :usage_string, :brief, :text, :blank
     ]
 
     # Kind of token
@@ -27,13 +27,13 @@ module ShellOpts
 
     forward_to :source, :to_s, :empty?
 
-    def pos(start_lineno = 1, start_charno = 1) 
-      "#{start_lineno + lineno - 1}:#{start_charno + charno - 1}" 
+    def pos(start_lineno = 1, start_charno = 1)
+      "#{start_lineno + lineno - 1}:#{start_charno + charno - 1}"
     end
 
     def to_s() source end
 
-    def inspect() 
+    def inspect()
       "<#{self.class.to_s.sub(/.*::/, "")} #{pos} #{kind.inspect} #{source.inspect}>"
     end
 

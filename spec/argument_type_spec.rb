@@ -252,7 +252,7 @@ describe "ShellOpts" do
           expect(match(:ifile, writeonly)).to eq false
         end
         it "accepts /dev/stdin and /dev/null" do
-          expect(match(:ifile, "/dev/stdin")).to eq true 
+          expect(match(:ifile, "/dev/stdin")).to eq true
           expect(match(:ifile, "/dev/null")).to eq true
         end
         it "rejects /dev/stdout and /dev/stderr" do
@@ -325,7 +325,7 @@ describe "ShellOpts" do
 
       describe "#values" do
         it "returns a list of allowed values" do
-          expect(e.values).to eq %w(alpha beta) 
+          expect(e.values).to eq %w(alpha beta)
         end
       end
       describe "#match?" do

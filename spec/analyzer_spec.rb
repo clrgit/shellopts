@@ -13,7 +13,7 @@ describe "ShellOpts" do
   #   names(grammar)
   #   names(source)
   #
-  def names(arg) 
+  def names(arg)
     grammar = arg.is_a?(Grammar::Node) ? arg : compile(arg)
     grammar.children.map { |child|
       case child

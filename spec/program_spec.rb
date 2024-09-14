@@ -34,7 +34,7 @@ describe "Command" do
     context "when the key is a command" do
       let(:spec) { "cmd1! cmd1.cmd2! cmd1.cmd2.cmd3! cmd4!" }
       let(:args) { %w(cmd1 cmd2) }
-      
+
       it "returns the associated command" do
         expect(opts[:cmd1!].is_a?(ShellOpts::Command)).to eq true
         expect(opts[:"cmd1.cmd2!"].is_a?(ShellOpts::Command)).to eq true
@@ -59,7 +59,7 @@ describe "Command" do
   describe "Generic #<option>, #<option>=, and #<option>? methods" do
     let(:spec) { "" }
     let(:argv) { [] }
-    let(:opts) { 
+    let(:opts) {
       opts, args = ShellOpts::ShellOpts.process(spec, argv)
       opts
     }
@@ -182,7 +182,7 @@ describe "Command" do
   end
 
   describe "#subcommand!" do
-    let(:opts) { 
+    let(:opts) {
       spec = "cmd1! cmd2!"
       argv = %w(cmd1)
       opts, args = ShellOpts::ShellOpts.process(spec, argv)
@@ -195,7 +195,7 @@ describe "Command" do
   end
 
   describe "#subcommand" do
-    let(:opts) { 
+    let(:opts) {
       spec = "cmd1! cmd2!"
       argv = %w(cmd1)
       opts, args = ShellOpts::ShellOpts.process(spec, argv)
@@ -209,7 +209,7 @@ describe "Command" do
 
   describe "#subcommands!" do
     let(:argv) { %w(cmd1 cmd2) }
-    let(:opts) { 
+    let(:opts) {
       spec = "cmd1! cmd2!"
       opts, args = ShellOpts::ShellOpts.process(spec, argv)
       opts
@@ -230,7 +230,7 @@ describe "Command" do
 
   describe "#subcommands" do
     let(:argv) { %w(cmd1 cmd2) }
-    let(:opts) { 
+    let(:opts) {
       spec = "cmd1! cmd1.cmd2!"
       opts, args = ShellOpts::ShellOpts.process(spec, argv)
       opts
@@ -246,14 +246,14 @@ describe "Command" do
       it "returns nil" do
         expect(opts.subcommands).to eq nil
       end
-      
+
     end
   end
 
   describe "#to_h" do
     let(:spec) { "-a -b -c=VAR -d=VAR -e=VAR? -f=VAR? -g=VAR?" }
     let(:argv) { %w(-a -cCVAR -eEVAR -f) }
-    let(:opts) { 
+    let(:opts) {
       opts, args = ShellOpts::ShellOpts.process(spec, argv)
       opts
     }
@@ -289,7 +289,7 @@ describe "Command" do
         context "when the option has no argument" do
           let(:spec) { "+a +b" }
           let(:argv) { %w(-a -a -b) }
-          
+
           it "the value is the number of occurrences" do
             expect(hash).to eq a: 2, b: 1
           end
@@ -326,7 +326,7 @@ describe "Command" do
   describe "#to_h?" do
     let(:spec) { "-a -b -c=VAR -d=VAR -e=VAR? -f=VAR? -g=VAR?" }
     let(:argv) { %w(-a -cCVAR -eEVAR -f) }
-    let(:opts) { 
+    let(:opts) {
       opts, args = ShellOpts::ShellOpts.process(spec, argv)
       opts
     }
@@ -362,7 +362,7 @@ describe "Command" do
         context "when the option has no argument" do
           let(:spec) { "+a +b" }
           let(:argv) { %w(-a -a -b) }
-          
+
           it "the value is the number of occurrences" do
             expect(hash).to eq a: 2, b: 1
           end
@@ -397,7 +397,7 @@ describe "Command" do
   end
 
 # describe "#to_h" do
-#   let(:opts) { 
+#   let(:opts) {
 #     spec = "-a -b=VAL -c"
 #     argv = %w(-a -bvalue)
 #     opts, args = ShellOpts::ShellOpts.process(spec, argv)

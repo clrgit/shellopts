@@ -54,8 +54,8 @@ module ShellOpts
       # for the Program object. It is the dot-joined elements of path with
       # internal exclamation marks removed (eg. "cmd.opt" or "cmd.cmd!").
       # Initialize by the analyzer
-      def uid() 
-        @uid ||= command && [command.uid, ident].compact.join(".").sub(/!\./, ".") 
+      def uid()
+        @uid ||= command && [command.uid, ident].compact.join(".").sub(/!\./, ".")
       end
 
       # Path from Program object and down to this node. Array of identifiers.
@@ -250,7 +250,7 @@ module ShellOpts
 
       def key?(key) !self.[](key).nil? end
 
-      # Mostly for debug. Has questional semantics because it only lists local keys 
+      # Mostly for debug. Has questional semantics because it only lists local keys
       def keys() @options_hash.keys + @commands_hash.keys end
 
       # Shorthand to get the associated Grammar::Command object from a Program
@@ -312,7 +312,7 @@ module ShellOpts
       alias_method :spec, :parent
     end
 
-    # DocNode object has no children but lines. 
+    # DocNode object has no children but lines.
     #
     class DocNode < Node
       # Array of :text tokens. Assigned by the parser

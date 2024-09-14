@@ -84,7 +84,7 @@ describe "Formatter" do
     end
 
     context "when width it too small" do
-      it "shrinks option/command column" 
+      it "shrinks option/command column"
     end
   end
 
@@ -95,7 +95,7 @@ describe "Formatter" do
 
     it "puts usage description" do
       s = %(
-        -a 
+        -a
         cmd!
           subcmd!
             A description
@@ -106,7 +106,7 @@ describe "Formatter" do
       expect(str(s)).to eq r
 
       s = %(
-        -a 
+        -a
         cmd!
           -b
           subcmd!
@@ -167,14 +167,14 @@ describe "Formatter" do
         cmd2! Command 2
       )
       r = undent %(
-        Usage 
+        Usage
           rspec -a -b [cmd1|cmd2]
 
-        Options 
+        Options
           -a                        Brief A
           -b                        Brief B
 
-        Commands 
+        Commands
           cmd1 -c -d [cmd11|cmd12]  Command 1
           cmd2                      Command 2
       )
@@ -183,10 +183,10 @@ describe "Formatter" do
       r = undent %(
         Command 1
 
-        Usage 
+        Usage
           rspec cmd1 -c -d [cmd11|cmd12]
 
-        Options 
+        Options
           -c                    Brief C
           -d                    Brief D
 
@@ -204,7 +204,7 @@ describe "Formatter" do
       it "breaks line the right way" do
         src = %(
           cmd!
-              this is a very long brief this is a very long brief  this is a very long brief this is a very long brief this is a very long brief this is a very long brief 
+              this is a very long brief this is a very long brief  this is a very long brief this is a very long brief this is a very long brief this is a very long brief
         )
         r = undent %(
           Usage
@@ -333,7 +333,7 @@ describe "Formatter" do
         )
         r = undent %(
           NAME
-              rspec 
+              rspec
 
           USAGE
               rspec [cmd1]
@@ -342,14 +342,14 @@ describe "Formatter" do
               cmd1
         )
         expect(str(source)).to eq r
-        
+
         source = %(
           cmd1!
           cmd2!
         )
         r = undent %(
           NAME
-              rspec 
+              rspec
 
           USAGE
               rspec [cmd1|cmd2]
@@ -398,7 +398,7 @@ describe "Formatter" do
         )
         r = undent %(
           NAME
-              rspec 
+              rspec
 
           USAGE
               rspec -a [cmd]
@@ -457,10 +457,10 @@ describe "Formatter" do
       context "when the options are declared separately" do
         it "lists them separately" do
           source = %(
-            cmd! 
+            cmd!
               -a,alpha
                 A description of --alpha
-              -b,beta 
+              -b,beta
                 A description of --beta
               -- ARG
           )
@@ -473,7 +473,7 @@ describe "Formatter" do
 
             COMMAND
                 cmd [OPTIONS] ARG
-                    -a, --alpha 
+                    -a, --alpha
                         A description of --alpha
                     -b, --beta
                         A description of --beta

@@ -80,7 +80,7 @@ module ShellOpts
       elsif !value.nil?
         error "No argument allowed for option '#{opt_name}'"
       end
-      
+
       Command.add_option(option_command, Option.new(option, name, value))
     end
 

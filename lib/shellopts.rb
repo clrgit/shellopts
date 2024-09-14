@@ -32,7 +32,7 @@ require_relative 'shellopts/dump.rb'
 # Notes
 #   * Two kinds of exceptions: Expected & unexpected. Expected exceptions are
 #     RuntimeError or IOError. Unexpected exceptions are the rest. Both results
-#     in shellopts.failure messages if shellopts error handling is enabled 
+#     in shellopts.failure messages if shellopts error handling is enabled
 #   * Describe the difference between StandardError, RuntimeError, and IOError
 #   * Add an #internal error handling for the production environment that
 #     prints an intelligble error message and prettyfies stack dump. This
@@ -60,7 +60,7 @@ module ShellOpts
   #   <program>: <message>
   #   Usage: <program> ...
   #
-  class Error < ShellOptsError; end 
+  class Error < ShellOptsError; end
 
   # Default class for program failures. Failures are raised on missing files or
   # illegal paths. When ShellOpts handles the exception a message with the
@@ -74,7 +74,7 @@ module ShellOpts
   # source. Messages are formatted as '<file> <lineno>:<charno> <message>' when
   # handled by ShellOpts
   class CompilerError < ShellOptsError; end
-  class LexerError < CompilerError; end 
+  class LexerError < CompilerError; end
   class ParserError < CompilerError; end
   class AnalyzerError < CompilerError; end
 
@@ -92,7 +92,7 @@ module ShellOpts
     attr_reader :spec
 
     # Array of arguments. Initialized by #interpret
-    attr_reader :argv 
+    attr_reader :argv
 
     # Grammar. Grammar::Program object. Initialized by #compile
     attr_reader :grammar
@@ -139,10 +139,10 @@ module ShellOpts
     attr_reader :tokens
     alias_method :ast, :grammar
 
-    def initialize(name: nil, 
+    def initialize(name: nil,
         # Options
-        help: true, 
-        version: true, 
+        help: true,
+        version: true,
         silent: nil,
         quiet: nil,
         verbose: nil,
@@ -157,7 +157,7 @@ module ShellOpts
         # Let exceptions through
         exception: false
       )
-        
+
       @name = name || File.basename($PROGRAM_NAME)
       @help = help
       @version = version || (version.nil? && !version_number.nil?)
@@ -187,24 +187,24 @@ module ShellOpts
         verbose_spec = (@verbose == true ? "+v,verbose" : @verbose)
         debug_spec = (@debug == true ? "--debug" : @debug)
 
-        @silent_option = 
+        @silent_option =
             ast.inject_option(silent_spec, "Quiet", "Do not write anything to standard output") if @silent
-        @quiet_option = 
+        @quiet_option =
             ast.inject_option(quiet_spec, "Quiet", "Do not write anything to standard output") if @quiet
-        @verbose_option = 
+        @verbose_option =
             ast.inject_option(verbose_spec, "Increase verbosity", "Write verbose output") if @verbose
-        @debug_option = 
+        @debug_option =
             ast.inject_option(debug_spec, "Write debug information") if @debug
-        @help_option = 
+        @help_option =
             ast.inject_option(help_spec, "Write short or long help") { |option|
-              short_option = option.short_names.first 
+              short_option = option.short_names.first
               long_option = option.long_names.first
               [
                 short_option && "#{short_option} prints a brief help text",
                 long_option && "#{long_option} prints a longer man-style description of the command"
               ].compact.join(", ")
             } if @help
-        @version_option = 
+        @version_option =
             ast.inject_option(version_spec, "Write version number and exit") if @version
 
         @grammar = Analyzer.analyze(ast)
@@ -216,7 +216,7 @@ module ShellOpts
     # ShellOpts::Args tuple
     #
     def interpret(argv)
-      handle_exceptions { 
+      handle_exceptions {
         @argv = argv.dup
         @program, @args = Interpreter.interpret(grammar, argv, float: float, exception: exception)
 
@@ -356,7 +356,7 @@ module ShellOpts
         char_z = 0
 
         (0 ... text_lines.size).each { |text_i|
-          curr_char_i, curr_char_z = 
+          curr_char_i, curr_char_z =
               LCS.find_longest_common_substring_index(text_lines[text_i], spec_lines.first.strip)
           if curr_char_z > char_z
             line_i = text_i
@@ -372,7 +372,7 @@ module ShellOpts
             compare_lines(text_lines[text_i + spec_i], spec_lines[spec_i])
           }
         } or return [nil, nil]
-        char_i, char_z = 
+        char_i, char_z =
             LCS.find_longest_common_substring_index(text_lines[line_i], spec_lines.first.strip)
         [line_i, char_i || 0]
       end

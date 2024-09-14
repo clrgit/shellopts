@@ -21,7 +21,7 @@ module ShellOpts
     # array. If the count is negative, the elements will be removed from the
     # end of the array. If +count_or_range+ is a range, the number of elements
     # returned will be in that range. Note that the range can't contain
-    # negative numbers 
+    # negative numbers
     #
     # #extract raise a ShellOpts::Error exception if there's is not enough
     # elements in the array to satisfy the request
@@ -51,7 +51,7 @@ module ShellOpts
     # As #extract except the array is expected to be emptied by the operation.
     # Raise a #inoa exception if count is negative
     #
-    # #expect raise a ShellOpts::Error exception if the array is not emptied 
+    # #expect raise a ShellOpts::Error exception if the array is not emptied
     # by the operation
     #
     # TODO: Better handling of ranges. Allow: 2..-1, -2..-4, etc.

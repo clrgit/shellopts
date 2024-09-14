@@ -26,7 +26,7 @@ require 'terminfo'
 #       [cmd1|cmd2] ARG1 ARG2
 #   cmd --all --beta
 #       <commands> ARGS
-#   
+#
 module ShellOpts
   module Grammar
     class Option
@@ -38,14 +38,14 @@ module ShellOpts
       #
       def render(format)
         constrain format, :enum, :long, :short
-        s = 
+        s =
             case format
               when :enum; names.join(", ")
               when :long; name
               when :short; short_names.first || name
             else
               raise ArgumentError, "Illegal format: #{format.inspect}"
-            end 
+            end
         if argument?
           s + (optional? ? "[=#{argument_name}]" : "=#{argument_name}")
         else
@@ -56,7 +56,7 @@ module ShellOpts
 
     class OptionGroup
       # Formats:
-      #     
+      #
       #     :enum   -a, --all -r, --recursive
       #     :long   --all --recursive
       #     :short  -a -r
@@ -115,7 +115,7 @@ module ShellOpts
 
       # Force one line and compact options to "[OPTIONS]"
       def render_abbr
-        args = get_args 
+        args = get_args
         ([name] + [options.empty? ? nil : "[OPTIONS]"] + args).compact.join(" ")
       end
 

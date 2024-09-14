@@ -2,7 +2,7 @@
 module ShellOpts
   class Line
     attr_reader :source
-    attr_reader :lineno 
+    attr_reader :lineno
     attr_reader :charno
     attr_reader :text
 
@@ -52,7 +52,7 @@ module ShellOpts
     attr_reader :name # Name of program
     attr_reader :source
     attr_reader :tokens
-    
+
     def oneline?() @oneline end
 
     def initialize(name, source, oneline)
@@ -88,7 +88,7 @@ module ShellOpts
           @tokens << Token.new(:blank, line.lineno, line.charno, "")
           next
         end
-          
+
         # Ignore meta comments
         if line.charno < initial_indent
           next if line =~ /^#/
@@ -129,8 +129,8 @@ module ShellOpts
                 @tokens << Token.new(:usage_string, line.lineno, charno, source)
               when "++" # FIXME Rename argspec
                 @tokens << Token.new(:spec, line.lineno, charno, "++")
-                words.shift_while { |c,w| 
-                  w =~ SPEC_RE and @tokens << Token.new(:argument, line.lineno, c, w) 
+                words.shift_while { |c,w|
+                  w =~ SPEC_RE and @tokens << Token.new(:argument, line.lineno, c, w)
                 }
               when /^-|\+/
                 @tokens << Token.new(:option, line.lineno, charno, word)
@@ -143,7 +143,7 @@ module ShellOpts
           end
 
           # TODO: Move to parser and remove @oneline from Lexer
-          (token = @tokens.last).kind != :brief || !oneline? or 
+          (token = @tokens.last).kind != :brief || !oneline? or
               lexer_error token, "Briefs are only allowed in multi-line specifications"
 
         # Paragraph lines
@@ -151,13 +151,13 @@ module ShellOpts
           @tokens << Token.new(:text, line.lineno, line.charno, source)
         end
         # FIXME Not sure about this
-#       last_nonblank = @tokens.last 
-        last_nonblank = @tokens.last if ![:blank, :usage_string, :argument].include? @tokens.last.kind 
+#       last_nonblank = @tokens.last
+        last_nonblank = @tokens.last if ![:blank, :usage_string, :argument].include? @tokens.last.kind
       end
 
       # Move arguments and briefs before first command if one-line source
 #     if oneline? && cmd_index = @tokens.index { |token| token.kind == :command }
-#       @tokens = 
+#       @tokens =
 #           @tokens[0...cmd_index] +
 #           @tokens[cmd_index..-1].partition { |token| ![:command, :option].include?(token.kind) }.flatten
 #     end

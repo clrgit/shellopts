@@ -79,9 +79,9 @@ module ShellOpts
       def dump_idr(short = false)
         if short
           s = [
-              name, 
-              argument? ? argument_type.name : nil, 
-              optional? ? "?" : nil, 
+              name,
+              argument? ? argument_type.name : nil,
+              optional? ? "?" : nil,
               repeatable? ? "*" : nil
           ].compact.join(" ")
           puts s
@@ -89,9 +89,9 @@ module ShellOpts
           puts "#{name}: #{classname}"
           dump_attrs(
               :uid, :path, :attr, :ident, :name, :idents, :names,
-              :repeatable?, 
-              :argument?, argument? && :argument_name, argument? && :argument_type, 
-              :enum?, enum? && :argument_enum, 
+              :repeatable?,
+              :argument?, argument? && :argument_name, argument? && :argument_type,
+              :enum?, enum? && :argument_enum,
               :optional?)
           indent { puts "brief: #{group.brief}" }
         end
@@ -102,11 +102,11 @@ module ShellOpts
       def dump_idr(short = false)
         if short
           puts name
-          indent { 
+          indent {
             options.each { |option| option.dump_idr(short) }
             commands.each { |command| command.dump_idr(short) }
             descrs.each { |descr| descr.dump_idr(short) }
-          } 
+          }
         else
           puts "#{name}: #{classname}"
           dump_attrs :uid, :path, :ident, :name, :options, :commands, :specs, :descrs, :brief

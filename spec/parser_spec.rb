@@ -318,6 +318,10 @@ describe "Option#parse" do
       expect(opt "-s=SOME", :optional?).to eq false
       expect(opt "-s=SOME?", :optional?).to eq true
     end
+    it "sets list?" do
+      expect(opt "-s=LIST", :list?).to eq false
+      expect(opt "-s=LIST,", :list?).to eq true
+    end
     context "without a type specification" do
       it "sets argument_name" do
         expect(opt "-s=SOME", :argument_name).to eq "SOME"

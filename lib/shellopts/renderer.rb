@@ -47,7 +47,14 @@ module ShellOpts
               raise ArgumentError, "Illegal format: #{format.inspect}"
             end
         if argument?
-          s + (optional? ? "[=#{argument_name}]" : "=#{argument_name}")
+          short = long_idents.empty? || format == :short
+          arg = ""
+          arg += "=" if !short
+          arg += argument_name
+          arg += "..." if list?
+          arg = "[#{arg}]" if optional?
+          arg = " " + arg if short
+          s += arg
         else
           s
         end

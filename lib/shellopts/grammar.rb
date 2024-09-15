@@ -142,6 +142,7 @@ module ShellOpts
       def repeatable?() @repeatable end
       def argument?() @argument end
       def optional?() @optional end
+      def list?() @list end
 
       def integer?() @argument_type.is_a? IntegerArgument end
       def float?() @argument_type.is_a? FloatArgument end

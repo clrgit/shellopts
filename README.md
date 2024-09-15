@@ -74,11 +74,11 @@ to check presence and return an optional argument. Given the options "--alpha
 
 ```ruby
   # Returns true if the option is present and false otherwise
-  opts.alpha?()     
+  opts.alpha?()
   opts.beta?()
 
   # Returns the argument of the beta option or nil if missing
-  opts.beta()       
+  opts.beta()
 ```
 
 Given the commands "cmd1! cmd2!" the following methods are available:
@@ -87,7 +87,7 @@ Given the commands "cmd1! cmd2!" the following methods are available:
   # Returns the sub-command object or nil if not present
   opts.cmd1!
   opts.cmd2!
-  
+
   opts.subcommand!  # Returns the sub-command object or nil if not present
   opts.subcommand   # Returns the sub-command's identifier (eg. :cmd1!)
 ```
@@ -96,7 +96,7 @@ It is used like this
 
 ```ruby
   case opts.subcommand
-    when :cmd1 
+    when :cmd1
       # opts.cmd1 is defined here
     when :cmd2
       # opts.cmd2 is defined here
@@ -160,7 +160,7 @@ is paragraphs
   -a,alpha @ Brief comment for -a and --alpha options
     Longer description of the option that is used by `::help`
 
-  cmd! 
+  cmd!
     @ Alternative style of brief comment
 
     Longer description of the command
@@ -179,8 +179,10 @@ error messages:
 The general syntax for options is
 
 ```
-  <prefix><optionlist>[=argspec][?]
+  <prefix><optionlist>[=argspec][,][?]
 ```
+
+(TODO: Restructure: prefix,options,argument-spec,argument-spec-modifier,etc.)
 
 The option list is a comma-separated list of option names. It is prefixed with
 a '-' if the option list starts with a short option name and '--' if the option
@@ -188,14 +190,17 @@ list starts with a long name. '-' and '--' can be replaced with '+' or '++' to
 indicate that the option can be repeated
 
 ```
-  -a,alpha      @ -a and --alpha
-  ++beta        @ --beta, can be repeated
-  --gamma=ARG?  @ --gamma, takes an optional argument
+  -a,alpha          @ '-a' and '--alpha'
+  ++beta            @ '--beta', can be repeated
+  --gamma=ARG?      @ '--gamma', takes an optional argument
+  --delta=ARG,      @ '--delta', takes a mandatory comma-separated list of arguments
+  --epsilon=ARG,?   @ '--delta', takes an optional list
 ```
 
 An option argument has a name and a type. The type can be specified as '#'
-(integer), '$' (float), or as a comma-separated list of allowed values. It can
-also be defined by a keyword that expects a file or directory argument:
+(integer), '$' (float), ',' (list) or as a comma-separated list of allowed
+values (enum). The name should be in capital letters. Some names are keywords
+with a special meaning:
 
   | Keyword   | Type |
   | --------- | ---- |
@@ -219,7 +224,7 @@ explicitly by separating it from the type with a ':'. Examples:
   -c=red,blue,green     @ -c takes one of the listed words
   -d=FILE               @ Fails if file exists and is not a file
   -d=EDIR               @ Fails if directory doesn't exist or is not a directory
-  -d=INPUT:EFILE        @ Takes and existing file. Shown as '-d=INPUT' in messages
+  -d=INPUT:EFILE        @ Expects an existing file. Shown as '-d=INPUT' in messages
 ```
 
 ## Commands
@@ -234,7 +239,7 @@ command line like this
   cmd!
     -b @ Command level option
     subcmd!
-      -c @ Sub-command level option 
+      -c @ Sub-command level option
 ```
 
 In single-line format, subcommands are specified by prefixing the supercommand's name:
@@ -256,7 +261,7 @@ SPEC = %(
   -f,force            @ ignore nonexisten files and arguments, never prompt
   -i                  @ prompt before every removal
 
-  -I                  
+  -I
       @ prompt once
 
       prompt once before removing more than three files, or when  removing

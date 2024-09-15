@@ -1,5 +1,6 @@
 
 module ShellOpts
+  # Extend Grammar classes with parse methods
   module Grammar
     class Node
       def parse() end
@@ -28,13 +29,13 @@ module ShellOpts
       NAME_RE = /(?:#{SHORT_NAME_RE}|#{LONG_NAME_RE})(?:,#{LONG_NAME_RE})*/
 
       def parse
-        token.source =~ /^(-|--|\+|\+\+)(#{NAME_RE})(?:=(.+?)(\?)?)?$/ or
+        token.source =~ /^(-|--|\+|\+\+)(#{NAME_RE})(?:=(.+?)(,\??|\?,?)?)?$/ or
             parser_error token, "Illegal option: #{token.source.inspect}"
         initial = $1
         name_list = $2
         arg = $3
-        optional = $4
-
+        @optional = $4&.include?(??) || false
+        @list = $4&.include?(?,) || false
         @repeatable = %w(+ ++).include?(initial)
 
         @short_idents = []
@@ -94,7 +95,6 @@ module ShellOpts
               @argument_name = arg
               @argument_type = StringType.new
           end
-          @optional = !optional.nil?
         else
           @argument_type = StringType.new
         end

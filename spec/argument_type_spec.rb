@@ -334,7 +334,7 @@ describe "ShellOpts" do
         end
         context "when the given value is not an enum" do
           it "returns false" do
-            expect(e.match?("name", "futhark")).to eq false
+            expect(e.match?("name", "fehu")).to eq false
           end
         end
       end

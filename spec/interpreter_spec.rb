@@ -48,6 +48,10 @@ describe "Interpreter" do
     render_command(interprete(spec, argv))
   end
 
+  def opt(spec, argv, opt)
+    interprete(spec, argv).__send__(opt)
+  end
+
   it "splits coalesced short options" do
     expect(render "+a", %w(-aa)).to eq "main -a*2"
     expect(render "-a -b", %w(-ab)).to eq "main -a -b"
@@ -63,21 +67,6 @@ describe "Interpreter" do
   end
 
   context "it interpretes option values" do
-    def opt(spec, argv, opt)
-      interprete(spec, argv).__send__(opt)
-    end
-
-    describe "lists" do
-      it "returns an array of list elements" do
-        expect(opt "-a=ARG,", %w(-ab,c), :a).to eq %w(b c)
-      end
-      it "short options raises on absent list elements" do
-        expect { opt "-a=ARG,", %w(-a), :a }.to raise_error ShellOpts::Error
-      end
-      it "long options allows empty list" do
-        expect(opt "--all=ARG,", %w(--all=), :all).to eq []
-      end
-    end
     describe "strings" do
       it "returns an String" do
         expect(opt "-a=ARG", %w(-a42), :a).to eq "42"
@@ -91,6 +80,24 @@ describe "Interpreter" do
     describe "float" do
       it "returns an Float" do
         expect(opt "-a=$", %w(-a42.1), :a).to eq 42.1
+      end
+    end
+    describe "lists" do
+      it "returns an array of list elements" do
+        expect(opt "-a=ARG,", %w(-ab,c), :a).to eq %w(b c)
+      end
+      it "short options raises on absent list elements" do
+        expect { opt "-a=ARG,", %w(-a), :a }.to raise_error ShellOpts::Error
+      end
+      it "long options allows empty list" do
+        expect(opt "--all=ARG,", %w(--all=), :all).to eq []
+      end
+    end
+  end
+  context "it interpretes repeated option values" do
+    describe "lists" do
+      it "returns a flattened array of list elements" do
+        expect(opt "+a=ARG,", %w(-ab,c -ad,e), :a).to eq %w(b c d e)
       end
     end
   end

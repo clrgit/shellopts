@@ -292,7 +292,11 @@ module ShellOpts
       if option.repeatable?
         (@__option_hash__[ident] ||= []) << option
         if option.argument?
-          (@__option_values__[ident] ||= []) << option.argument
+          if option.list? # Repeated list values are flattened
+            (@__option_values__[ident] ||= []).concat(option.argument)
+          else
+            (@__option_values__[ident] ||= []) << option.argument
+          end
         else
           @__option_values__[ident] = (@__option_values__[ident] || 0) + 1
         end

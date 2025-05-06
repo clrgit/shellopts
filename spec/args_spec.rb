@@ -57,6 +57,29 @@ describe "Args" do
     end
   end
 
+  describe "#extract?" do
+    let(:a) { Args.new %w(a b c d), exception: true }
+    let(:e) { Args.new [], exception: true }
+
+    context "when given an integer" do
+      it "returns true iff the elements can be extracted" do
+        expect(a.extract? 1).to eq true
+        expect(e.extract? 1).to eq false
+      end
+    end
+
+    context "when given a range" do
+      it "return true if the range of elements can be extracted" do
+        expect(a.extract? 1..5).to eq true
+        expect(e.extract? 1..5).to eq false
+      end
+      it "supports open ranges" do
+        expect(a.extract? 1..).to eq true
+      end
+    end
+  end
+
+
   describe "#expect" do
     let(:a) { Args.new %w(a b), exception: true }
     let(:a1) { Args.new %w(a), exception: true }
@@ -114,6 +137,26 @@ describe "Args" do
       end
     end
   end
+
+  describe "#expect?" do
+    let(:a) { Args.new %w(a b c d), exception: true }
+    let(:e) { Args.new [], exception: true }
+
+    context "when given an integer" do
+      it "returns true iff the elements can be expected" do
+        expect(a.expect? 4).to eq true
+        expect(e.expect? 4).to eq false
+      end
+    end
+
+    context "when given a range" do
+      it "return true if the range of elements can be expected" do
+        expect(a.expect? 1..4).to eq true
+        expect(e.expect? 1..4).to eq false
+      end
+    end
+  end
+
 end
 
 

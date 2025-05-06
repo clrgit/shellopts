@@ -48,6 +48,18 @@ module ShellOpts
       end
     end
 
+    # Return true args contains at least the given count or range of elements
+    def extract?(count_or_range)
+      case count_or_range
+        when Range
+          count_or_range.min <= self.size
+        when Integer
+          count_or_range.abs <= self.size
+      else
+        raise ArgumentError
+      end
+    end
+
     # As #extract except the array is expected to be emptied by the operation.
     # Raise a #inoa exception if count is negative
     #
@@ -65,6 +77,19 @@ module ShellOpts
           count_or_range.abs == self.size or inoa(message)
       end
       extract(count_or_range) # Can't fail
+    end
+
+    # Return true args contains the given count or range of elements
+    def expect?(count_or_range, message = nil)
+      case count_or_range
+        when Range
+          count_or_range === self.size
+        when Integer
+          count_or_range >= 0 or raise ArgumentError # FIXME in #expect
+          count_or_range.abs == self.size
+      else
+        raise ArgumentError
+      end
     end
 
   private

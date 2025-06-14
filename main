@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 
-$LOAD_PATH.unshift "#{Dir.getwd}/lib"
+#$LOAD_PATH.unshift "#{Dir.getwd}/lib"
 
-require 'shellopts'
+require_relative 'lib/shellopts.rb'
 
 #include ShellOpts::Message
 include ShellOpts::Verbose
@@ -10,7 +10,6 @@ include ShellOpts::Verbose
 
 #include ShellOpts::Messages
 #p ShellOpts::Messages.is_included?
-
 SPEC = %(
   Test
 
@@ -18,12 +17,12 @@ SPEC = %(
     An option
 )
 
-opts, args = ShellOpts.process(SPEC, ARGV, version: "--ver", version_number: "1.2.3", help: "-?,help")
+opts, args = ShellOpts.process(SPEC, ARGV, version: "--ver", version_number: "1.2.3")
 
 verb "Verbose default"
 (0..3).each { |i| verb i, "Verbose #{i}" }
 mesg "Message"
 notice "Notice"
 #debug "Debug"
-
+puts ShellOpts.instance.version_number
 

@@ -1,4 +1,4 @@
-require 'terminfo'
+require 'tty-screen'
 
 module ShellOpts
   module Grammar
@@ -296,8 +296,13 @@ module ShellOpts
     end
 
     def self.width()
-      @width ||= TermInfo.screen_width - MARGIN_RIGHT
-      @width
+      begin
+        _stdout = $stdout # TTY::Screen use $stdout but that can be a StringIO object without ioctl
+        $stdout = STDOUT if !$stdout.respond_to? :ioctl
+        @width ||= TTY::Screen.width - MARGIN_RIGHT
+      ensure
+        $stdout = _stdout
+      end
     end
 
     # Used in rspec

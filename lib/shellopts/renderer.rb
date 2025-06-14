@@ -1,5 +1,3 @@
-require 'terminfo'
-
 # Option rendering
 #   -a, --all                   # Only used in brief and doc formats (enum)
 #   --all                       # Only used in usage (long)

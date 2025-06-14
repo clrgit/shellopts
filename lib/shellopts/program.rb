@@ -6,7 +6,7 @@ module ShellOpts
   # BasicObject to have only a minimum of inherited member methods.
   #
   # The names of the inherited methods can't be used as options or
-  # command namess. They are: instance_eval, instance_exec method_missing,
+  # command names. They are: instance_eval, instance_exec method_missing,
   # singleton_method_added, singleton_method_removed, and
   # singleton_method_undefined.
   #

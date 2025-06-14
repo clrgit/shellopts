@@ -89,6 +89,9 @@ module ShellOpts
     # Name of program. Defaults to the name of the executable
     attr_reader :name
 
+    # Executable. Default $PROGRAM_NAME
+    attr_reader :file
+
     # Specification (String). Initialized by #compile
     attr_reader :spec
 
@@ -133,14 +136,11 @@ module ShellOpts
     # message and exit
     attr_accessor :exception
 
-    # File of source
-    attr_reader :file
-
     # Debug: Internal variables made public
     attr_reader :tokens
     alias_method :ast, :grammar
 
-    def initialize(name: nil,
+    def initialize(name: nil, file: $PROGRAM_NAME,
         # Options
         help: true,
         version: true,
@@ -149,7 +149,7 @@ module ShellOpts
         verbose: nil,
         debug: nil,
 
-        # Version number (usually detected)
+        # Version number (auto-detected for gem packages)
         version_number: nil,
 
         # Floating options
@@ -159,14 +159,15 @@ module ShellOpts
         exception: false
       )
 
-      @name = name || File.basename($PROGRAM_NAME)
+      @name = name || File.basename(file)
+      @file = file
       @help = help
-      @version = version || (version.nil? && !version_number.nil?)
+      @version_number = version_number || (version && find_version_number)
+      @version = !@version_number.nil? && version
       @silent = silent
       @quiet = quiet
       @verbose = verbose
       @debug = debug
-      @version_number = version_number || find_version_number
       @float = float
       @exception = exception
     end
@@ -177,19 +178,18 @@ module ShellOpts
       handle_exceptions {
         @oneline = spec.index("\n").nil?
         @spec = spec.sub(/^\s*\n/, "")
-        @file = find_caller_file
         @tokens = Lexer.lex(name, @spec, @oneline)
         ast = Parser.parse(tokens)
 
         help_spec = (@help == true ? "-h,help" : @help)
         version_spec = (@version == true ? "--version" : @version)
-        silent_spec = (@silent == true ? "-q,silent" : @silent)
+        silent_spec = (@silent == true ? "--silent" : @silent)
         quiet_spec = (@quiet == true ? "-q,quiet" : @quiet)
         verbose_spec = (@verbose == true ? "+v,verbose" : @verbose)
         debug_spec = (@debug == true ? "--debug" : @debug)
 
         @silent_option =
-            ast.inject_option(silent_spec, "Quiet", "Do not write anything to standard output") if @silent
+            ast.inject_option(silent_spec, "Silent", "Do not write anything to standard output/error") if @silent
         @quiet_option =
             ast.inject_option(quiet_spec, "Quiet", "Do not write anything to standard output") if @quiet
         @verbose_option =
@@ -311,10 +311,8 @@ module ShellOpts
 
   private
     def find_version_number
-      exe = caller.find { |line| line =~ /`<top \(required\)>'$/ }&.sub(/:.*/, "") or return nil
-      file = Dir.glob(File.dirname(exe) + "/../lib/*/version.rb").first or return nil
-      IO.read(file).sub(/^.*VERSION\s*=\s*"(.*?)".*$/m, '\1') or
-          raise ArgumentError, "ShellOpts needs an explicit version"
+      version_rb = Dir.glob(File.dirname(file) + "/../lib/*/version.rb").first or return nil
+      IO.readlines(version_rb).grep(/^.*VERSfION\s*=\s*"(.*?)".*$/) { $1 }.first
     end
 
     def handle_exceptions(&block)
@@ -332,10 +330,6 @@ module ShellOpts
         $stderr.puts "#{filename}:#{ex.token.pos(lineno, charno)} #{ex.message}"
         exit(1)
       end
-    end
-
-    def find_caller_file
-      caller.reverse.select { |line| line !~ /^\s*#{__FILE__}:/ }.last.sub(/:.*/, "").sub(/^\.\//, "")
     end
 
     def self.compare_lines(text, spec)

@@ -25,8 +25,8 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "forward_to"
   spec.add_dependency "constrain"
-  spec.add_dependency "ruby-terminfo-r3"
   spec.add_dependency "indented_io"
+  spec.add_dependency "tty-screen"
 
   spec.add_development_dependency "rake"
   spec.add_development_dependency "rspec"

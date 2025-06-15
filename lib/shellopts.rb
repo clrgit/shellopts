@@ -489,9 +489,9 @@ module ShellOpts
     def self.is_included?() @is_included end
     def self.included(...) @is_included = true; super end
 
-    def notice(message) ::ShellOpts.notice(message) end
-    def mesg(message) ::ShellOpts.mesg(message) end
-    def verb(level = 1, message) ::ShellOpts.verb(level, message) end
+    def notice(message, **opts) ::ShellOpts.notice(message, **opts) end
+    def mesg(message, **opts) ::ShellOpts.mesg(message, **opts) end
+    def verb(level = 1, message, **opts) ::ShellOpts.verb(level, message, **opts) end
   end
 
   module Debug

@@ -312,7 +312,7 @@ module ShellOpts
   private
     def find_version_number
       version_rb = Dir.glob(File.dirname(file) + "/../lib/*/version.rb").first or return nil
-      IO.readlines(version_rb).grep(/^.*VERSfION\s*=\s*"(.*?)".*$/) { $1 }.first
+      IO.readlines(version_rb).grep(/^.*VERSION\s*=\s*"(.*?)".*$/) { $1 }.first
     end
 
     def handle_exceptions(&block)

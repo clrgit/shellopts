@@ -133,7 +133,7 @@ module ShellOpts
     attr_accessor :float
 
     # True if ShellOpts lets exceptions through instead of writing an error
-    # message and exit
+    # message and exit. FIXME: Doesn't word it seems
     attr_accessor :exception
 
     # Debug: Internal variables made public

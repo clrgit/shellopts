@@ -11,6 +11,9 @@ RSpec.configure do |config|
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
+
+  # Get rid of eye-stressing cyan
+  config.detail_color = :blue
 end
 
 # Local modifications

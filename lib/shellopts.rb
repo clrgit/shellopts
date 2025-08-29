@@ -29,6 +29,7 @@ require_relative 'shellopts/formatter.rb'
 require_relative 'shellopts/dump.rb'
 
 # TODO: Describe exception handling
+# TODO: Option: float (from left to rigth), fill (fill-in everywhere)
 #
 # Notes
 #   * Two kinds of exceptions: Expected & unexpected. Expected exceptions are

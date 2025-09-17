@@ -29,6 +29,7 @@ require_relative 'shellopts/formatter.rb'
 require_relative 'shellopts/dump.rb'
 
 # TODO: Describe exception handling
+# TODO: Option: float (from left to rigth), fill (fill-in everywhere)
 #
 # Notes
 #   * Two kinds of exceptions: Expected & unexpected. Expected exceptions are
@@ -132,8 +133,8 @@ module ShellOpts
     # Floating options
     attr_accessor :float
 
-    # True if ShellOpts lets exceptions through instead of writing an error
-    # message and exit
+    # Use exceptions instead of ShellOpts's error methods. Default is
+    # ShellOpts.exception that itself defalts to false. Mostly used for debug
     attr_accessor :exception
 
     # Debug: Internal variables made public
@@ -155,8 +156,7 @@ module ShellOpts
         # Floating options
         float: true,
 
-        # Let exceptions through
-        exception: false
+        exception: ::ShellOpts.exception
       )
 
       @name = name || File.basename(file)
@@ -268,7 +268,8 @@ module ShellOpts
     #
     # #error is supposed to be used when the user made an error and the usage
     # is written to help correcting the error
-    def error(subject = nil, message)
+    def error(message)
+      raise ShellOpts::Error.new(message) if ::ShellOpts.exception
       $stderr.puts "#{name}: #{message}"
       saved = $stdout
       begin
@@ -286,6 +287,7 @@ module ShellOpts
     # when the user specified the correct arguments but something else went
     # wrong during processing
     def failure(message)
+      raise ShellOpts::Failure.new(message) if ::ShellOpts.exception
       $stderr.puts "#{name}: #{message}"
       exit 1
     end
@@ -316,7 +318,7 @@ module ShellOpts
     end
 
     def handle_exceptions(&block)
-      return yield if exception
+      return yield if ::ShellOpts.exception
       begin
         yield
       rescue Error => ex
@@ -408,6 +410,12 @@ module ShellOpts
     ShellOpts.process(spec, argv, silent: silent, quiet: quiet, verbose: verbose, debug: debug, **opts)
   end
 
+  # True if ShellOpts lets exceptions through instead of writing an error
+  # message and exit
+  @exception = false
+  def self.exception = @exception
+  def self.exception=(value) @exception = value end
+
   # The instance is a ShellOpts object. 'instance.program' and 'instance.argv'
   # is the same as the values returned from ShellOpts.process
   @instance = nil
@@ -428,13 +436,15 @@ module ShellOpts
   def self.verbose?(level = 1) level <= instance.program.__verbose__ end
   def self.debug?() instance.program.__debug__ end
 
-  def self.error(subject = nil, message)
-    instance.error(subject, message) if instance? # Never returns
+  def self.error(message)
+    raise Error.new(message) if exception
+    instance.error(message) if instance? # Never returns
     $stderr.puts "#{File.basename($PROGRAM_NAME)}: #{message}"
     exit 1
   end
 
   def self.failure(message)
+    raise Error.new(message) if exception
     instance.failure(message) if instance?
     $stderr.puts "#{File.basename($PROGRAM_NAME)}: #{message}"
     exit 1

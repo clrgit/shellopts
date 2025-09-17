@@ -76,6 +76,33 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
+  describe ".exception" do
+    context "when true" do
+      it "raise exceptions instead of printing ShellOpts error messages" do
+        save_exception = ShellOpts.exception
+        begin
+          ShellOpts.exception = true
+          expect { ShellOpts.error("msg") }.to raise_error ShellOpts::Error
+        ensure
+          ShellOpts.exception = save_exception
+        end
+      end
+    end
+    context "when false" do
+      it "prints ShellOpts error messages" do
+        save_exception = ShellOpts.exception
+        begin
+          ShellOpts.exception = false
+          expect {
+            expect { ShellOpts.error("msg") }.to raise_error SystemExit
+          }.to output(/rspec: msg/).to_stderr
+        ensure
+          ShellOpts.exception = save_exception
+        end
+      end
+    end
+  end
+
   describe ".find_spec_in_text" do
     def find(text, spec)
       oneline = spec.index("\n").nil?

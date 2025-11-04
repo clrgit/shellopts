@@ -133,7 +133,7 @@ module ShellOpts
                 s += "S" if commands.size > 1 || commands.size == 1 && commands.first.commands.size > 1
               end
               puts
-              indent(-1).puts Ansi.bold s
+              indent(-1) { puts Ansi.bold s }
               newline = false
               next if child.is_a?(Section)
             else # Any other node adds a newline

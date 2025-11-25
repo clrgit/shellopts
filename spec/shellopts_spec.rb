@@ -19,7 +19,7 @@ describe "ShellOpts" do
 end
 
 describe "ShellOpts::ShellOpts" do
-  describe ".error" do
+  describe "::error" do
     before(:each) { ShellOpts.instance = nil }
     context "when no ShellOpts object has been initialized" do
       it "prints '<program>: <message>' on stderr and exits the program with status 1" do
@@ -48,7 +48,7 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
-  describe ".failure" do
+  describe "::failure" do
     context "when no ShellOpts object has been initialized" do
       it "prints '<program>: <message>' on stderr and exits the program with status 1" do
         expect {
@@ -76,7 +76,7 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
-  describe ".exception" do
+  describe "::exception" do
     context "when true" do
       it "raise exceptions instead of printing ShellOpts error messages" do
         save_exception = ShellOpts.exception
@@ -103,7 +103,7 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
-  describe ".find_spec_in_text" do
+  describe "::find_spec_in_text" do
     def find(text, spec)
       oneline = spec.index("\n").nil?
       spec = spec.sub(/^\s*\n/, "")
@@ -155,7 +155,7 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
-  describe ".silent?" do
+  describe "::silent?" do
     it "returns the status of the silent option in the current instance" do
       ShellOpts.process("-a", [], silent: true)
       expect(ShellOpts.silent?).to eq false
@@ -164,7 +164,7 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
-  describe ".quiet?" do
+  describe "::quiet?" do
     it "returns the status of the quiet option in the current instance" do
       ShellOpts.process("-a", [], quiet: true)
       expect(ShellOpts.quiet?).to eq false
@@ -173,7 +173,7 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
-  describe ".verbose?" do
+  describe "::verbose?" do
     it "returns the status of the verbose option in the current instance" do
       ShellOpts.process("-a", [], verbose: true)
       expect(ShellOpts.verbose?).to eq false
@@ -189,7 +189,7 @@ describe "ShellOpts::ShellOpts" do
     end
   end
 
-  describe ".debug?" do
+  describe "::debug?" do
     it "returns the status of the debug option in the current instance" do
       ShellOpts.process("-a", [], debug: true)
       expect(ShellOpts.debug?).to eq false
@@ -212,7 +212,13 @@ describe "ShellOpts::ShellOpts" do
     return false
   end
 
-  describe "#process" do
+  describe "::path X" do
+    # Hard to test
+    it "returns the absolute path to the executable"
+    it "is not affected by changes to directory"
+  end
+
+  describe "::process" do
     it "can disable --version option" do
       spec = %(--version)
       opts, args = ShellOpts.process(spec, [], version: false)

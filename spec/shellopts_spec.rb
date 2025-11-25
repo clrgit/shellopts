@@ -212,10 +212,24 @@ describe "ShellOpts::ShellOpts" do
     return false
   end
 
-  describe "::path X" do
+  describe "::program_path" do
     # Hard to test
     it "returns the absolute path to the executable"
-    it "is not affected by changes to directory"
+    it "is not affected by changes to current directory"
+    # Better-than-nothing-test
+    it "doesn't fail" do
+      expect(ShellOpts.program_path).to be_a String
+    end
+  end
+
+  describe "::environment_path" do
+    # Hard to test
+    it "returns the absolute path to the user's current directory when the program was called"
+    it "is not affected by changes to current directory"
+    # Better-than-nothing-test
+    it "doesn't fail" do
+      expect(ShellOpts.environment_path).to be_a String
+    end
   end
 
   describe "::process" do

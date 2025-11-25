@@ -400,6 +400,11 @@ module ShellOpts
     end
   end
 
+  # The full path to the program. This is initialized when shellopts.rb is
+  # loaded so it is not affected by later changes of directory
+  @@PROGRAM_PATH = File.absolute_path($PROGRAM_NAME)
+  def self.path = @@PROGRAM_PATH
+
   def self.process(spec, argv, silent: nil, quiet: nil, verbose: nil, debug: nil, **opts)
     constrain silent, String, true, false, nil
     constrain quiet, String, true, false, nil

@@ -268,14 +268,14 @@ module ShellOpts
     #
     # #error is supposed to be used when the user made an error and the usage
     # is written to help correcting the error
-    def error(message)
+    def error(message, exit: 1)
       raise ShellOpts::Error.new(message) if ::ShellOpts.exception
       $stderr.puts "#{name}: #{message}"
       saved = $stdout
       begin
         $stdout = $stderr
         Formatter.usage(grammar)
-        exit 1
+        ::ShellOpts.handle_exit(exit)
       ensure
         $stdout = saved
       end
@@ -286,10 +286,10 @@ module ShellOpts
     # #failure doesn't print the program usage because is supposed to be used
     # when the user specified the correct arguments but something else went
     # wrong during processing
-    def failure(message)
+    def failure(message, exit: 1)
       raise ShellOpts::Failure.new(message) if ::ShellOpts.exception
       $stderr.puts "#{name}: #{message}"
-      exit 1
+      ::ShellOpts.handle_exit(exit)
     end
 
     # Print usage
@@ -445,18 +445,18 @@ module ShellOpts
   def self.verbose?(level = 1) level <= instance.program.__verbose__ end
   def self.debug?() instance.program.__debug__ end
 
-  def self.error(message)
+  def self.error(message, exit: 1)
     raise Error.new(message) if exception
     instance.error(message) if instance? # Never returns
     $stderr.puts "#{File.basename($PROGRAM_NAME)}: #{message}"
-    exit 1
+    handle_exit(exit)
   end
 
-  def self.failure(message)
+  def self.failure(message, exit: 1)
     raise Error.new(message) if exception
     instance.failure(message) if instance?
     $stderr.puts "#{File.basename($PROGRAM_NAME)}: #{message}"
-    exit 1
+    handle_exit(exit)
   end
 
   # Emit a message on standard error. The --silent option suppresses these messages
@@ -494,6 +494,14 @@ module ShellOpts
     end
   end
 
+private
+  # Exit program with the given status if an integer and status 1 if not. Do
+  # not exit if status is falsy
+  def self.handle_exit(value)
+    exit(value.is_a?(Integer) ? value : 1) if value
+  end
+
+public
   module Message
     @is_included = false
     def self.is_included?() @is_included end

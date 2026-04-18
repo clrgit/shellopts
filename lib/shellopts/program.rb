@@ -104,7 +104,6 @@ module ShellOpts
       keys.filter_map { |key| __option_values__.key?(key) && [key, self.__send__(key)] }.to_h
     end
 
-
     # Subcommand identifier or nil if not present. #subcommand is often used in
     # case statement to branch out to code that handles the given subcommand:
     #
@@ -123,9 +122,9 @@ module ShellOpts
     # (#<identifier>!) are often used instead of #subcommand! to get the
     # subcommand
     #
-    # Note: Can be overridden by a subcommand declaration (but not an
-    # option), in that case use #__subcommand__! or
-    # ShellOpts.subcommand!(object) instead
+    # Note: Can be overridden by a subcommand declaration (but not an option),
+    # in that case use #__subcommand__! or ShellOpts.subcommand!(object)
+    # instead
     #
     def subcommand!() __subcommand__! end
 

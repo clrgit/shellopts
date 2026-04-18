@@ -447,16 +447,22 @@ module ShellOpts
 
   def self.error(message, exit: 1)
     raise Error.new(message) if exception
-    instance.error(message, exit: exit) if instance? # Never returns
-    $stderr.puts "#{File.basename($PROGRAM_NAME)}: #{message}"
-    handle_exit(exit)
+    if instance?
+      instance.error(message, exit: exit)
+    else
+      $stderr.puts "#{File.basename($PROGRAM_NAME)}: #{message}"
+      handle_exit(exit)
+    end
   end
 
   def self.failure(message, exit: 1)
     raise Error.new(message) if exception
-    instance.failure(message, exit: exit) if instance?
-    $stderr.puts "#{File.basename($PROGRAM_NAME)}: #{message}"
-    handle_exit(exit)
+    if instance?
+      instance.failure(message, exit: exit)
+    else
+      $stderr.puts "#{File.basename($PROGRAM_NAME)}: #{message}"
+      handle_exit(exit)
+    end
   end
 
   # Emit a message on standard error. The --silent option suppresses these messages

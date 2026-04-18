@@ -46,6 +46,22 @@ describe "ShellOpts::ShellOpts" do
         end
       end
     end
+    context "with an :exit option" do
+      before { allow($stderr).to receive(:write) }
+      it "does not exit if :exit is falsy" do
+        expect { ShellOpts.error("msg", exit: nil) }.not_to raise_error
+      end
+      it "exit with the given exit status if an integer" do
+        expect { ShellOpts.error("msg", exit: 2) }.to raise_error (SystemExit) { |error|
+          expect(error.status).to eq 2
+        }
+      end
+      it "exit with status 1 otherwise" do
+        expect { ShellOpts.error("msg", exit: "hello") }.to raise_error (SystemExit) { |error|
+          expect(error.status).to eq 1
+        }
+      end
+    end
   end
 
   describe "::failure" do
@@ -72,6 +88,22 @@ describe "ShellOpts::ShellOpts" do
         ensure
           $stderr = hold
         end
+      end
+    end
+    context "with an :exit option" do
+      before { allow($stderr).to receive(:write) }
+      it "does not exit if :exit is falsy" do
+        expect { ShellOpts.failure("msg", exit: nil) }.not_to raise_error
+      end
+      it "exit with the given exit status if an integer" do
+        expect { ShellOpts.failure("msg", exit: 2) }.to raise_error (SystemExit) { |error|
+          expect(error.status).to eq 2
+        }
+      end
+      it "exit with status 1 otherwise" do
+        expect { ShellOpts.failure("msg", exit: "hello") }.to raise_error (SystemExit) { |error|
+          expect(error.status).to eq 1
+        }
       end
     end
   end

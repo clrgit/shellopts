@@ -135,6 +135,7 @@ module ShellOpts
 
     # Use exceptions instead of ShellOpts's error methods. Default is
     # ShellOpts.exception that itself defalts to false. Mostly used for debug
+    # when you want a stack trace instead of a user-readable error message
     attr_accessor :exception
 
     # Debug: Internal variables made public

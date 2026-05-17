@@ -164,10 +164,7 @@ module ShellOpts
       @file = file
       @help = help
       @version_number = version_number || (version && find_version_number)
-      p version
       @version = !@version_number.nil? && version
-      p @version
-      exit
       @silent = silent
       @quiet = quiet
       @verbose = verbose

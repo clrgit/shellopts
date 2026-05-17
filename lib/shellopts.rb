@@ -135,6 +135,7 @@ module ShellOpts
 
     # Use exceptions instead of ShellOpts's error methods. Default is
     # ShellOpts.exception that itself defalts to false. Mostly used for debug
+    # when you want a stack trace instead of a user-readable error message
     attr_accessor :exception
 
     # Debug: Internal variables made public
@@ -163,7 +164,10 @@ module ShellOpts
       @file = file
       @help = help
       @version_number = version_number || (version && find_version_number)
+      p version
       @version = !@version_number.nil? && version
+      p @version
+      exit
       @silent = silent
       @quiet = quiet
       @verbose = verbose
@@ -243,8 +247,7 @@ module ShellOpts
       self
     end
 
-    # Compile +spec+ and interpret +argv+. Returns a tuple of a
-    # ShellOpts::Program and ShellOpts::Args object
+    # Compile +spec+ and interpret +argv+. Returns a ShellOpts object
     #
     def process(spec, argv)
       compile(spec)
@@ -315,6 +318,26 @@ module ShellOpts
     def find_version_number
       version_rb = Dir.glob(File.dirname(file) + "/../lib/*/version.rb").first or return nil
       IO.readlines(version_rb).grep(/^.*VERSION\s*=\s*"(.*?)".*$/) { $1 }.first
+    end
+
+    def find_version_number
+      # Uninstalled program called using 'bundle exec'
+      if version_rb = Dir.glob(File.dirname(file) + "/../lib/*/version.rb").first
+        version = IO.readlines(version_rb).grep(/^.*VERSION\s*=\s*"(.*?)".*$/) { $1 }.first
+
+      # Installed program
+      elsif spec = Gem::Specification.find_by_path($0)
+        version = spec.version.to_s
+
+      # Installed program using RVM wrappers
+      else
+        spec = Gem::Specification.find_all
+           .select { |s| s.executables.include?(File.basename($0)) }
+           .max_by { |s| s.version }
+        version = spec&.version.to_s
+      end
+
+      version
     end
 
     def handle_exceptions(&block)

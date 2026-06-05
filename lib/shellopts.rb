@@ -533,8 +533,8 @@ public
     def self.is_included?() @is_included end
     def self.included(...) @is_included = true; super end
 
-    def notice(message) ::ShellOpts.notice(message) end
-    def mesg(message) ::ShellOpts.mesg(message) end
+    def notice(message, **opts) ::ShellOpts.notice(message, **opts) end
+    def mesg(message, **opts) ::ShellOpts.mesg(message, **opts) end
   end
 
   module Verbose
@@ -552,7 +552,7 @@ public
     def self.is_included?() @is_included end
     def self.included(...) @is_included = true; super end
 
-    def debug(message) ::ShellOpts.debug(message) end
+    def debug(message, **opts) ::ShellOpts.debug(message, **opts) end
   end
 
   module ErrorHandling

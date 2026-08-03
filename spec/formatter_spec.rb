@@ -361,6 +361,27 @@ describe "Formatter" do
         )
         expect(str(source)).to eq r
       end
+
+      it "handles any order of OPTIONS and COMMANDS" do
+        source = %(
+          OPTIONS
+            -o
+          COMMANDS
+            cmd!
+        )
+        expect { str(source) }.not_to raise_error
+
+        source = %(
+          COMMANDS
+            cmd!
+          OPTIONS
+            -o
+        )
+        expect { str(source) }.not_to raise_error
+      end
+
+
+
     end
 
     context "when source contains an explicit section" do

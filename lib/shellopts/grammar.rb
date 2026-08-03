@@ -22,12 +22,9 @@ module ShellOpts
         @parent.send(:attach, self) if @parent
       end
 
-      def traverse(*klasses, &block)
-        do_traverse(Array(klasses).flatten, &block)
-      end
-
       def parents() parent ? [parent] + parent.parents : [] end
       def ancestors() parents.reverse end
+      def traverse(*klasses, &block) = do_traverse(Array(klasses).flatten, &block)
 
       def inspect
         self.class.to_s

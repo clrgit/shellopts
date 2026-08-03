@@ -4,25 +4,33 @@
 
 require_relative 'lib/shellopts.rb'
 
-#include ShellOpts::Message
-include ShellOpts::Verbose
-#include ShellOpts::Debug
-
-#include ShellOpts::Messages
-#p ShellOpts::Messages.is_included?
+include ShellOpts
 SPEC = %(
-  Test
+  @ Make RLS functions and policies
 
-  -a
-    An option
+  -- [DATABASE] SPEC-FILE
+
+  Read SPEC-FILE and generate acl_portal.acl_* data. DATABASE and USERNAME
+  variables are read from the environment and then .prick.state.yml if present;
+  otherwise the current user's database is used
+
+  OPTIONS
+    --dump
+      Dump internal format. Used for debugging
+
+  COMMANDS
+    update!
+      Update the current database. This just keeps the IDs in acl_tables
+      stable, all other involved tables are cleared before loading
+
+  SPEC FILE
+    The format is a YAML file where each root key represents a table. A table
+    consists of select, insert, update, delete, and attach/detach actions that
+    are arrays of ACL entries
 )
 
-opts, args = ShellOpts.process(SPEC, ARGV, version: "--ver", version_number: "1.2.3")
+opts, args = ShellOpts.process(SPEC, ARGV)
 
-verb "Verbose default"
-(0..3).each { |i| verb i, "Verbose #{i}" }
-mesg "Message"
-notice "Notice"
-#debug "Debug"
-puts ShellOpts.instance.version_number
+pp opts.to_h
+pp args
 

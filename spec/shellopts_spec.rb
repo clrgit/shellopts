@@ -5,6 +5,33 @@ describe "ShellOpts" do
     expect(ShellOpts::VERSION).not_to be_nil
   end
 
+  describe "::clear_screen" do
+    def method_str(method, source, subject = nil) # Copied from formatter FIXME
+      shellopts = ShellOpts::ShellOpts.new(help: false, version: false).compile(source)
+      grammar = shellopts.compile(source)
+      subject = subject ? shellopts.grammar[subject] : shellopts.grammar
+      capture { ShellOpts::Formatter.send method, subject }
+    end
+
+    def did_clear_screen
+      spec = "-a -- FILE"
+      allow_any_instance_of(ShellOpts::ShellOpts).to receive(:exit)
+      result = capture { ShellOpts::ShellOpts.process(spec, %w(--help)) }
+      !(result =~ /\[H\[2J/).nil?
+    end
+
+    it 'is true by default' do
+      expect(::ShellOpts.clear_screen).to eq true
+    end
+    it '--help clears the screen when true' do
+      expect(did_clear_screen).to eq true
+    end
+    it '--help does not clear the screen when false' do
+      ::ShellOpts.clear_screen = false
+      expect(did_clear_screen).to eq false
+    end
+  end
+
 # describe "::process" do
 #   it "Returns a tuple of ShellOpts::Program and ShellOpts::Args objects" do
 #     spec = "-a"

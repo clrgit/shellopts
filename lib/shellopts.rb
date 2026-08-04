@@ -171,6 +171,7 @@ module ShellOpts
       @debug = debug
       @float = float
       @exception = exception
+      @clear_screen = true
     end
 
     # Compile source and return grammar object. Also sets #spec and #grammar.
@@ -299,11 +300,11 @@ module ShellOpts
     def brief() Formatter.brief(@grammar) end
 
     # Print help for the given subject or the full documentation if +subject+
-    # is nil. Clears the screen beforehand if :clear is true
-    def help(subject = nil, clear: true)
+    # is nil. Clears the screen beforehand if #clear_screen is true
+    def help(subject = nil)
       node = (subject ? @grammar[subject] : @grammar) or
           raise ArgumentError, "No such command: '#{subject&.sub(".", " ")}'"
-      print '[H[2J' if clear
+      print '[H[2J' if ::ShellOpts.clear_screen
       Formatter.help(node)
     end
 
@@ -444,6 +445,13 @@ module ShellOpts
   @exception = false
   def self.exception = @exception
   def self.exception=(value) @exception = value end
+
+  # Controls whether the --help option clears the screen before printing. This
+  # can be set to false in development to prevent debug output from being
+  # cleared
+  @clear_screen = true
+  def self.clear_screen = @clear_screen
+  def self.clear_screen=(clear) @clear_screen = clear end
 
   # The instance is a ShellOpts object. 'instance.program' and 'instance.argv'
   # is the same as the values returned from ShellOpts.process

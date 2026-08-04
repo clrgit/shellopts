@@ -334,9 +334,6 @@ module ShellOpts
       alias_method :command, :parent
     end
 
-    class Usage < ArgDescr
-    end
-
     module WrappedNode
       using Ext::Array::Wrap
       def words() @words ||= text.split(" ") end
@@ -359,10 +356,6 @@ module ShellOpts
     end
 
     class Section < Node
-      def initialize(parent, token)
-        constrain token.source, *%w(DESCRIPTION OPTION COMMAND)
-        super
-      end
       def name() token.source end
     end
 
@@ -376,7 +369,7 @@ module ShellOpts
         Arg => [ArgSpec],
         ArgDescr => [Command],
         Brief => [Command, OptionGroup, ArgSpec, ArgDescr],
-        Paragraph => [Command, OptionGroup],
+        Paragraph => [Command, OptionGroup, Section],
         Code => [Command, OptionGroup],
         Section => [Program]
       }

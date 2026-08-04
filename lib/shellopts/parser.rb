@@ -244,7 +244,7 @@ module ShellOpts
             Grammar::ArgDescr.parse(cmds.top, token)
 
           when :text
-            # Text is only allowed on new lines
+            # Text is only allowed on new lines. FIXME Does nothing
             token.lineno > nodes.top.token.lineno
 
             # Detect indented comment groups (code)

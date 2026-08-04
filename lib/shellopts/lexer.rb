@@ -3,7 +3,7 @@ module ShellOpts
   class Line
     attr_reader :source
     attr_reader :lineno
-    attr_reader :charno
+    attr_reader :charno # aka "indent + 1"
     attr_reader :text
 
     def initialize(lineno, charno, source)
@@ -107,9 +107,13 @@ module ShellOpts
             @tokens << Token.new(kind, line.lineno, line.charno, line.text)
           }
 
-        # Sections
+        # Built-in sections
         elsif SECTIONS.include?(line.text)
           @tokens << Token.new(:section, line.lineno, line.charno, line.text.sub(/S$/, ""))
+
+        # User-defined sections
+        elsif line.text =~ /^[^a-z]*$/ && lines.first && lines.first.charno > line.charno
+          @tokens << Token.new(:section, line.lineno, line.charno, line)
 
         # Options, commands, usage, arguments, and briefs
         elsif line =~ DECL_RE

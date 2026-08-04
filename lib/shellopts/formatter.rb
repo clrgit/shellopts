@@ -26,6 +26,14 @@ module ShellOpts
       end
     end
 
+    class Section
+      # This is a hack since the section does not contain any elements - this
+      # is an error in the parser
+      def puts_descr
+        indent(-1) { print Ansi.bold(name) }
+      end
+    end
+
     # brief one-line commands should optionally use compact options
     class Command
       using Ext::Array::Wrap
@@ -123,8 +131,8 @@ module ShellOpts
         newline = false # True if a newline should be printed before child
         indent {
           children.each { |child|
-            klass = child.is_a?(Section) ?  section.key(child.name) : child.class
-            if s = section[klass] # Implicit section
+            klass = child.is_a?(Section) ? section.key(child.name) : child.class
+            if s = section[klass] # Built-in sections
               section.delete(klass)
               section.delete(Paragraph)
               if klass <= OptionGroup
@@ -136,6 +144,7 @@ module ShellOpts
               indent(-1) { puts Ansi.bold s }
               newline = false
               next if child.is_a?(Section)
+
             else # Any other node adds a newline
               puts if newline
               newline = true

@@ -5,6 +5,8 @@
 require_relative 'lib/shellopts.rb'
 
 include ShellOpts
+ShellOpts.clear_screen = false
+
 SPEC = %(
   @ Make RLS functions and policies
 
@@ -27,6 +29,10 @@ SPEC = %(
     The format is a YAML file where each root key represents a table. A table
     consists of select, insert, update, delete, and attach/detach actions that
     are arrays of ACL entries
+
+  ANOTHER SUBJECT
+    Bla bla bla
+
 )
 
 opts, args = ShellOpts.process(SPEC, ARGV)

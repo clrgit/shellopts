@@ -453,8 +453,8 @@ module ShellOpts
   def self.clear_screen = @clear_screen
   def self.clear_screen=(clear) @clear_screen = clear end
 
-  # The instance is a ShellOpts object. 'instance.program' and 'instance.argv'
-  # is the same as the values returned from ShellOpts.process
+  # The instance is a ShellOpts object. 'instance.program' and 'instance.args'
+  # are the same as the values returned from ShellOpts.process
   @instance = nil
   def self.instance?() !@instance.nil? end
   def self.instance() @instance or raise Error, "ShellOpts is not initialized" end

@@ -40,6 +40,7 @@ require_relative 'shellopts/dump.rb'
 #     prints an intelligble error message and prettyfies stack dump. This
 #     should catch non-RuntimeError/IOError exceptions
 #   * Find a reliable way of testing environment
+#
 
 module ShellOpts
   # Base error class
